@@ -1,0 +1,31 @@
+const express = require('express');
+const router = express.Router();
+const userController = require('../controllers/userController');
+const { protect, authorize } = require('../middleware/auth');
+const { validateRegister } = require('../middleware/validation');
+
+// Lấy thống kê users
+router.get('/stats', protect, authorize(['admin']), userController.getUserStats);
+
+// Lấy danh sách tất cả users
+router.get('/', protect, authorize(['admin']), userController.getAllUsers);
+
+// Tạo user mới
+router.post('/', protect, authorize(['admin']), validateRegister, userController.createUser);
+
+// Lấy thông tin user theo ID
+router.get('/:id', protect, authorize(['admin']), userController.getUserById);
+
+// Cập nhật thông tin user
+router.put('/:id', protect, authorize(['admin']), userController.updateUser);
+
+// Xóa user
+router.delete('/:id', protect, authorize(['admin']), userController.deleteUser);
+
+// Chuyển đổi trạng thái user (active/inactive)
+router.put('/:id/toggle-status', protect, authorize(['admin']), userController.toggleUserStatus);
+
+// Cập nhật role user
+router.put('/:id/role', protect, authorize(['admin']), userController.updateUserRole);
+
+module.exports = router;
