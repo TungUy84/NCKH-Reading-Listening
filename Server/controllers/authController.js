@@ -272,6 +272,46 @@ const logoutUser = async (req, res) => {
   }
 };
 
+// Upload avatar
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Vui lòng chọn file hình ảnh' });
+    }
+
+    // Get user from token
+    const userId = req.user.id;
+    
+    // Create avatar URL
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    
+    // Update user avatar in database
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { avatar: avatarUrl },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Cập nhật avatar thành công',
+      user: user,
+      avatarUrl: avatarUrl
+    });
+
+  } catch (error) {
+    console.error('Upload avatar error:', error);
+    res.status(500).json({ 
+      message: 'Lỗi server khi upload avatar',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -280,5 +320,6 @@ module.exports = {
   changePassword,
   forgotPassword,
   resetPassword,
-  logoutUser
+  logoutUser,
+  uploadAvatar
 };

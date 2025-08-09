@@ -1,0 +1,360 @@
+const { PlacementTest } = require('../models/PlacementTest');
+// Không cần import PlacementResult vì không lưu kết quả vào database
+
+// Lấy danh sách các bài test theo category (Public)
+const getActivePlacementTests = async (req, res) => {
+  try {
+    const { category } = req.query; // listening, reading, general
+    
+    const filter = { isActive: true };
+    if (category && ['listening', 'reading', 'general'].includes(category)) {
+      filter.category = category;
+    }
+
+    const tests = await PlacementTest.find(filter)
+      .select('title description timeLimit totalQuestions category')
+      .sort({ createdAt: -1 });
+
+    res.json({
+      message: 'Lấy danh sách bài test thành công',
+      tests
+    });
+  } catch (error) {
+    console.error('Get placement tests error:', error);
+    res.status(500).json({ message: 'Lỗi server khi lấy danh sách bài test' });
+  }
+};
+
+// Lấy chi tiết bài test để làm bài (Public)
+const getPlacementTestForTaking = async (req, res) => {
+  try {
+    const { testId } = req.params;
+
+    const test = await PlacementTest.findById(testId)
+      .select('-questions.correctAnswers -questions.explanation'); // Ẩn đáp án và giải thích
+
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    if (!test.isActive) {
+      return res.status(400).json({ message: 'Bài test này không còn hoạt động' });
+    }
+
+    res.json({
+      message: 'Lấy bài test thành công',
+      test
+    });
+  } catch (error) {
+    console.error('Get placement test error:', error);
+    res.status(500).json({ message: 'Lỗi server khi lấy bài test' });
+  }
+};
+
+// Chấm điểm bài test ngay lập tức (Public - không lưu database)
+const checkPlacementTest = async (req, res) => {
+  try {
+    const { testId, answers } = req.body;
+
+    // Lấy bài test với đáp án đúng
+    const test = await PlacementTest.findById(testId);
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    // Tính điểm
+    let earnedPoints = 0;
+    const detailedResults = [];
+
+    test.questions.forEach((question, index) => {
+      const userAnswer = answers[index];
+      let isCorrect = false;
+      let pointsEarned = 0;
+
+      if (userAnswer) {
+        if (question.type === 'single_choice') {
+          isCorrect = question.options.some(option => 
+            option.text === userAnswer.selectedOptions[0] && option.isCorrect
+          );
+        } else if (question.type === 'multiple_choice') {
+          const correctOptions = question.options
+            .filter(option => option.isCorrect)
+            .map(option => option.text);
+          
+          isCorrect = correctOptions.length === userAnswer.selectedOptions.length &&
+            correctOptions.every(option => userAnswer.selectedOptions.includes(option));
+        } else if (question.type === 'fill_blank') {
+          isCorrect = question.correctAnswers.some(correct => 
+            correct.toLowerCase().trim() === userAnswer.userAnswer.toLowerCase().trim()
+          );
+        }
+
+        if (isCorrect) {
+          pointsEarned = question.points;
+          earnedPoints += pointsEarned;
+        }
+      }
+
+      detailedResults.push({
+        questionNumber: index + 1,
+        question: {
+          type: question.type,
+          content: question.content,
+          passage: question.passage,
+          media: question.media,
+          options: question.options
+        },
+        userAnswer: {
+          selectedOptions: userAnswer?.selectedOptions || [],
+          userAnswer: userAnswer?.userAnswer || ''
+        },
+        correctAnswers: question.correctAnswers,
+        isCorrect,
+        pointsEarned,
+        explanation: question.explanation
+      });
+    });
+
+    const percentage = Math.round((earnedPoints / test.totalPoints) * 100);
+
+    // Tính điểm IELTS và level AV (không cần lưu database)
+    const getIELTSAndLevel = (percentage) => {
+      let ieltsScore, avLevel, recommendation;
+
+      if (percentage >= 95) {
+        ieltsScore = '8.5-9.0';
+        avLevel = 'Đạt chuẩn đầu ra';
+        recommendation = 'Xuất sắc! Bạn đã đạt trình độ rất cao và có thể tự tin sử dụng tiếng Anh trong mọi tình huống.';
+      } else if (percentage >= 85) {
+        ieltsScore = '7.5-8.0';
+        avLevel = 'AV7';
+        recommendation = 'Rất tốt! Bạn có thể tham gia các khóa học nâng cao để hoàn thiện kỹ năng.';
+      } else if (percentage >= 75) {
+        ieltsScore = '6.5-7.0';
+        avLevel = 'AV6';
+        recommendation = 'Tốt! Bạn nên tập trung rèn luyện thêm để đạt mức độ thành thạo.';
+      } else if (percentage >= 65) {
+        ieltsScore = '6.0-6.5';
+        avLevel = 'AV5';
+        recommendation = 'Khá tốt! Tiếp tục học tập đều đặn để nâng cao trình độ.';
+      } else if (percentage >= 55) {
+        ieltsScore = '5.5-6.0';
+        avLevel = 'AV4';
+        recommendation = 'Trung bình khá! Bạn cần luyện tập nhiều hơn ở những phần còn yếu.';
+      } else if (percentage >= 45) {
+        ieltsScore = '5.0-5.5';
+        avLevel = 'AV3';
+        recommendation = 'Trung bình! Hãy tập trung vào việc củng cố kiến thức cơ bản.';
+      } else if (percentage >= 35) {
+        ieltsScore = '4.5-5.0';
+        avLevel = 'AV2';
+        recommendation = 'Cần cải thiện! Bạn nên bắt đầu từ những bài học cơ bản.';
+      } else {
+        ieltsScore = '3.0-4.0';
+        avLevel = 'AV1';
+        recommendation = 'Cần học từ đầu! Hãy tham gia các khóa học tiếng Anh cơ bản.';
+      }
+
+      return { ieltsScore, avLevel, recommendation };
+    };
+
+    const { ieltsScore, avLevel, recommendation } = getIELTSAndLevel(percentage);
+
+    res.json({
+      message: 'Chấm bài thành công',
+      result: {
+        testTitle: test.title,
+        category: test.category,
+        score: {
+          totalPoints: test.totalPoints,
+          earnedPoints,
+          percentage
+        },
+        ieltsScore,
+        avLevel,
+        recommendation,
+        detailedResults
+      }
+    });
+  } catch (error) {
+    console.error('Check placement test error:', error);
+    res.status(500).json({ message: 'Lỗi server khi chấm bài' });
+  }
+};
+
+// === ADMIN FUNCTIONS ===
+
+// Lấy tất cả bài test (Admin only)
+const getAllPlacementTests = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const tests = await PlacementTest.find()
+      .populate('createdBy', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await PlacementTest.countDocuments();
+
+    res.json({
+      message: 'Lấy danh sách bài test thành công',
+      tests,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error('Get all placement tests error:', error);
+    res.status(500).json({ message: 'Lỗi server khi lấy danh sách bài test' });
+  }
+};
+
+// Lấy chi tiết bài test (Admin only)
+const getPlacementTestById = async (req, res) => {
+  try {
+    const { testId } = req.params;
+
+    const test = await PlacementTest.findById(testId)
+      .populate('createdBy', 'firstName lastName email');
+
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    res.json({
+      message: 'Lấy chi tiết bài test thành công',
+      test
+    });
+  } catch (error) {
+    console.error('Get placement test by id error:', error);
+    res.status(500).json({ message: 'Lỗi server khi lấy chi tiết bài test' });
+  }
+};
+
+// Tạo bài test mới (Admin only)
+const createPlacementTest = async (req, res) => {
+  try {
+    const { title, description, instructions, timeLimit, questions } = req.body;
+
+    const test = new PlacementTest({
+      title,
+      description,
+      instructions,
+      timeLimit,
+      questions,
+      createdBy: req.user._id
+    });
+
+    await test.save();
+
+    res.status(201).json({
+      message: 'Tạo bài test thành công',
+      test
+    });
+  } catch (error) {
+    console.error('Create placement test error:', error);
+    res.status(500).json({ message: 'Lỗi server khi tạo bài test' });
+  }
+};
+
+// Cập nhật bài test (Admin only)
+const updatePlacementTest = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const { title, description, instructions, timeLimit, questions, isActive } = req.body;
+
+    const test = await PlacementTest.findById(testId);
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    // Cập nhật các field
+    if (title) test.title = title;
+    if (description !== undefined) test.description = description;
+    if (instructions) test.instructions = instructions;
+    if (timeLimit) test.timeLimit = timeLimit;
+    if (questions) test.questions = questions;
+    if (isActive !== undefined) test.isActive = isActive;
+
+    await test.save();
+
+    res.json({
+      message: 'Cập nhật bài test thành công',
+      test
+    });
+  } catch (error) {
+    console.error('Update placement test error:', error);
+    res.status(500).json({ message: 'Lỗi server khi cập nhật bài test' });
+  }
+};
+
+// Xóa bài test (Admin only)
+const deletePlacementTest = async (req, res) => {
+  try {
+    const { testId } = req.params;
+
+    const test = await PlacementTest.findById(testId);
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    await PlacementTest.findByIdAndDelete(testId);
+
+    res.json({ message: 'Xóa bài test thành công' });
+  } catch (error) {
+    console.error('Delete placement test error:', error);
+    res.status(500).json({ message: 'Lỗi server khi xóa bài test' });
+  }
+};
+
+// Lấy thống kê test (Admin only) - Đơn giản hóa vì không lưu kết quả
+const getPlacementTestStats = async (req, res) => {
+  try {
+    const totalTests = await PlacementTest.countDocuments();
+    const activeTests = await PlacementTest.countDocuments({ isActive: true });
+    const listeningTests = await PlacementTest.countDocuments({ category: 'listening', isActive: true });
+    const readingTests = await PlacementTest.countDocuments({ category: 'reading', isActive: true });
+    const generalTests = await PlacementTest.countDocuments({ category: 'general', isActive: true });
+
+    // Thống kê theo category
+    const categoryStats = [
+      { category: 'listening', count: listeningTests },
+      { category: 'reading', count: readingTests },
+      { category: 'general', count: generalTests }
+    ];
+
+    res.json({
+      message: 'Lấy thống kê thành công',
+      stats: {
+        totalTests,
+        activeTests,
+        categoryStats,
+        note: 'Kết quả test không được lưu trong database nên không có thống kê kết quả người dùng'
+      }
+    });
+  } catch (error) {
+    console.error('Get placement test stats error:', error);
+    res.status(500).json({ message: 'Lỗi server khi lấy thống kê' });
+  }
+};
+
+module.exports = {
+  // Public APIs
+  getActivePlacementTests,
+  getPlacementTestForTaking,
+  checkPlacementTest, // Thay thế submitPlacementTest
+  
+  // Admin APIs
+  getAllPlacementTests,
+  getPlacementTestById,
+  createPlacementTest,
+  updatePlacementTest,
+  deletePlacementTest,
+  getPlacementTestStats
+};

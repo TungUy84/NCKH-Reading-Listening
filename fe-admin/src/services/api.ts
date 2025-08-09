@@ -1,0 +1,264 @@
+import axios from 'axios';
+import { 
+  PlacementTest, 
+  TestFormData, 
+  AdminUser, 
+  LoginCredentials, 
+  AuthResponse, 
+  DashboardStats,
+  AdminApiResponse,
+  PaginationInfo 
+} from '../types';
+
+// Create axios instance with auth
+const api = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Auth token management
+export const authUtils = {
+  setToken: (token: string) => {
+    localStorage.setItem('admin_token', token);
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+  },
+  
+  getToken: (): string | null => {
+    return localStorage.getItem('admin_token');
+  },
+  
+  removeToken: () => {
+    localStorage.removeItem('admin_token');
+    delete api.defaults.headers.common['Authorization'];
+  },
+  
+  initToken: () => {
+    const token = authUtils.getToken();
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+  }
+};
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = authUtils.getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      authUtils.removeToken();
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Authentication API
+export class AuthAPI {
+  static async login(credentials: LoginCredentials): Promise<AuthResponse> {
+    try {
+      const response = await api.post('/auth/login', credentials);
+      const authData = response.data;
+      
+      // Set token for future requests
+      authUtils.setToken(authData.token);
+      
+      return authData;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw new Error('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+    }
+  }
+
+  static async logout(): Promise<void> {
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      authUtils.removeToken();
+    }
+  }
+
+  static async getCurrentUser(): Promise<AdminUser> {
+    try {
+      const response = await api.get('/auth/me');
+      return response.data.user;
+    } catch (error) {
+      console.error('Get current user error:', error);
+      throw new Error('Không thể lấy thông tin người dùng');
+    }
+  }
+}
+
+// Dashboard API
+export class DashboardAPI {
+  static async getStats(): Promise<DashboardStats> {
+    try {
+      const response = await api.get('/placement-tests/admin/stats');
+      return response.data.stats;
+    } catch (error) {
+      console.error('Get dashboard stats error:', error);
+      throw new Error('Không thể tải thống kê dashboard');
+    }
+  }
+}
+
+// Tests Management API
+export class TestsAPI {
+  // Get all tests with pagination
+  static async getTests(params?: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+    isActive?: boolean;
+  }): Promise<AdminApiResponse<PlacementTest[]>> {
+    try {
+      const response = await api.get('/placement-tests/admin', { params });
+      return {
+        success: true,
+        data: response.data.tests,
+        pagination: response.data.pagination
+      };
+    } catch (error) {
+      console.error('Get tests error:', error);
+      throw new Error('Không thể tải danh sách bài test');
+    }
+  }
+
+  // Get single test with full details (including answers)
+  static async getTest(testId: string): Promise<PlacementTest> {
+    try {
+      const response = await api.get(`/placement-tests/admin/${testId}`);
+      return response.data.test;
+    } catch (error) {
+      console.error('Get test error:', error);
+      throw new Error('Không thể tải chi tiết bài test');
+    }
+  }
+
+  // Create new test
+  static async createTest(testData: TestFormData): Promise<PlacementTest> {
+    try {
+      const response = await api.post('/placement-tests/admin', testData);
+      return response.data.test;
+    } catch (error) {
+      console.error('Create test error:', error);
+      throw new Error('Không thể tạo bài test mới');
+    }
+  }
+
+  // Update existing test
+  static async updateTest(testId: string, testData: Partial<TestFormData>): Promise<PlacementTest> {
+    try {
+      const response = await api.put(`/placement-tests/admin/${testId}`, testData);
+      return response.data.test;
+    } catch (error) {
+      console.error('Update test error:', error);
+      throw new Error('Không thể cập nhật bài test');
+    }
+  }
+
+  // Delete test
+  static async deleteTest(testId: string): Promise<void> {
+    try {
+      await api.delete(`/placement-tests/admin/${testId}`);
+    } catch (error) {
+      console.error('Delete test error:', error);
+      throw new Error('Không thể xóa bài test');
+    }
+  }
+
+  // Bulk operations
+  static async bulkDelete(testIds: string[]): Promise<void> {
+    try {
+      await api.post('/placement-tests/admin/bulk-delete', { testIds });
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      throw new Error('Không thể xóa các bài test đã chọn');
+    }
+  }
+
+  static async bulkUpdateStatus(testIds: string[], isActive: boolean): Promise<void> {
+    try {
+      await api.post('/placement-tests/admin/bulk-update-status', { testIds, isActive });
+    } catch (error) {
+      console.error('Bulk update status error:', error);
+      throw new Error('Không thể cập nhật trạng thái các bài test');
+    }
+  }
+}
+
+// File Upload API
+export class FileAPI {
+  static async uploadFile(file: File, type: 'audio' | 'image'): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+
+      const response = await api.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data.url;
+    } catch (error) {
+      console.error('File upload error:', error);
+      throw new Error('Không thể upload file');
+    }
+  }
+}
+
+// Utility functions
+export const adminApiUtils = {
+  handleError: (error: any): string => {
+    if (error.response?.data?.error) {
+      return error.response.data.error;
+    }
+    if (error.message) {
+      return error.message;
+    }
+    return 'Đã xảy ra lỗi không xác định';
+  },
+
+  formatResponse: <T>(response: any): AdminApiResponse<T> => {
+    return {
+      success: response.data?.success || true,
+      data: response.data?.data || response.data,
+      message: response.data?.message,
+      pagination: response.data?.pagination,
+    };
+  },
+
+  buildQueryParams: (params: Record<string, any>): string => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, value.toString());
+      }
+    });
+    return searchParams.toString();
+  },
+};
+
+// Initialize auth token on app start
+authUtils.initToken();
+
+export default api;
