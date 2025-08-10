@@ -28,11 +28,18 @@ apiService.interceptors.response.use(
   (response) => response,
   (error) => {
     console.error('API Error:', error.response?.data || error.message);
+    
+    // Only handle 401 redirects for protected routes, not auth routes
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      const currentPath = window.location.pathname;
+      const isAuthRoute = ['/login', '/register', '/forgot-password', '/reset-password'].includes(currentPath);
+      
+      if (!isAuthRoute) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
     }
+    
     return Promise.reject(error);
   }
 );

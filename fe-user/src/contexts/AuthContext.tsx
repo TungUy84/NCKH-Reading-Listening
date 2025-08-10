@@ -75,16 +75,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (response.token && response.user) {
         localStorage.setItem('token', response.token);
         setUser(response.user);
-        setIsLoading(false);
         return true;
       } else {
-        setIsLoading(false);
         return false;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
-      setIsLoading(false);
+      // Don't throw the error, just return false to let the component handle the display
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 

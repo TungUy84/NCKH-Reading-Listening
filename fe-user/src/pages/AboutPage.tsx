@@ -2,14 +2,17 @@ import React from 'react';
 
 const AboutPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Hero Section */}
-      <div className="bg-blue-600 text-white py-16">
+      <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white py-20" data-aos="fade-down">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">Về English Test Platform</h1>
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto">
-              Nền tảng luyện thi tiếng Anh trực tuyến hàng đầu, giúp bạn đánh giá và nâng cao trình độ tiếng Anh một cách hiệu quả.
+            <div className="text-8xl mb-6">🎓</div>
+            <h1 className="text-5xl font-extrabold mb-6 bg-gradient-to-r from-yellow-400 to-orange-300 bg-clip-text text-transparent">
+              English Test Platform
+            </h1>
+            <p className="text-xl text-blue-100 max-w-4xl mx-auto leading-relaxed">
+              Nền tảng luyện thi tiếng Anh trực tuyến hàng đầu, giúp bạn đánh giá và nâng cao trình độ tiếng Anh một cách hiệu quả ✨
             </p>
           </div>
         </div>
@@ -17,48 +20,45 @@ const AboutPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         {/* Mission Section */}
-        <div className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Sứ mệnh của chúng tôi</h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+        <div className="mb-20">
+          <div className="text-center mb-16" data-aos="fade-up">
+            <div className="text-6xl mb-4">🎯</div>
+            <h2 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+              Sứ mệnh của chúng tôi
+            </h2>
+            <p className="text-lg text-gray-600 max-w-4xl mx-auto leading-relaxed">
               Chúng tôi cam kết mang đến cho học viên những bài test placement chất lượng cao, 
-              giúp đánh giá chính xác trình độ tiếng Anh và đưa ra lộ trình học tập phù hợp.
+              giúp đánh giá chính xác trình độ tiếng Anh và đưa ra lộ trình học tập phù hợp 📚
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            <div className="text-center group hover:transform hover:scale-105 transition-all duration-300" data-aos="fade-up" data-aos-delay="100">
+              <div className="bg-gradient-to-r from-blue-100 to-blue-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-lg transition-all duration-300">
+                <div className="text-3xl">✅</div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Chính xác</h3>
-              <p className="text-gray-600">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Chính xác</h3>
+              <p className="text-gray-600 leading-relaxed">
                 Bài test được thiết kế dựa trên tiêu chuẩn quốc tế, đảm bảo kết quả chính xác và đáng tin cậy.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
+            <div className="text-center group hover:transform hover:scale-105 transition-all duration-300" data-aos="fade-up" data-aos-delay="200">
+              <div className="bg-gradient-to-r from-green-100 to-green-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-lg transition-all duration-300">
+                <div className="text-3xl">⚡</div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Nhanh chóng</h3>
-              <p className="text-gray-600">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Nhanh chóng</h3>
+              <p className="text-gray-600 leading-relaxed">
                 Kết quả test được trả về ngay lập tức kèm theo phân tích chi tiết và đề xuất học tập.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="bg-purple-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C20.832 18.477 19.246 18 17.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+            <div className="text-center group hover:transform hover:scale-105 transition-all duration-300" data-aos="fade-up" data-aos-delay="300">
+              <div className="bg-gradient-to-r from-purple-100 to-purple-200 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-lg transition-all duration-300">
+                <div className="text-3xl">📖</div>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Học tập</h3>
-              <p className="text-gray-600">
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Học tập</h3>
+              <p className="text-gray-600 leading-relaxed">
                 Cung cấp lộ trình học tập cá nhân hóa dựa trên kết quả test và mục tiêu của từng học viên.
               </p>
             </div>
@@ -66,67 +66,73 @@ const AboutPage: React.FC = () => {
         </div>
 
         {/* Features Section */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">Tính năng nổi bật</h2>
+        <div className="mb-20">
+          <div className="text-center mb-16" data-aos="fade-up">
+            <div className="text-6xl mb-4">🌟</div>
+            <h2 className="text-4xl font-extrabold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-6">
+              Tính năng nổi bật
+            </h2>
+          </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-4">Test Placement Toàn diện</h3>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div data-aos="fade-right">
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-8">
+                Test Placement Toàn diện 📝
+              </h3>
+              <div className="space-y-6">
+                <div className="flex items-start space-x-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300">
+                    <div className="text-white text-sm">🎧</div>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Kiểm tra kỹ năng Nghe</h4>
-                    <p className="text-gray-600">Đánh giá khả năng nghe hiểu qua các đoạn hội thoại và bài nghe chuyên sâu.</p>
+                    <h4 className="font-bold text-xl text-gray-900 mb-2">Kiểm tra kỹ năng Nghe</h4>
+                    <p className="text-gray-600 leading-relaxed">Đánh giá khả năng nghe hiểu qua các đoạn hội thoại và bài nghe chuyên sâu.</p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+                <div className="flex items-start space-x-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300">
+                    <div className="text-white text-sm">📚</div>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Kiểm tra kỹ năng Đọc</h4>
-                    <p className="text-gray-600">Đọc hiểu các đoạn văn với độ khó tăng dần từ cơ bản đến nâng cao.</p>
+                    <h4 className="font-bold text-xl text-gray-900 mb-2">Kiểm tra kỹ năng Đọc</h4>
+                    <p className="text-gray-600 leading-relaxed">Đọc hiểu các đoạn văn với độ khó tăng dần từ cơ bản đến nâng cao.</p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center mt-1">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+                <div className="flex items-start space-x-4 group">
+                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mt-1 group-hover:scale-110 transition-transform duration-300">
+                    <div className="text-white text-sm">🔍</div>
                   </div>
                   <div>
-                    <h4 className="font-medium text-gray-900">Đánh giá tổng hợp</h4>
-                    <p className="text-gray-600">Kết hợp nhiều dạng câu hỏi để đưa ra đánh giá toàn diện về trình độ.</p>
+                    <h4 className="font-bold text-xl text-gray-900 mb-2">Đánh giá tổng hợp</h4>
+                    <p className="text-gray-600 leading-relaxed">Kết hợp nhiều dạng câu hỏi để đưa ra đánh giá toàn diện về trình độ.</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-lg p-8">
-              <div className="text-center">
-                <div className="bg-white rounded-lg p-6 shadow-lg">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-4">Kết quả Test</h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Điểm tổng:</span>
-                      <span className="font-bold text-blue-600">85/100</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">IELTS tương đương:</span>
-                      <span className="font-bold text-green-600">6.5</span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Trình độ:</span>
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-medium">AV5</span>
+            <div className="relative" data-aos="fade-left">
+              <div className="bg-gradient-to-br from-blue-50 to-purple-100 rounded-3xl p-8 shadow-2xl border border-white">
+                <div className="text-center">
+                  <div className="text-4xl mb-4">📊</div>
+                  <div className="bg-white rounded-2xl p-8 shadow-xl border border-gray-100">
+                    <h4 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+                      Kết quả Test
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600 font-medium">Điểm tổng:</span>
+                        <span className="font-bold text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">85/100</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600 font-medium">IELTS tương đương:</span>
+                        <span className="font-bold text-2xl text-green-600">6.5 ⭐</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-gray-600 font-medium">Trình độ:</span>
+                        <span className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-xl text-lg font-bold">AV5 🎯</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -136,33 +142,50 @@ const AboutPage: React.FC = () => {
         </div>
 
         {/* Team Section */}
-        <div className="mb-16">
-          <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">Đội ngũ phát triển</h2>
+        <div className="mb-20">
+          <div className="text-center mb-16" data-aos="fade-up">
+            <div className="text-6xl mb-4">👥</div>
+            <h2 className="text-4xl font-extrabold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-6">
+              Đội ngũ phát triển
+            </h2>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-24 h-24 bg-gray-300 rounded-full mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900">Nguyễn Văn A</h3>
-              <p className="text-blue-600 mb-2">Lead Developer</p>
-              <p className="text-gray-600 text-sm">
+            <div className="text-center group" data-aos="fade-up" data-aos-delay="100">
+              <div className="relative mb-6">
+                <div className="w-32 h-32 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+                  <div className="text-4xl">👨‍💻</div>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Nguyễn Văn A</h3>
+              <p className="text-blue-600 font-semibold mb-3">Lead Developer 🚀</p>
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Chuyên gia về phát triển ứng dụng web với hơn 5 năm kinh nghiệm trong lĩnh vực EdTech.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-24 h-24 bg-gray-300 rounded-full mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900">Trần Thị B</h3>
-              <p className="text-blue-600 mb-2">Education Specialist</p>
-              <p className="text-gray-600 text-sm">
+            <div className="text-center group" data-aos="fade-up" data-aos-delay="200">
+              <div className="relative mb-6">
+                <div className="w-32 h-32 bg-gradient-to-r from-green-400 to-blue-500 rounded-full mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+                  <div className="text-4xl">👩‍🏫</div>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Trần Thị B</h3>
+              <p className="text-green-600 font-semibold mb-3">Education Specialist 📚</p>
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Thạc sĩ Ngôn ngữ Anh với 10 năm kinh nghiệm giảng dạy và thiết kế chương trình học.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-24 h-24 bg-gray-300 rounded-full mx-auto mb-4"></div>
-              <h3 className="text-lg font-semibold text-gray-900">Lê Văn C</h3>
-              <p className="text-blue-600 mb-2">UX/UI Designer</p>
-              <p className="text-gray-600 text-sm">
+            <div className="text-center group" data-aos="fade-up" data-aos-delay="300">
+              <div className="relative mb-6">
+                <div className="w-32 h-32 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+                  <div className="text-4xl">🎨</div>
+                </div>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Lê Văn C</h3>
+              <p className="text-purple-600 font-semibold mb-3">UX/UI Designer ✨</p>
+              <p className="text-gray-600 text-sm leading-relaxed">
                 Chuyên gia thiết kế trải nghiệm người dùng với passion về giáo dục trực tuyến.
               </p>
             </div>
@@ -170,23 +193,42 @@ const AboutPage: React.FC = () => {
         </div>
 
         {/* Stats Section */}
-        <div className="bg-blue-600 rounded-lg text-white p-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <div className="text-3xl font-bold mb-2">10,000+</div>
-              <p className="text-blue-100">Học viên đã tham gia</p>
+        <div className="relative" data-aos="zoom-in">
+          <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-3xl text-white p-12 shadow-2xl overflow-hidden">
+            <div className="absolute top-0 right-0 transform translate-x-16 -translate-y-8">
+              <div className="text-9xl opacity-10">📈</div>
             </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">500+</div>
-              <p className="text-blue-100">Bài test chất lượng</p>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">95%</div>
-              <p className="text-blue-100">Độ chính xác</p>
-            </div>
-            <div>
-              <div className="text-3xl font-bold mb-2">24/7</div>
-              <p className="text-blue-100">Hỗ trợ trực tuyến</p>
+            <div className="relative z-10">
+              <div className="text-center mb-8">
+                <h3 className="text-3xl font-bold mb-2">Thành tích đạt được 🏆</h3>
+                <p className="text-blue-100">Những con số ấn tượng của chúng tôi</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+                <div className="group">
+                  <div className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-yellow-400 to-orange-300 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+                    10,000+
+                  </div>
+                  <p className="text-blue-100 font-medium">Học viên đã tham gia 👥</p>
+                </div>
+                <div className="group">
+                  <div className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+                    500+
+                  </div>
+                  <p className="text-blue-100 font-medium">Bài test chất lượng 📝</p>
+                </div>
+                <div className="group">
+                  <div className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+                    95%
+                  </div>
+                  <p className="text-blue-100 font-medium">Độ chính xác ✅</p>
+                </div>
+                <div className="group">
+                  <div className="text-4xl font-extrabold mb-2 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent group-hover:scale-110 transition-transform duration-300">
+                    24/7
+                  </div>
+                  <p className="text-blue-100 font-medium">Hỗ trợ trực tuyến 🚀</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

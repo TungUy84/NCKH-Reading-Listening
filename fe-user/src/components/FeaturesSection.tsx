@@ -41,9 +41,9 @@ const FeaturesSection: React.FC = () => {
     <section className="py-20 bg-gray-50">
       <div className="section-container">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-16" data-aos="fade-up">
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            Tại sao chọn chúng tôi?
+            🌟 Tại sao chọn chúng tôi?
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Hệ thống luyện thi hiện đại với công nghệ giúp bạn đạt được kết quả tốt nhất
@@ -55,12 +55,14 @@ const FeaturesSection: React.FC = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="card hover:shadow-lg transition-shadow duration-300 text-center group"
+              className="card hover:shadow-xl transition-all duration-500 text-center group transform hover:scale-105"
+              data-aos="fade-up"
+              data-aos-delay={index * 100 + 200}
             >
-              <div className={`${feature.bgColor} ${feature.color} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}>
+              <div className={`${feature.bgColor} ${feature.color} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                 {feature.icon}
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
                 {feature.title}
               </h3>
               <p className="text-gray-600 leading-relaxed">

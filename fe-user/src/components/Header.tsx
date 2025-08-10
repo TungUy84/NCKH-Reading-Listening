@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarColor, getUserInitials, getUserDisplayName } from '../utils/avatarUtils';
@@ -6,8 +6,20 @@ import { getAvatarColor, getUserInitials, getUserDisplayName } from '../utils/av
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.scrollY;
+      setIsScrolled(scrollTop > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navigationItems = [
     { label: 'Trang chủ', href: '/' },
@@ -30,16 +42,28 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-100 sticky top-0 z-50">
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      isScrolled 
+        ? 'bg-white/95 backdrop-blur-md shadow-lg border-b border-gray-200' 
+        : 'bg-white shadow-sm border-b border-gray-100'
+    }`}>
       <div className="section-container">
-        <div className="flex items-center justify-between h-16">
+        <div className={`flex items-center justify-between transition-all duration-300 ${
+          isScrolled ? 'h-14' : 'h-16'
+        }`}>
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">ET</span>
+            <Link to="/" className="flex items-center space-x-2 group">
+              <div className={`bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center transition-all duration-300 transform group-hover:scale-110 ${
+                isScrolled ? 'w-7 h-7' : 'w-8 h-8'
+              }`}>
+                <span className={`text-white font-bold ${isScrolled ? 'text-xs' : 'text-sm'}`}>ET</span>
               </div>
-              <span className="text-xl font-bold text-gray-900">EnglishTest</span>
+              <span className={`font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent transition-all duration-300 ${
+                isScrolled ? 'text-lg' : 'text-xl'
+              }`}>
+                EnglishTest
+              </span>
             </Link>
           </div>
 
@@ -49,13 +73,18 @@ const Header: React.FC = () => {
               <Link
                 key={item.href}
                 to={item.href}
-                className={`text-sm font-medium transition-colors duration-200 ${
+                className={`text-sm font-medium transition-all duration-300 relative group ${
                   isActiveRoute(item.href)
-                    ? 'text-blue-600 border-b-2 border-blue-600 pb-1'
+                    ? 'text-blue-600'
                     : 'text-gray-600 hover:text-blue-600'
                 }`}
               >
                 {item.label}
+                <span className={`absolute left-0 bottom-0 h-0.5 bg-gradient-to-r from-blue-600 to-purple-600 transition-all duration-300 ${
+                  isActiveRoute(item.href) 
+                    ? 'w-full' 
+                    : 'w-0 group-hover:w-full'
+                }`}></span>
               </Link>
             ))}
           </nav>
@@ -91,25 +120,29 @@ const Header: React.FC = () => {
 
                 {/* User Dropdown Menu */}
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                  <div className="absolute right-0 mt-2 w-48 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl py-2 z-50 border border-gray-100 animate-in slide-in-from-top-5 duration-200">
                     <Link
                       to="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 group"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
+                      <span className="mr-2">👤</span>
                       Thông tin cá nhân
                     </Link>
                     <Link
                       to="/my-tests"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-all duration-200 group"
                       onClick={() => setIsUserMenuOpen(false)}
                     >
+                      <span className="mr-2">📊</span>
                       Kết quả bài thi
                     </Link>
+                    <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      className="flex items-center w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-all duration-200 group"
                     >
+                      <span className="mr-2">🚪</span>
                       Đăng xuất
                     </button>
                   </div>
@@ -119,14 +152,15 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-gray-500 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                  className="text-gray-500 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors duration-200"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-2 rounded-xl text-sm font-bold transition-all duration-300 transform hover:scale-105 shadow-lg"
                 >
+                  <span className="mr-1">🚀</span>
                   Đăng ký
                 </Link>
               </div>

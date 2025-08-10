@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { PlacementTest, UserAnswer } from '../types';
 import { getTestForTaking, submitTest } from '../services/api';
 
@@ -13,7 +14,6 @@ const TakeTestPage: React.FC = () => {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -33,14 +33,15 @@ const TakeTestPage: React.FC = () => {
         }
       } catch (error) {
         console.error('Error fetching test:', error);
-        setError('Không thể tải bài thi. Vui lòng thử lại.');
+        toast.error('❌ Không thể tải bài thi. Vui lòng thử lại.');
+        navigate('/tests');
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchTest();
-  }, [testId]);
+  }, [testId, navigate]);
 
   const handleSubmit = useCallback(async () => {
     if (!test || !testId) return;
@@ -58,13 +59,14 @@ const TakeTestPage: React.FC = () => {
       
       const response = await submitTest(submission);
       if (response.result) {
+        toast.success('🎉 Nộp bài thành công!');
         navigate(`/test/${testId}/result`, { state: { result: response.result } });
       } else {
         throw new Error('Không nhận được kết quả');
       }
     } catch (error) {
       console.error('Submit error:', error);
-      setError('Không thể nộp bài. Vui lòng thử lại.');
+      toast.error('❌ Không thể nộp bài. Vui lòng thử lại.');
       setIsSubmitting(false);
     }
   }, [test, testId, answers, navigate]);
@@ -116,16 +118,22 @@ const TakeTestPage: React.FC = () => {
     );
   }
 
-  if (error || !test) {
+  if (!test) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Lỗi</h1>
-          <p className="text-gray-600 mb-4">{error || 'Không tìm thấy bài thi'}</p>
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-2xl border border-red-100" data-aos="zoom-in">
+          <div className="text-8xl mb-6">❌</div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-4">
+            Không tìm thấy bài thi
+          </h1>
+          <p className="text-gray-600 mb-8 leading-relaxed">
+            Bài thi này có thể đã bị xóa hoặc không khả dụng 😕
+          </p>
           <button
             onClick={() => navigate('/tests')}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
+            <span className="mr-2">🔙</span>
             Quay lại danh sách bài thi
           </button>
         </div>

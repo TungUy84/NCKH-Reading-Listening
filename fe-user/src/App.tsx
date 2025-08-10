@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import AOS from 'aos';
 import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 import HomePage from './pages/HomePage';
 import TestsPage from './pages/TestsPage';
 import TakeTestPage from './pages/TakeTestPage';
@@ -11,13 +14,23 @@ import TestResultPage from './pages/TestResultPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
-import ChangePasswordPage from './pages/ChangePasswordPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 
+import 'react-toastify/dist/ReactToastify.css';
+import 'aos/dist/aos.css';
+
 function App() {
+  useEffect(() => {
+    AOS.init({
+      duration: 400, 
+      once: true,
+      offset: 100,
+    });
+  }, []);
+
   return (
     <AuthProvider>
       <Router
@@ -26,10 +39,11 @@ function App() {
           v7_relativeSplatPath: true
         }}
       >
-        <div className="min-h-screen flex flex-col">
+        <ScrollToTop />
+        <div className="min-h-screen flex flex-col overflow-x-hidden">
           <Header />
           
-          <main className="flex-1">
+          <main className="flex-1 pt-16">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/tests" element={<TestsPage />} />
@@ -40,11 +54,6 @@ function App() {
               <Route path="/profile" element={
                 <ProtectedRoute>
                   <ProfilePage />
-                </ProtectedRoute>
-              } />
-              <Route path="/change-password" element={
-                <ProtectedRoute>
-                  <ChangePasswordPage />
                 </ProtectedRoute>
               } />
               <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -64,6 +73,20 @@ function App() {
           </main>
           
           <Footer />
+          
+          {/* Toast Container */}
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
         </div>
       </Router>
     </AuthProvider>
