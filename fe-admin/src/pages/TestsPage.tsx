@@ -30,7 +30,7 @@ const TestsPage: React.FC = () => {
     if (window.confirm('Bạn có chắc chắn muốn xóa bài test này?')) {
       try {
         await TestsAPI.delete(id);
-        setTests(tests.filter(test => test.id !== id));
+        setTests(tests.filter(test => test._id !== id));
       } catch (error) {
         console.error('Failed to delete test:', error);
         alert('Có lỗi xảy ra khi xóa bài test');
@@ -42,7 +42,7 @@ const TestsPage: React.FC = () => {
     try {
       await TestsAPI.update(id, { isActive: !currentStatus });
       setTests(tests.map(test => 
-        test.id === id ? { ...test, isActive: !currentStatus } : test
+        test._id === id ? { ...test, isActive: !currentStatus } : test
       ));
     } catch (error) {
       console.error('Failed to update test status:', error);
@@ -55,8 +55,8 @@ const TestsPage: React.FC = () => {
     .filter(test => {
       const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           test.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesSubject = !filterSubject || test.subject === filterSubject;
-      return matchesSearch && matchesSubject;
+      const matchesCategory = !filterSubject || test.category === filterSubject;
+      return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       let aValue = a[sortBy];
@@ -74,7 +74,7 @@ const TestsPage: React.FC = () => {
       }
     });
 
-  const subjects = [...new Set(tests.map(test => test.subject))];
+  const categories = Array.from(new Set(tests.map(test => test.category)));
 
   if (loading) {
     return (
@@ -143,9 +143,9 @@ const TestsPage: React.FC = () => {
               onChange={(e) => setFilterSubject(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             >
-              <option value="">Tất cả môn học</option>
-              {subjects.map(subject => (
-                <option key={subject} value={subject}>{subject}</option>
+              <option value="">Tất cả danh mục</option>
+              {categories.map(category => (
+                <option key={category} value={category}>{category}</option>
               ))}
             </select>
           </div>
@@ -219,7 +219,7 @@ const TestsPage: React.FC = () => {
                 </tr>
               ) : (
                 filteredAndSortedTests.map((test) => (
-                  <tr key={test.id} className="hover:bg-gray-50">
+                  <tr key={test._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{test.title}</div>
@@ -232,18 +232,18 @@ const TestsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {test.subject}
+                        {test.category}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {test.totalQuestions} câu
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {test.duration} phút
+                      {test.timeLimit} phút
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
-                        onClick={() => handleToggleStatus(test.id, test.isActive)}
+                        onClick={() => handleToggleStatus(test._id, test.isActive)}
                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           test.isActive
                             ? 'bg-green-100 text-green-800'
@@ -259,7 +259,7 @@ const TestsPage: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <Link
-                          to={`/admin/tests/${test.id}/view`}
+                          to={`/admin/tests/${test._id}/view`}
                           className="text-blue-600 hover:text-blue-800"
                           title="Xem chi tiết"
                         >
@@ -269,7 +269,7 @@ const TestsPage: React.FC = () => {
                           </svg>
                         </Link>
                         <Link
-                          to={`/admin/tests/${test.id}/edit`}
+                          to={`/admin/tests/${test._id}/edit`}
                           className="text-green-600 hover:text-green-800"
                           title="Chỉnh sửa"
                         >
@@ -278,7 +278,7 @@ const TestsPage: React.FC = () => {
                           </svg>
                         </Link>
                         <button
-                          onClick={() => handleDeleteTest(test.id)}
+                          onClick={() => handleDeleteTest(test._id)}
                           className="text-red-600 hover:text-red-800"
                           title="Xóa"
                         >

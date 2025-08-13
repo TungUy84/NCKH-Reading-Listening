@@ -5,7 +5,7 @@ import AdminHeader from './components/AdminHeader';
 import DashboardPage from './pages/DashboardPage';
 import TestsPage from './pages/TestsPage';
 import LoginPage from './pages/LoginPage';
-import './styles/globals.css';
+import './index.css';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -64,7 +64,7 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-gray-100 flex">
         {/* Sidebar */}
         <Sidebar 
-          collapsed={sidebarCollapsed}
+          isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 

@@ -17,6 +17,7 @@ export interface PlacementTest {
   totalQuestions: number;
   totalPoints: number;
   isActive: boolean;
+  createdBy: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,11 +27,11 @@ export interface Question {
   type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
   content: string;
   level: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
-  skill: 'listening' | 'reading' | 'speaking' | 'writing';
+  skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
   passage?: string;
   media?: {
-    audioUrl?: string;
-    imageUrl?: string;
+    image?: string;
+    audio?: string;
   };
   options?: Option[];
   correctAnswers: string[];
@@ -68,12 +69,11 @@ export interface AuthResponse {
 export interface DashboardStats {
   totalTests: number;
   activeTests: number;
-  totalQuestions: number;
-  totalAttempts: number;
-  listeningTests: number;
-  readingTests: number;
-  avgScore: number;
-  recentTests: PlacementTest[];
+  categoryStats: {
+    category: string;
+    count: number;
+  }[];
+  note?: string;
 }
 
 // Test Management
@@ -91,11 +91,11 @@ export interface QuestionFormData {
   type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
   content: string;
   level: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
-  skill: 'listening' | 'reading' | 'speaking' | 'writing';
+  skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
   passage?: string;
   media?: {
-    audioUrl?: string;
-    imageUrl?: string;
+    image?: string;
+    audio?: string;
   };
   options?: OptionFormData[];
   correctAnswers: string[];

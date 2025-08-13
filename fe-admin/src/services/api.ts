@@ -120,6 +120,38 @@ export class DashboardAPI {
 
 // Tests Management API
 export class TestsAPI {
+  // Get all tests (simplified method for TestsPage)
+  static async getAll(): Promise<PlacementTest[]> {
+    try {
+      const response = await api.get('/placement-tests/admin');
+      return response.data.tests;
+    } catch (error) {
+      console.error('Get all tests error:', error);
+      throw new Error('Không thể tải danh sách bài test');
+    }
+  }
+
+  // Update test (simplified method)
+  static async update(testId: string, updateData: Partial<PlacementTest>): Promise<PlacementTest> {
+    try {
+      const response = await api.put(`/placement-tests/admin/${testId}`, updateData);
+      return response.data.test;
+    } catch (error) {
+      console.error('Update test error:', error);
+      throw new Error('Không thể cập nhật bài test');
+    }
+  }
+
+  // Delete test (simplified method)
+  static async delete(testId: string): Promise<void> {
+    try {
+      await api.delete(`/placement-tests/admin/${testId}`);
+    } catch (error) {
+      console.error('Delete test error:', error);
+      throw new Error('Không thể xóa bài test');
+    }
+  }
+
   // Get all tests with pagination
   static async getTests(params?: {
     page?: number;
