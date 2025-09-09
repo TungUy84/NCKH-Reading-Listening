@@ -6,8 +6,7 @@ import {
   LoginCredentials, 
   AuthResponse, 
   DashboardStats,
-  AdminApiResponse,
-  PaginationInfo 
+  AdminApiResponse
 } from '../types';
 
 // Create axios instance with auth
@@ -22,16 +21,16 @@ const api = axios.create({
 // Auth token management
 export const authUtils = {
   setToken: (token: string) => {
-    localStorage.setItem('admin_token', token);
+    localStorage.setItem('adminToken', token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   },
   
   getToken: (): string | null => {
-    return localStorage.getItem('admin_token');
+    return localStorage.getItem('adminToken');
   },
   
   removeToken: () => {
-    localStorage.removeItem('admin_token');
+    localStorage.removeItem('adminToken');
     delete api.defaults.headers.common['Authorization'];
   },
   
@@ -256,7 +255,144 @@ export class FileAPI {
       throw new Error('Không thể upload file');
     }
   }
+
+  // Upload Word file for test import
+  static async uploadTestFile(formData: FormData): Promise<any> {
+    try {
+      const response = await api.post('/placement-tests/admin/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000, // 1 minute timeout for file processing
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Test file upload error:', error);
+      throw new Error('Không thể xử lý file Word. Vui lòng kiểm tra format và thử lại.');
+    }
+  }
 }
+
+// Placement Tests API - Updated with new functions
+export class PlacementTestAPI {
+  // Get all tests with pagination and filters
+  static async getTests(params: {
+    page?: number;
+    limit?: number;
+    category?: string;
+    search?: string;
+    status?: 'active' | 'inactive';
+  } = {}): Promise<AdminApiResponse<PlacementTest[]>> {
+    try {
+      const queryString = adminApiUtils.buildQueryParams(params);
+      const response = await api.get(`/placement-tests/admin?${queryString}`);
+      return {
+        success: true,
+        data: response.data.tests || response.data.data || [],
+        pagination: response.data.pagination,
+        message: response.data.message,
+      };
+    } catch (error) {
+      console.error('Get tests error:', error);
+      throw new Error('Không thể tải danh sách bài test');
+    }
+  }
+
+  // Get single test by ID
+  static async getTestById(testId: string): Promise<PlacementTest> {
+    try {
+      const response = await api.get(`/placement-tests/admin/${testId}`);
+      return response.data.test;
+    } catch (error) {
+      console.error('Get test error:', error);
+      throw new Error('Không thể tải bài test');
+    }
+  }
+
+  // Create new test
+  static async createTest(testData: TestFormData): Promise<PlacementTest> {
+    try {
+      const response = await api.post('/placement-tests/admin', testData);
+      return response.data.test;
+    } catch (error) {
+      console.error('Create test error:', error);
+      throw new Error('Không thể tạo bài test mới');
+    }
+  }
+
+  // Update test
+  static async updateTest(testId: string, testData: TestFormData): Promise<PlacementTest> {
+    try {
+      const response = await api.put(`/placement-tests/admin/${testId}`, testData);
+      return response.data.test;
+    } catch (error) {
+      console.error('Update test error:', error);
+      throw new Error('Không thể cập nhật bài test');
+    }
+  }
+
+  // Update test metadata only (without questions)
+  static async updateTestInfo(testId: string, testData: any): Promise<PlacementTest> {
+    try {
+      const response = await api.put(`/placement-tests/admin/${testId}`, testData);
+      return response.data.test;
+    } catch (error) {
+      console.error('Update test info error:', error);
+      throw new Error('Không thể cập nhật bài test');
+    }
+  }
+
+  // Delete test
+  static async deleteTest(testId: string): Promise<void> {
+    try {
+      await api.delete(`/placement-tests/admin/${testId}`);
+    } catch (error) {
+      console.error('Delete test error:', error);
+      throw new Error('Không thể xóa bài test');
+    }
+  }
+
+  // Get dashboard stats
+  static async getStats(): Promise<DashboardStats> {
+    try {
+      const response = await api.get('/placement-tests/admin/stats');
+      return response.data.stats;
+    } catch (error) {
+      console.error('Get stats error:', error);
+      throw new Error('Không thể tải thống kê');
+    }
+  }
+
+  // Bulk operations
+  static async bulkDelete(testIds: string[]): Promise<void> {
+    try {
+      await api.post('/placement-tests/admin/bulk-delete', { testIds });
+    } catch (error) {
+      console.error('Bulk delete error:', error);
+      throw new Error('Không thể xóa các bài test đã chọn');
+    }
+  }
+
+  static async bulkUpdateStatus(testIds: string[], isActive: boolean): Promise<void> {
+    try {
+      await api.post('/placement-tests/admin/bulk-update-status', { testIds, isActive });
+    } catch (error) {
+      console.error('Bulk update status error:', error);
+      throw new Error('Không thể cập nhật trạng thái các bài test');
+    }
+  }
+}
+
+// Export convenient wrapper functions
+export const getPlacementTests = PlacementTestAPI.getTests;
+export const getPlacementTestById = PlacementTestAPI.getTestById;
+export const createPlacementTest = PlacementTestAPI.createTest;
+export const updatePlacementTest = PlacementTestAPI.updateTestInfo;
+export const deletePlacementTest = PlacementTestAPI.deleteTest;
+export const getTestStats = PlacementTestAPI.getStats;
+export const uploadTestFile = FileAPI.uploadTestFile;
+export const importPlacementTest = FileAPI.uploadTestFile;
 
 // Utility functions
 export const adminApiUtils = {

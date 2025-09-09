@@ -14,6 +14,7 @@ export interface PlacementTest {
   instructions: string[];
   timeLimit: number;
   questions: Question[];
+  sections?: TestSection[];
   totalQuestions: number;
   totalPoints: number;
   isActive: boolean;
@@ -22,10 +23,19 @@ export interface PlacementTest {
   updatedAt: string;
 }
 
+export interface TestSection {
+  title?: string;
+  passage?: string;
+  audio?: string;
+  image?: string;
+  questions: Question[];
+}
+
 export interface Question {
   _id: string;
-  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
+  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay' | 'true_false_not_given' | 'yes_no_not_given' | 'summary_completion';
   content: string;
+  text?: string;
   level: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
   skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
   passage?: string;
@@ -85,6 +95,15 @@ export interface TestFormData {
   timeLimit: number;
   isActive: boolean;
   questions: QuestionFormData[];
+}
+
+export interface TestUpdateData {
+  title: string;
+  description: string;
+  category: 'listening' | 'reading' | 'general';
+  instructions: string[];
+  timeLimit: number;
+  isActive: boolean;
 }
 
 export interface QuestionFormData {

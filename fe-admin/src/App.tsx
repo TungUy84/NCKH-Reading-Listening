@@ -3,7 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Sidebar from './components/Sidebar';
 import AdminHeader from './components/AdminHeader';
 import DashboardPage from './pages/DashboardPage';
-import TestsPage from './pages/TestsPage';
+import PlacementTestsPage from './pages/PlacementTestsPage';
+import ImportTestPage from './pages/ImportTestPage';
+import ViewTestPage from './pages/ViewTestPage';
+import EditTestPage from './pages/EditTestPage';
 import LoginPage from './pages/LoginPage';
 import './index.css';
 
@@ -61,7 +64,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100 flex">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50">
         {/* Sidebar */}
         <Sidebar 
           isCollapsed={sidebarCollapsed}
@@ -69,37 +72,23 @@ const App: React.FC = () => {
         />
 
         {/* Main Content Area */}
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${
-          sidebarCollapsed ? 'ml-16' : 'ml-64'
+        <div className={`transition-all duration-300 ${
+          sidebarCollapsed ? 'ml-20' : 'ml-72'
         }`}>
           {/* Header */}
           <AdminHeader onLogout={handleLogout} />
 
           {/* Page Content */}
-          <main className="flex-1 overflow-x-hidden overflow-y-auto">
+          <main className="p-6">
             <Routes>
               {/* Dashboard */}
               <Route path="/admin/dashboard" element={<DashboardPage />} />
               
-              {/* Tests Management */}
-              <Route path="/admin/tests" element={<TestsPage />} />
-              <Route path="/admin/tests/create" element={<div className="p-6"><h1 className="text-2xl font-bold">Tạo Test Mới</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/tests/:id/edit" element={<div className="p-6"><h1 className="text-2xl font-bold">Chỉnh Sửa Test</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/tests/:id/view" element={<div className="p-6"><h1 className="text-2xl font-bold">Chi Tiết Test</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* Students Management */}
-              <Route path="/admin/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Quản Lý Học Sinh</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* Results & Analytics */}
-              <Route path="/admin/results" element={<div className="p-6"><h1 className="text-2xl font-bold">Kết Quả Thi</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/analytics" element={<div className="p-6"><h1 className="text-2xl font-bold">Thống Kê & Báo Cáo</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* System Management */}
-              <Route path="/admin/users" element={<div className="p-6"><h1 className="text-2xl font-bold">Quản Lý Người Dùng</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Cài Đặt Hệ Thống</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* Profile */}
-              <Route path="/admin/profile" element={<div className="p-6"><h1 className="text-2xl font-bold">Thông Tin Cá Nhân</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
+              {/* Placement Tests Management */}
+              <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
+              <Route path="/admin/placement-tests/import" element={<ImportTestPage />} />
+              <Route path="/admin/placement-tests/:testId/view" element={<ViewTestPage />} />
+              <Route path="/admin/placement-tests/:testId/edit" element={<EditTestPage />} />
               
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

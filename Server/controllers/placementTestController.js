@@ -1,4 +1,6 @@
 const { PlacementTest } = require('../models/PlacementTest');
+const mammoth = require('mammoth');
+const fs = require('fs');
 // Không cần import PlacementResult vì không lưu kết quả vào database
 
 // Lấy danh sách các bài test theo category (Public)
@@ -344,6 +346,154 @@ const getPlacementTestStats = async (req, res) => {
   }
 };
 
+// Import bài test từ file Word (Admin)
+const importPlacementTest = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Không tìm thấy file upload' });
+    }
+
+    const filePath = req.file.path;
+    
+    try {
+      // Đọc file Word
+      const result = await mammoth.extractRawText({ path: filePath });
+      const content = result.value;
+      
+      // Parse nội dung file
+      const previewTest = parseWordContent(content);
+      
+      // Xóa file tạm
+      fs.unlinkSync(filePath);
+      
+      res.json({
+        message: 'Phân tích file thành công',
+        previewTest
+      });
+    } catch (parseError) {
+      // Xóa file tạm nếu có lỗi
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      throw parseError;
+    }
+  } catch (error) {
+    console.error('Import placement test error:', error);
+    res.status(500).json({ message: 'Lỗi khi xử lý file Word: ' + error.message });
+  }
+};
+
+// Helper function để parse nội dung Word
+const parseWordContent = (content) => {
+  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  if (lines.length < 6) {
+    throw new Error('File không đúng format. Cần ít nhất: tiêu đề, mô tả, loại, thời gian, hướng dẫn và dấu phân cách ---');
+  }
+
+  let currentLine = 0;
+  
+  // Parse thông tin cơ bản
+  const title = lines[currentLine++];
+  const description = lines[currentLine++];
+  const category = lines[currentLine++].toLowerCase();
+  const timeLimit = parseInt(lines[currentLine++]);
+  
+  // Validate category
+  if (!['listening', 'reading', 'general'].includes(category)) {
+    throw new Error('Loại bài test phải là: listening, reading, hoặc general');
+  }
+  
+  if (isNaN(timeLimit) || timeLimit <= 0) {
+    throw new Error('Thời gian phải là số nguyên dương');
+  }
+
+  // Parse hướng dẫn
+  const instructions = [];
+  while (currentLine < lines.length && lines[currentLine] !== '---') {
+    instructions.push(lines[currentLine++]);
+  }
+  
+  if (currentLine >= lines.length || lines[currentLine] !== '---') {
+    throw new Error('Không tìm thấy dấu phân cách --- giữa hướng dẫn và câu hỏi');
+  }
+  
+  currentLine++; // Skip '---'
+
+  // Parse câu hỏi
+  const questions = [];
+  let currentQuestion = null;
+  
+  while (currentLine < lines.length) {
+    const line = lines[currentLine++];
+    
+    // Kiểm tra nếu là câu hỏi mới (bắt đầu bằng Q[số]:)
+    const questionMatch = line.match(/^Q(\d+):\s*(.+?)\s*\(Level:\s*(AV[1-7]),\s*Skill:\s*(listening|reading|grammar|vocabulary),\s*Points:\s*(\d+)\)$/i);
+    
+    if (questionMatch) {
+      // Lưu câu hỏi trước đó nếu có
+      if (currentQuestion) {
+        questions.push(currentQuestion);
+      }
+      
+      // Tạo câu hỏi mới
+      currentQuestion = {
+        type: 'single_choice', // Mặc định
+        content: questionMatch[2].trim(),
+        level: questionMatch[3].toUpperCase(),
+        skill: questionMatch[4].toLowerCase(),
+        points: parseInt(questionMatch[5]),
+        options: [],
+        correctAnswers: []
+      };
+    }
+    // Kiểm tra nếu là đáp án (A), B), C), D))
+    else if (currentQuestion && line.match(/^[A-D]\)/)) {
+      const isCorrect = line.endsWith('*');
+      const optionText = line.replace(/^[A-D]\)\s*/, '').replace(/\s*\*$/, '').trim();
+      
+      currentQuestion.options.push(optionText);
+      
+      if (isCorrect) {
+        currentQuestion.correctAnswers.push(optionText);
+      }
+    }
+    // Kiểm tra nếu là đoạn văn (Passage:)
+    else if (currentQuestion && line.toLowerCase().startsWith('passage:')) {
+      currentQuestion.passage = line.substring(8).trim();
+    }
+  }
+  
+  // Lưu câu hỏi cuối cùng
+  if (currentQuestion) {
+    questions.push(currentQuestion);
+  }
+  
+  if (questions.length === 0) {
+    throw new Error('Không tìm thấy câu hỏi nào trong file');
+  }
+
+  // Xác định loại câu hỏi dựa trên số đáp án đúng
+  questions.forEach(question => {
+    if (question.correctAnswers.length > 1) {
+      question.type = 'multiple_choice';
+    } else if (question.options.length === 0) {
+      question.type = 'fill_blank';
+    } else {
+      question.type = 'single_choice';
+    }
+  });
+
+  return {
+    title,
+    description,
+    category,
+    timeLimit,
+    instructions,
+    questions
+  };
+};
+
 module.exports = {
   // Public APIs
   getActivePlacementTests,
@@ -356,5 +506,6 @@ module.exports = {
   createPlacementTest,
   updatePlacementTest,
   deletePlacementTest,
-  getPlacementTestStats
+  getPlacementTestStats,
+  importPlacementTest
 };
