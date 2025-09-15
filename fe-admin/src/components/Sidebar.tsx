@@ -116,18 +116,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
   };
 
   return (
-    <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'} flex flex-col shadow-2xl z-40`}>
+    <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} flex flex-col shadow-2xl z-40`}>
       {/* Header */}
-      <div className="p-6 border-b border-slate-700">
+      <div className="p-4 border-b border-slate-700">
         <div className="flex items-center justify-between">
           {!isCollapsed && (
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">ET</span>
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-sm">ET</span>
               </div>
               <div>
-                <span className="text-xl font-bold text-white">Admin Panel</span>
-                <p className="text-sm text-slate-300">Hệ thống quản lý</p>
+                <span className="text-lg font-semibold text-white">Admin</span>
+                <p className="text-xs text-slate-300">Quản trị hệ thống</p>
               </div>
             </div>
           )}
@@ -148,30 +148,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-6 space-y-3">
+      <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => renderMenuItem(item))}
       </nav>
-
-      {/* User Info */}
-      {!isCollapsed && (
-        <div className="p-6 border-t border-slate-700">
-          <div className="flex items-center space-x-3 p-3 rounded-xl bg-slate-800 border border-slate-600">
-            <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-blue-500 rounded-xl flex items-center justify-center">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">
-                Admin User
-              </p>
-              <p className="text-xs text-slate-300 truncate">
-                admin@vanlang.edu.vn
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Removed static user block for a cleaner admin sidebar */}
     </div>
   );
 };

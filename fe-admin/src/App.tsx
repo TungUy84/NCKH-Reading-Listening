@@ -5,12 +5,11 @@ import 'react-toastify/dist/ReactToastify.css';
 import Sidebar from './components/Sidebar';
 import AdminHeader from './components/AdminHeader';
 import DashboardPage from './pages/DashboardPage';
-import PlacementTestsPage from './pages/PlacementTestsPage';
-import ImportTestPage from './pages/ImportTestPage';
-import ViewTestPage from './pages/ViewTestPage';
-import EditTestPage from './pages/EditTestPage';
 import LoginPage from './pages/LoginPage';
 import './index.css';
+import PlacementTestsPage from './pages/placement-tests/PlacementTestsPage';
+import ViewTestPage from './pages/placement-tests/ViewTestPage';
+import EditTestPage from './pages/placement-tests/EditTestPage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -88,9 +87,9 @@ const App: React.FC = () => {
               
               {/* Placement Tests Management */}
               <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
-              <Route path="/admin/placement-tests/import" element={<ImportTestPage />} />
               <Route path="/admin/placement-tests/:testId/view" element={<ViewTestPage />} />
               <Route path="/admin/placement-tests/:testId/edit" element={<EditTestPage />} />
+
               
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />

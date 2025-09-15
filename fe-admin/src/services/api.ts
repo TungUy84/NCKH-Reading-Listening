@@ -95,8 +95,8 @@ export class AuthAPI {
 
   static async getCurrentUser(): Promise<AdminUser> {
     try {
-      const response = await api.get('/auth/me');
-      return response.data.user;
+  const response = await api.get('/auth/profile');
+  return response.data.user;
     } catch (error) {
       console.error('Get current user error:', error);
       throw new Error('Không thể lấy thông tin người dùng');

@@ -15,7 +15,8 @@ const {
   updatePlacementTest,
   deletePlacementTest,
   getPlacementTestStats,
-  importPlacementTest
+  importPlacementTest,
+  updateTestContent
 } = require('../controllers/placementTestController');
 
 const { protect, authorize } = require('../middleware/auth');
@@ -76,6 +77,9 @@ router.post('/admin', protect, isAdmin, createPlacementTest);
 
 // Cập nhật bài test
 router.put('/admin/:testId', protect, isAdmin, updatePlacementTest);
+
+// Cập nhật nội dung bài test (sections + questions)
+router.put('/admin/:testId/content', protect, isAdmin, updateTestContent);
 
 // Xóa bài test
 router.delete('/admin/:testId', protect, isAdmin, deletePlacementTest);

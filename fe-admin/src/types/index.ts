@@ -40,7 +40,7 @@ export interface Question {
   type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay' | 'true_false_not_given' | 'yes_no_not_given' | 'summary_completion';
   content?: string;
   text?: string;
-  skill?: 'listening' | 'reading' | 'grammar' | 'vocabulary';
+  skill?: 'listening' | 'reading';
   passage?: string;
   media?: {
     image?: string;
@@ -66,11 +66,15 @@ export interface QuestionOption {
 export interface AdminUser {
   _id: string;
   email: string;
-  name: string;
-  role: 'admin' | 'super_admin';
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
+  role: 'admin' | 'user';
   isActive: boolean;
   lastLogin?: string;
-  createdAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface LoginCredentials {

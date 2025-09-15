@@ -186,20 +186,40 @@ const checkPlacementTest = async (req, res) => {
 
 // === ADMIN FUNCTIONS ===
 
-// Lấy tất cả bài test (Admin only)
+// Lấy tất cả bài test (Admin only) - hỗ trợ phân trang + tìm kiếm + lọc
 const getAllPlacementTests = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const tests = await PlacementTest.find()
-      .populate('createdBy', 'firstName lastName email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    // Filters
+    const { search, category, status } = req.query;
+    const filter = {};
 
-    const total = await PlacementTest.countDocuments();
+    if (category && ['listening', 'reading', 'general'].includes(category)) {
+      filter.category = category;
+    }
+
+    if (status === 'active') filter.isActive = true;
+    if (status === 'inactive') filter.isActive = false;
+
+    if (search && typeof search === 'string') {
+      const regex = new RegExp(search.trim(), 'i');
+      filter.$or = [
+        { title: regex },
+        { description: regex },
+      ];
+    }
+
+    const [tests, total] = await Promise.all([
+      PlacementTest.find(filter)
+        .populate('createdBy', 'firstName lastName email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      PlacementTest.countDocuments(filter),
+    ]);
 
     res.json({
       message: 'Lấy danh sách bài test thành công',
@@ -207,6 +227,7 @@ const getAllPlacementTests = async (req, res) => {
       pagination: {
         page,
         limit,
+        totalItems: total,
         total,
         pages: Math.ceil(total / limit)
       }
@@ -269,7 +290,7 @@ const createPlacementTest = async (req, res) => {
 const updatePlacementTest = async (req, res) => {
   try {
     const { testId } = req.params;
-    const { title, description, instructions, timeLimit, questions, isActive } = req.body;
+    const { title, description, instructions, timeLimit, questions, isActive, category } = req.body;
 
     const test = await PlacementTest.findById(testId);
     if (!test) {
@@ -277,12 +298,13 @@ const updatePlacementTest = async (req, res) => {
     }
 
     // Cập nhật các field
-    if (title) test.title = title;
+    if (typeof title === 'string') test.title = title;
     if (description !== undefined) test.description = description;
-    if (instructions) test.instructions = instructions;
-    if (timeLimit) test.timeLimit = timeLimit;
-    if (questions) test.questions = questions;
-    if (isActive !== undefined) test.isActive = isActive;
+    if (Array.isArray(instructions)) test.instructions = instructions;
+    if (timeLimit !== undefined) test.timeLimit = timeLimit;
+    if (Array.isArray(questions)) test.questions = questions;
+    if (typeof isActive === 'boolean') test.isActive = isActive;
+    if (category) test.category = category;
 
     await test.save();
 
@@ -293,6 +315,46 @@ const updatePlacementTest = async (req, res) => {
   } catch (error) {
     console.error('Update placement test error:', error);
     res.status(500).json({ message: 'Lỗi server khi cập nhật bài test' });
+  }
+};
+
+  // Cập nhật nội dung bài test: sections + questions (Admin only)
+const updateTestContent = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const { sections = [], questions = [] } = req.body;
+
+    const test = await PlacementTest.findById(testId);
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    // Cập nhật sections và questions nếu được gửi lên
+    if (Array.isArray(sections)) {
+      const currentSections = test.sections || [];
+      // Giữ nguyên _id của section nếu FE không gửi lên để không làm lệch liên kết sectionId của câu hỏi
+      test.sections = sections.map((s, idx) => ({
+        _id: s._id || currentSections[idx]?._id,
+        ...s,
+      }));
+    }
+    if (Array.isArray(questions)) {
+      test.questions = questions;
+    }
+
+    // Tính lại tổng số câu hỏi và điểm
+    test.totalQuestions = test.questions?.length || 0;
+    test.totalPoints = (test.questions || []).reduce((sum, q) => sum + (q.points || 1), 0);
+
+    await test.save();
+
+    res.json({
+      message: 'Cập nhật nội dung bài test thành công',
+      test
+    });
+  } catch (error) {
+    console.error('Update test content error:', error);
+    res.status(500).json({ message: 'Lỗi server khi cập nhật nội dung bài test' });
   }
 };
 
@@ -507,5 +569,6 @@ module.exports = {
   updatePlacementTest,
   deletePlacementTest,
   getPlacementTestStats,
-  importPlacementTest
+  importPlacementTest,
+  updateTestContent
 };
