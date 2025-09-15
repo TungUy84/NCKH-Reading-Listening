@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlacementTest } from '../types';
+import { toast } from 'react-toastify';
 import { uploadTestFile, createPlacementTest } from '../services/api';
 
 interface PreviewQuestion {
@@ -9,7 +9,6 @@ interface PreviewQuestion {
   options?: string[];
   correctAnswers?: string[];
   points: number;
-  level: string;
   skill: string;
   passage?: string;
 }
@@ -30,7 +29,6 @@ const ImportTestPage: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [previewTest, setPreviewTest] = useState<PreviewTest | null>(null);
   const [applying, setApplying] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -38,12 +36,11 @@ const ImportTestPage: React.FC = () => {
 
     // Validate file type
     if (!file.name.endsWith('.docx')) {
-      setError('Chỉ chấp nhận file Word (.docx)');
+      toast.error('Chỉ chấp nhận file Word (.docx)');
       return;
     }
 
     setUploading(true);
-    setError(null);
     
     try {
       const formData = new FormData();
@@ -57,8 +54,8 @@ const ImportTestPage: React.FC = () => {
         throw new Error('Không thể xử lý file');
       }
     } catch (error: any) {
-      console.error('Upload error:', error);
-      setError(error.message || 'Lỗi khi upload file. Vui lòng kiểm tra format và thử lại.');
+      const errorMessage = error.message || 'Lỗi khi upload file. Vui lòng kiểm tra format và thử lại.';
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -79,7 +76,6 @@ const ImportTestPage: React.FC = () => {
         questions: previewTest.questions.map(q => ({
           type: q.type as 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay',
           content: q.content,
-          level: q.level as 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7',
           skill: q.skill as 'listening' | 'reading' | 'grammar' | 'vocabulary',
           passage: q.passage,
           options: q.options?.map(text => ({ text, isCorrect: false })) || [],
@@ -90,10 +86,11 @@ const ImportTestPage: React.FC = () => {
       };
 
       await createPlacementTest(testData);
+      toast.success('Đã tạo bài test thành công!');
       navigate('/admin/placement-tests');
     } catch (error: any) {
-      console.error('Apply error:', error);
-      setError(error.message || 'Lỗi khi tạo bài test. Vui lòng thử lại.');
+      const errorMessage = error.message || 'Lỗi khi tạo bài test. Vui lòng thử lại.';
+      toast.error(errorMessage);
     } finally {
       setApplying(false);
     }
@@ -101,7 +98,6 @@ const ImportTestPage: React.FC = () => {
 
   const resetForm = () => {
     setPreviewTest(null);
-    setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -145,7 +141,7 @@ const ImportTestPage: React.FC = () => {
               </ul>
               <p className="mt-3"><strong>Format câu hỏi:</strong></p>
               <ul className="list-disc pl-6 space-y-1">
-                <li>Q[số]: [nội dung câu hỏi] (Level: AV1-AV7, Skill: listening/reading, Points: số điểm)</li>
+                <li>Q[số]: [nội dung câu hỏi] (Skill: listening/reading, Points: số điểm)</li>
                 <li>A) [đáp án A]</li>
                 <li>B) [đáp án B] *</li>
                 <li>C) [đáp án C]</li>
@@ -187,20 +183,6 @@ const ImportTestPage: React.FC = () => {
                 </div>
               )}
             </div>
-
-            {error && (
-              <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                <div className="flex">
-                  <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">Lỗi upload file</h3>
-                    <p className="mt-1 text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       ) : (
@@ -246,9 +228,6 @@ const ImportTestPage: React.FC = () => {
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-medium text-gray-900">Câu {index + 1}</h3>
                     <div className="flex space-x-2">
-                      <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">
-                        {question.level}
-                      </span>
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
                         {question.skill}
                       </span>
@@ -315,20 +294,6 @@ const ImportTestPage: React.FC = () => {
               </button>
             </div>
           </div>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex">
-                <svg className="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Lỗi tạo bài test</h3>
-                  <p className="mt-1 text-sm text-red-700">{error}</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </div>

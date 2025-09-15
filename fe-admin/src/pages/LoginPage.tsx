@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { AuthAPI } from '../services/api';
 
 interface LoginPageProps {
@@ -12,21 +13,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
 
     try {
       const result = await AuthAPI.login(credentials);
       localStorage.setItem('adminToken', result.token);
       onLogin(result.token);
+      toast.success('Đăng nhập thành công!');
       navigate('/admin/dashboard');
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Đăng nhập thất bại');
+      const errorMessage = error.response?.data?.message || 'Đăng nhập thất bại';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -67,17 +68,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               Đăng nhập để truy cập trang quản trị
             </p>
           </div>
-
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <div className="flex">
-                <svg className="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

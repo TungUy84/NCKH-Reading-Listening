@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { DashboardStats } from '../types';
 import { getTestStats } from '../services/api';
 
@@ -16,7 +17,7 @@ const DashboardPage: React.FC = () => {
       const data = await getTestStats();
       setStats(data);
     } catch (error) {
-      console.error('Failed to load dashboard stats:', error);
+      toast.error('Không thể tải thống kê dashboard');
     } finally {
       setLoading(false);
     }

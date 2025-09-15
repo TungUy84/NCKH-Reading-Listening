@@ -382,6 +382,37 @@ export class PlacementTestAPI {
       throw new Error('Không thể cập nhật trạng thái các bài test');
     }
   }
+
+  // Upload media files (images, audio)
+  static async uploadMedia(file: File, type: 'image' | 'audio'): Promise<string> {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('type', type);
+
+      const response = await api.post('/placement-tests/admin/upload-media', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      return response.data.url;
+    } catch (error) {
+      console.error('Upload media error:', error);
+      throw new Error('Không thể upload file media');
+    }
+  }
+
+  // Update full test content including sections and questions
+  static async updateTestContent(testId: string, data: Partial<PlacementTest>): Promise<PlacementTest> {
+    try {
+      const response = await api.put(`/placement-tests/admin/${testId}/content`, data);
+      return response.data.test;
+    } catch (error) {
+      console.error('Update test content error:', error);
+      throw new Error('Không thể cập nhật nội dung bài test');
+    }
+  }
 }
 
 // Export convenient wrapper functions
@@ -389,6 +420,8 @@ export const getPlacementTests = PlacementTestAPI.getTests;
 export const getPlacementTestById = PlacementTestAPI.getTestById;
 export const createPlacementTest = PlacementTestAPI.createTest;
 export const updatePlacementTest = PlacementTestAPI.updateTestInfo;
+export const updatePlacementTestContent = PlacementTestAPI.updateTestContent;
+export const uploadMediaFile = PlacementTestAPI.uploadMedia;
 export const deletePlacementTest = PlacementTestAPI.deleteTest;
 export const getTestStats = PlacementTestAPI.getStats;
 export const uploadTestFile = FileAPI.uploadTestFile;

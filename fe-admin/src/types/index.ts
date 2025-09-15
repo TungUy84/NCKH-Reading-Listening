@@ -24,32 +24,40 @@ export interface PlacementTest {
 }
 
 export interface TestSection {
+  sectionId?: number;
   title?: string;
   passage?: string;
   audio?: string;
+  audioUrl?: string;
   image?: string;
+  imageUrl?: string;
   questions: Question[];
 }
 
 export interface Question {
-  _id: string;
+  _id?: string;
+  questionId?: number;
   type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay' | 'true_false_not_given' | 'yes_no_not_given' | 'summary_completion';
-  content: string;
+  content?: string;
   text?: string;
-  level: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
-  skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
+  skill?: 'listening' | 'reading' | 'grammar' | 'vocabulary';
   passage?: string;
   media?: {
     image?: string;
     audio?: string;
   };
-  options?: Option[];
+  options?: QuestionOption[];
   correctAnswers: string[];
   points: number;
   explanation?: string;
 }
 
 export interface Option {
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface QuestionOption {
   text: string;
   isCorrect: boolean;
 }
@@ -104,12 +112,13 @@ export interface TestUpdateData {
   instructions: string[];
   timeLimit: number;
   isActive: boolean;
+  sections?: TestSection[];
+  questions?: Question[];
 }
 
 export interface QuestionFormData {
   type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
   content: string;
-  level: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
   skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
   passage?: string;
   media?: {

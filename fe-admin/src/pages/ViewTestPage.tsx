@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { PlacementTest } from '../types';
 import { getPlacementTestById } from '../services/api';
 
@@ -7,22 +8,14 @@ const ViewTestPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const [test, setTest] = useState<PlacementTest | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const fetchTest = useCallback(async () => {
     try {
       setLoading(true);
       const test = await getPlacementTestById(testId!);
-      console.log('Loaded test data:', test);
-      console.log('Test sections:', test.sections);
-      console.log('Test questions:', test.questions);
-      if (test.questions && test.questions.length > 0) {
-        console.log('First question sample:', test.questions[0]);
-      }
       setTest(test);
     } catch (error: any) {
-      console.error('Fetch test error:', error);
-      setError(error.message || 'Không thể tải chi tiết bài test');
+      toast.error(error.message || 'Không thể tải chi tiết bài test');
     } finally {
       setLoading(false);
     }
@@ -42,15 +35,15 @@ const ViewTestPage: React.FC = () => {
     );
   }
 
-  if (error || !test) {
+  if (!test) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
           <svg className="mx-auto h-12 w-12 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <h3 className="mt-2 text-sm font-medium text-gray-900">Lỗi</h3>
-          <p className="mt-1 text-sm text-gray-500">{error}</p>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">Không tìm thấy bài test</h3>
+          <p className="mt-1 text-sm text-gray-500">Bài test không tồn tại hoặc đã bị xóa</p>
           <div className="mt-6">
             <Link
               to="/admin/placement-tests"

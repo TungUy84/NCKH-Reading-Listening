@@ -28,7 +28,7 @@ const sectionSchema = new mongoose.Schema({
 const questionSchema = new mongoose.Schema({
   sectionId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: [true, 'Section ID là bắt buộc']
+    required: false // Changed to false to allow creation without sectionId initially
   },
   questionNumber: {
     type: Number,
@@ -41,15 +41,22 @@ const questionSchema = new mongoose.Schema({
       'true_false_not_given', // True/False/Not Given
       'yes_no_not_given',     // Yes/No/Not Given
       'multiple_choice',      // Multiple choice A, B, C, D
+      'single_choice',        // Single choice A, B, C, D
       'matching',             // Matching exercises
       'summary_completion',   // Complete summary with word bank
-      'sentence_completion'   // Complete sentences
+      'sentence_completion',  // Complete sentences
+      'essay'                 // Essay questions
     ],
     required: [true, 'Loại câu hỏi là bắt buộc']
   },
   content: {
     type: String,
     required: [true, 'Nội dung câu hỏi là bắt buộc']
+  },
+  skill: {
+    type: String,
+    enum: ['listening', 'reading'],
+    default: 'reading'
   },
   instructions: {
     type: String, // Hướng dẫn làm bài cho nhóm câu hỏi
@@ -74,11 +81,6 @@ const questionSchema = new mongoose.Schema({
   points: {
     type: Number,
     default: 1
-  },
-  level: {
-    type: String,
-    enum: ['AV1', 'AV2', 'AV3', 'AV4', 'AV5', 'AV6', 'AV7'],
-    default: 'AV3'
   }
 });
 
@@ -109,17 +111,6 @@ const placementTestSchema = new mongoose.Schema({
   },
   sections: [sectionSchema], // Các section trong bài test
   questions: [questionSchema], // Tất cả câu hỏi trong bài test
-  timeLimit: {
-    type: Number, // Thời gian làm bài (phút)
-    default: 60
-  },
-  category: {
-    type: String,
-    enum: ['listening', 'reading', 'general'],
-    default: 'general',
-    required: [true, 'Loại bài test là bắt buộc']
-  },
-  questions: [questionSchema],
   totalQuestions: {
     type: Number,
     default: 0

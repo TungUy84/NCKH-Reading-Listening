@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { PlacementTest } from '../types';
 import { TestsAPI } from '../services/api';
 
@@ -20,7 +21,7 @@ const TestsPage: React.FC = () => {
       const data = await TestsAPI.getAll();
       setTests(data);
     } catch (error) {
-      console.error('Failed to load tests:', error);
+      toast.error('Không thể tải danh sách bài test');
     } finally {
       setLoading(false);
     }
@@ -31,9 +32,9 @@ const TestsPage: React.FC = () => {
       try {
         await TestsAPI.delete(id);
         setTests(tests.filter(test => test._id !== id));
+        toast.success('Đã xóa bài test thành công');
       } catch (error) {
-        console.error('Failed to delete test:', error);
-        alert('Có lỗi xảy ra khi xóa bài test');
+        toast.error('Có lỗi xảy ra khi xóa bài test');
       }
     }
   };
@@ -44,9 +45,9 @@ const TestsPage: React.FC = () => {
       setTests(tests.map(test => 
         test._id === id ? { ...test, isActive: !currentStatus } : test
       ));
+      toast.success(`Đã ${!currentStatus ? 'kích hoạt' : 'tạm dừng'} bài test`);
     } catch (error) {
-      console.error('Failed to update test status:', error);
-      alert('Có lỗi xảy ra khi cập nhật trạng thái');
+      toast.error('Có lỗi xảy ra khi cập nhật trạng thái');
     }
   };
 

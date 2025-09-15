@@ -15,8 +15,8 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout }) => {
         return 'Dashboard';
       case '/admin/placement-tests':
         return 'Kiểm tra đầu vào';
-      case '/admin/tests':
-        return 'Bài thi';
+      case '/admin/placement-tests/id':
+        return 'Chi tiết bài kiểm tra'; 
       default:
         return 'Dashboard';
     }
