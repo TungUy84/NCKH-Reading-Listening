@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTestAPI } from '../../services/api';
@@ -9,6 +9,20 @@ const ViewTestPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [test, setTest] = useState<PlacementTest | null>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [panelHeight, setPanelHeight] = useState<number>(0);
+
+  // Compute dynamic height so panels fill the available viewport height
+  useEffect(() => {
+    const updateHeight = () => {
+      const top = gridRef.current?.getBoundingClientRect().top ?? 0;
+      const h = Math.max(320, Math.floor(window.innerHeight - top));
+      setPanelHeight(h);
+    };
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -66,7 +80,7 @@ const ViewTestPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">{test.title}</h1>
@@ -84,17 +98,19 @@ const ViewTestPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Split View: Left passage/media, Right questions with nav */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+      {/* Split View: dynamic-height panels matching Edit page */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0" ref={gridRef}>
         {/* Left Panel */}
-        <div className="bg-white lg:rounded-l-xl rounded-t-xl lg:rounded-tr-none border overflow-hidden lg:border-r-0 h-[72vh] flex flex-col">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="font-semibold">Phần {currentSectionIndex + 1}{currentSection?.title ? `: ${currentSection.title}` : ''}</h2>
+        <div className="bg-white lg:rounded-l-xl rounded-t-xl lg:rounded-tr-none border overflow-hidden lg:border-r-0 flex flex-col" style={{ height: panelHeight }}>
+          <div className="h-12 px-4 border-b flex items-center justify-between">
+            <div className="min-w-0 flex-1">
+              <span className="text-base font-semibold text-slate-800 truncate">{currentSection?.title || '—'}</span>
+            </div>
             {test.sections && (
               <div className="text-sm text-slate-500 whitespace-nowrap">{currentSectionIndex + 1} / {test.sections.length}</div>
             )}
           </div>
-          <div className="p-4 space-y-4 flex-1 overflow-auto">
+          <div className="p-3 space-y-4 flex-1 overflow-auto">
             {currentSection?.passage && (
               <div>
                 <div className="prose max-w-none">
@@ -103,23 +119,22 @@ const ViewTestPage: React.FC = () => {
               </div>
             )}
             {currentSection?.audio && (
-              <audio controls className="w-full">
+              <audio controls className="w-full mt-2">
                 <source src={currentSection.audio} />
               </audio>
             )}
             {currentSection?.image && (
-              <img src={currentSection.image} alt="Section" className="max-w-full rounded-lg" />
+              <img src={currentSection.image} alt="Section" className="max-w-full rounded-lg mt-2" />
             )}
           </div>
-          <div className="p-3 border-t flex items-center justify-between bg-slate-50">
+          <div className="h-12 border-t bg-slate-50 flex items-center p-3">
             <button onClick={prevSection} disabled={currentSectionIndex === 0} className="px-3 py-2 rounded-lg border disabled:opacity-50">◀ Trước</button>
-            <button onClick={nextSection} disabled={!!test?.sections && currentSectionIndex >= test.sections.length - 1} className="px-3 py-2 rounded-lg border disabled:opacity-50">Sau ▶</button>
           </div>
         </div>
 
         {/* Right Panel */}
-        <div className="bg-white lg:rounded-r-xl rounded-b-xl lg:rounded-bl-none border overflow-hidden lg:border-l-0 h-[72vh] flex flex-col">
-          <div className="p-4 border-b">
+        <div className="bg-white lg:rounded-r-xl rounded-b-xl lg:rounded-bl-none border overflow-hidden lg:border-l-0 flex flex-col" style={{ height: panelHeight }}>
+          <div className="h-12 px-4 border-b flex items-center">
             <h2 className="font-semibold">Câu hỏi trong phần này</h2>
           </div>
           <div className="p-4 flex-1 overflow-auto space-y-4">
@@ -150,6 +165,10 @@ const ViewTestPage: React.FC = () => {
                 </div>
               ))
             )}
+          </div>
+          {/* Spacer footer to align with left panel and provide Next */}
+          <div className="h-12 border-t bg-slate-50 flex items-center justify-end p-3">
+            <button onClick={nextSection} disabled={!!test?.sections && currentSectionIndex >= test.sections.length - 1} className="px-3 py-2 rounded-lg border disabled:opacity-50">Sau ▶</button>
           </div>
         </div>
       </div>

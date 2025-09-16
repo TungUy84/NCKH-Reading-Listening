@@ -18,6 +18,18 @@ const EditTestPage: React.FC = () => {
   const [isEditingSectionTitle, setIsEditingSectionTitle] = useState(false);
   const [tempSectionTitle, setTempSectionTitle] = useState('');
 
+  // Friendly labels for question types
+  const TYPE_LABELS: Record<string, string> = {
+    single_choice: 'Single choice',
+    multiple_choice: 'Multiple choice',
+    fill_blank: 'Fill in the blank',
+    true_false_not_given: 'True / False / Not Given',
+    yes_no_not_given: 'Yes / No / Not Given',
+    summary_completion: 'Summary completion',
+    essay: 'Essay',
+  };
+  const typeLabel = (t: string) => TYPE_LABELS[t] ?? t;
+
   // Compute dynamic height so panels fill the available viewport height
   useEffect(() => {
     const updateHeight = () => {
@@ -288,7 +300,7 @@ const EditTestPage: React.FC = () => {
   if (loading) return <div className="p-6">Đang tải...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-800">Chỉnh sửa bài test</h1>
         <div className="flex gap-2">
@@ -441,12 +453,12 @@ const EditTestPage: React.FC = () => {
                   <div key={q._id || i} className={`${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} border rounded-lg transition-colors`}>
                     {/* Header row */}
                     <button type="button" onClick={() => setOpenQuestionIdx(openQuestionIdx === idx ? null : idx)} className={`${openQuestionIdx === idx ? 'bg-blue-50' : ''} w-full text-left p-3 flex items-start justify-between gap-3 rounded-t-lg`}>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="text-sm text-slate-500">Câu {q.questionNumber ?? i + 1}</div>
-                        <div className="font-medium text-slate-800 line-clamp-2">{q.content || '—'}</div>
+                        <div className="font-medium text-slate-800 whitespace-pre-wrap break-words">{q.content || '—'}</div>
                         <div className="mt-1 text-xs text-slate-600"><span className="font-medium">Đáp án:</span> {finalAnswers.length ? finalAnswers.join(', ') : '—'}</div>
                       </div>
-                      <div className={`text-xs px-2 py-1 rounded h-min ${openQuestionIdx === idx ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{q.type}</div>
+                      <div className={`text-xs px-2 py-1 rounded h-min whitespace-nowrap flex-shrink-0 leading-none ${openQuestionIdx === idx ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{typeLabel(q.type)}</div>
                     </button>
                     {openQuestionIdx === idx && (
                       <div className="border-t p-3 space-y-3">
