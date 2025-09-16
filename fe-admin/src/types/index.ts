@@ -24,6 +24,7 @@ export interface PlacementTest {
 }
 
 export interface TestSection {
+  _id?: string;
   sectionId?: number;
   title?: string;
   passage?: string;
@@ -36,7 +37,9 @@ export interface TestSection {
 
 export interface Question {
   _id?: string;
+  sectionId?: string;
   questionId?: number;
+  questionNumber?: number;
   type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay' | 'true_false_not_given' | 'yes_no_not_given' | 'summary_completion';
   content?: string;
   text?: string;

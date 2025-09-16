@@ -10,6 +10,11 @@ import './index.css';
 import PlacementTestsPage from './pages/placement-tests/PlacementTestsPage';
 import ViewTestPage from './pages/placement-tests/ViewTestPage';
 import EditTestPage from './pages/placement-tests/EditTestPage';
+import RoadmapPage from './pages/RoadmapPage';
+import PracticePage from './pages/PracticePage';
+import LessonsPage from './pages/LessonsPage';
+import MockExamPage from './pages/MockExamPage';
+import BlogPage from './pages/BlogPage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -74,10 +79,14 @@ const App: React.FC = () => {
 
         {/* Main Content Area */}
         <div className={`transition-all duration-300 ${
-          sidebarCollapsed ? 'ml-20' : 'ml-72'
+          sidebarCollapsed ? 'ml-20' : 'ml-64'
         }`}>
           {/* Header */}
-          <AdminHeader onLogout={handleLogout} />
+          <AdminHeader 
+            onLogout={handleLogout} 
+            onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+            sidebarCollapsed={sidebarCollapsed}
+          />
 
           {/* Page Content */}
           <main className="p-6">
@@ -89,6 +98,13 @@ const App: React.FC = () => {
               <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
               <Route path="/admin/placement-tests/:testId/view" element={<ViewTestPage />} />
               <Route path="/admin/placement-tests/:testId/edit" element={<EditTestPage />} />
+
+              {/* Additional Feature Sections */}
+              <Route path="/admin/roadmap" element={<RoadmapPage />} />
+              <Route path="/admin/practice" element={<PracticePage />} />
+              <Route path="/admin/lessons" element={<LessonsPage />} />
+              <Route path="/admin/mock-exams" element={<MockExamPage />} />
+              <Route path="/admin/blog" element={<BlogPage />} />
 
               
               {/* Default redirect */}

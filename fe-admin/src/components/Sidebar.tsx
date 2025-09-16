@@ -36,6 +36,52 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
         </svg>
       ),
     },
+    {
+      label: 'Lộ trình',
+      href: '/admin/roadmap',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Ôn luyện',
+      href: '/admin/practice',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Bài học',
+      href: '/admin/lessons',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20l9-5-9-5-9 5 9 5z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l9-5-9-5-9 5 9 5z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Thi thử',
+      href: '/admin/mock-exams',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6-2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6l2 2h6a2 2 0 012 2z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Blog',
+      href: '/admin/blog',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2h-3.34a1 1 0 01-.7-.29l-1.93-1.93A1 1 0 0010.66 4H5A2 2 0 003 6v5" />
+        </svg>
+      ),
+    },
   ];
 
   const isActiveRoute = (href: string) => {
@@ -116,39 +162,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
   };
 
   return (
-    <div className={`fixed left-0 top-0 h-full bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 border-r border-slate-700 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} flex flex-col shadow-2xl z-40`}>
-      {/* Header */}
-      <div className="p-4 border-b border-slate-700">
-        <div className="flex items-center justify-between">
+    <div className={`fixed left-0 top-0 h-full bg-[#0f172a] bg-gradient-to-b from-slate-900 via-slate-850 to-slate-900 border-r border-slate-800/70 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} flex flex-col shadow-xl z-40`}>
+      {/* Branding */}
+      <div className="h-14 flex items-center px-4 border-b border-slate-800/60">
+        <div className="flex items-center gap-3 w-full justify-center md:justify-start">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow text-white text-sm font-semibold">
+            A
+          </div>
           {!isCollapsed && (
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-sm">ET</span>
-              </div>
-              <div>
-                <span className="text-lg font-semibold text-white">Admin</span>
-                <p className="text-xs text-slate-300">Quản trị hệ thống</p>
-              </div>
+            <div className="leading-tight">
+              <p className="text-white font-semibold text-lg tracking-tight">Admin Panel</p>
             </div>
           )}
-          <button
-            onClick={onToggle}
-            className="p-2 rounded-lg hover:bg-slate-700 transition-colors duration-200 text-slate-300 hover:text-white"
-            aria-label="Toggle sidebar"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isCollapsed ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              )}
-            </svg>
-          </button>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         {menuItems.map((item) => renderMenuItem(item))}
       </nav>
       {/* Removed static user block for a cleaner admin sidebar */}

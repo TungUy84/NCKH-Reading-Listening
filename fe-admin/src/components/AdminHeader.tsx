@@ -5,24 +5,20 @@ import { AdminUser } from '../types';
 
 interface AdminHeaderProps {
   onLogout: () => void;
+  onToggleSidebar?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
-const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout }) => {
+const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, sidebarCollapsed }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
   const location = useLocation();
 
-  const getPageTitle = () => {
-    switch (location.pathname) {
-      case '/admin/dashboard':
-        return 'Dashboard';
-      case '/admin/placement-tests':
-        return 'Kiểm tra đầu vào';
-      case '/admin/placement-tests/id':
-        return 'Chi tiết bài kiểm tra'; 
-      default:
-        return 'Dashboard';
-    }
+  // Derive breadcrumb label (could be extended later)
+  const getCrumb = () => {
+    if (location.pathname.startsWith('/admin/placement-tests')) return 'Kiểm tra đầu vào';
+    if (location.pathname.startsWith('/admin/dashboard')) return 'Dashboard';
+    return 'Trang quản trị';
   };
 
   useEffect(() => {
@@ -38,43 +34,62 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout }) => {
   }, []);
 
   return (
-    <header className="bg-white/90 backdrop-blur-sm border-b border-gray-200/60 px-6 py-3 shadow-sm sticky top-0 z-30">
-      <div className="flex items-center justify-between">
-        {/* Left side - Title */}
-        <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-semibold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-            {getPageTitle()}
-          </h1>
+  <header className="bg-white/95 supports-[backdrop-filter]:backdrop-blur-sm border-b border-gray-200 px-4 md:px-6 h-14 flex items-center sticky top-0 z-30 shadow-sm">
+      {/* Left section: sidebar toggle + crumb */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <button
+          type="button"
+          onClick={onToggleSidebar}
+          className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
+          aria-label="Toggle sidebar"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {sidebarCollapsed ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h10M4 18h16" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6h12M6 12h12M6 18h12" />
+            )}
+          </svg>
+        </button>
+        <div className="hidden md:flex items-center text-sm text-gray-500 gap-2 truncate">
+          <span className="text-gray-400">Admin</span>
+          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <span className="font-medium text-gray-700 truncate max-w-[180px]">{getCrumb()}</span>
         </div>
 
-        {/* Right side - Actions */}
-        <div className="flex items-center space-x-4">
+      </div>
+
+      {/* Right section: user menu */}
+      <div className="flex items-center gap-3">
           {/* User Menu */}
           <div className="relative">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center space-x-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 focus:outline-none focus:bg-gray-100 transition-all duration-200"
+            className="flex items-center space-x-3 pl-1 pr-3 py-1.5 rounded-full border border-gray-200 bg-white hover:shadow-sm hover:border-gray-300 transition-all"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow">
-                <span className="text-white font-semibold text-xs">{(user?.firstName?.[0] || user?.username?.[0] || 'A').toUpperCase()}</span>
+            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center shadow text-white font-semibold text-sm">
+              {(user?.firstName?.[0] || user?.username?.[0] || 'A').toUpperCase()}
               </div>
-              <div className="hidden md:block text-left leading-tight">
-                <p className="text-sm font-medium text-gray-800 truncate max-w-[180px]">
-                  {user?.firstName || user?.username || 'Admin'} {user?.lastName || ''}
-                </p>
-                <p className="text-xs text-gray-500 truncate max-w-[200px]">{user?.email || ''}</p>
+            <div className="hidden md:block leading-tight text-left max-w-[180px]">
+              <p className="text-sm font-medium text-gray-800 truncate">{user?.firstName || user?.username || 'Admin'} {user?.lastName || ''}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.email || ''}</p>
               </div>
-              <svg className="w-4 h-4 text-gray-400 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
 
             {/* Dropdown Menu */}
             {showUserMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-200/60 py-2 z-50 backdrop-blur-sm">
+              <div className="absolute right-0 mt-2 w-60 bg-white rounded-xl shadow-lg border border-gray-200/70 py-2 z-50">
                 <Link
                   to="/admin/profile"
-                  className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg mx-2 transition-colors duration-200"
+                  className="block px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-md mx-2"
                   onClick={() => setShowUserMenu(false)}
                 >
                   <div className="flex items-center">
@@ -84,13 +99,13 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout }) => {
                     <span className="font-medium">Thông tin cá nhân</span>
                   </div>
                 </Link>
-                <div className="border-t border-gray-100 my-2 mx-2"></div>
+                <div className="border-t border-gray-100 my-2 mx-2" />
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
                     onLogout();
                   }}
-                  className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg mx-2 transition-colors duration-200"
+                  className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-md mx-2"
                 >
                   <div className="flex items-center">
                     <svg className="w-4 h-4 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +117,6 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout }) => {
               </div>
             )}
           </div>
-        </div>
       </div>
     </header>
   );

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import { PlacementTestAPI } from '../../services/api';
 import { PlacementTest } from '../../types';
 
@@ -21,6 +22,7 @@ const PlacementTestsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [category, setCategory] = useState<string>('');
   const [status, setStatus] = useState<string>('');
 
@@ -33,7 +35,7 @@ const PlacementTestsPage: React.FC = () => {
         page,
         limit: PAGE_SIZE,
         category: category || undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         status: status as any,
       });
       setTests(res.data || []);
@@ -46,16 +48,24 @@ const PlacementTestsPage: React.FC = () => {
     }
   };
 
+  // Debounce search input to avoid calling API on every keystroke
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [search]);
+
+  // Auto-load whenever page, filters, or debounced search change
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, category, status, debouncedSearch]);
 
-  const onSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Reset to first page when filters or search change
+  useEffect(() => {
     setPage(1);
-    load();
-  };
+  }, [category, status, debouncedSearch]);
 
   const clearFilters = () => {
     setSearch('');
@@ -76,11 +86,21 @@ const PlacementTestsPage: React.FC = () => {
   };
 
   const remove = async (test: PlacementTest) => {
-    if (!window.confirm(`Xóa bài test "${test.title}"?`)) return;
+    const result = await Swal.fire({
+      title: 'Bạn có chắc muốn xóa?',
+      text: `Bài test: ${test.title}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy',
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#6b7280',
+      reverseButtons: true,
+    });
+    if (!result.isConfirmed) return;
     try {
       await PlacementTestAPI.deleteTest(test._id);
       toast.success('Đã xóa');
-      // reload current page; if empty, go to previous
       const newCount = tests.length - 1;
       if (newCount === 0 && page > 1) setPage(page - 1);
       else load();
@@ -113,7 +133,7 @@ const PlacementTestsPage: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <form onSubmit={onSearch} className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -140,10 +160,9 @@ const PlacementTestsPage: React.FC = () => {
           <option value="inactive">Tạm ẩn</option>
         </select>
         <div className="flex gap-2">
-          <button type="submit" className="px-4 py-2 rounded-lg bg-slate-800 text-white">Lọc</button>
           <button type="button" onClick={clearFilters} className="px-4 py-2 rounded-lg border">Xóa lọc</button>
         </div>
-      </form>
+      </div>
 
       {/* List */}
       <div className="bg-white rounded-xl shadow-sm border">
@@ -159,12 +178,22 @@ const PlacementTestsPage: React.FC = () => {
                 <th className="text-right p-3 font-medium">Hành động</th>
               </tr>
             </thead>
-            <tbody>
-              {loading ? (
+            <tbody className="relative">
+              {loading && (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500">Đang tải...</td>
+                  <td colSpan={6} className="p-0">
+                    <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-4">
+                      <div className="flex gap-2">
+                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"></div>
+                      </div>
+                      <p className="text-sm text-slate-600">Đang tải dữ liệu...</p>
+                    </div>
+                  </td>
                 </tr>
-              ) : tests.length === 0 ? (
+              )}
+              {!loading && tests.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-slate-500">Chưa có bài test</td>
                 </tr>
