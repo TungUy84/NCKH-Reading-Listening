@@ -28,6 +28,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       ),
     },
     {
+      label: 'Người dùng',
+      href: '/admin/users',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-6.26a4 4 0 11-8 0 4 4 0 018 0zM7 8a4 4 0 118 0" />
+        </svg>
+      ),
+    },
+    {
       label: 'Kiểm tra đầu vào',
       href: '/admin/placement-tests',
       icon: (

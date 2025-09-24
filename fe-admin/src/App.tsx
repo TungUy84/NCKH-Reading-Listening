@@ -10,11 +10,12 @@ import './index.css';
 import PlacementTestsPage from './pages/placement-tests/PlacementTestsPage';
 import ViewTestPage from './pages/placement-tests/ViewTestPage';
 import EditTestPage from './pages/placement-tests/EditTestPage';
-import RoadmapPage from './pages/RoadmapPage';
-import PracticePage from './pages/PracticePage';
-import LessonsPage from './pages/LessonsPage';
-import MockExamPage from './pages/MockExamPage';
-import BlogPage from './pages/BlogPage';
+import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
+import PracticePage from './pages/PracticePage/PracticePage';
+import LessonsPage from './pages/LessonsPage/LessonsPage';
+import MockExamPage from './pages/MockExamPage/MockExamPage';
+import BlogPage from './pages/BlogPage/BlogPage';
+import UsersPage from './pages/UsersPage/UsersPage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -105,6 +106,8 @@ const App: React.FC = () => {
               <Route path="/admin/lessons" element={<LessonsPage />} />
               <Route path="/admin/mock-exams" element={<MockExamPage />} />
               <Route path="/admin/blog" element={<BlogPage />} />
+              {/* Users Management */}
+              <Route path="/admin/users" element={<UsersPage />} />
 
               
               {/* Default redirect */}

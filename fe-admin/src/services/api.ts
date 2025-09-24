@@ -6,7 +6,12 @@ import {
   LoginCredentials, 
   AuthResponse, 
   DashboardStats,
-  AdminApiResponse
+  AdminApiResponse,
+  UsersListResult,
+  UserQueryParams,
+  CreateUserInput,
+  UpdateUserInput,
+  UserStats
 } from '../types';
 
 // Create axios instance with auth
@@ -414,6 +419,111 @@ export class PlacementTestAPI {
     }
   }
 }
+
+// Users Management API
+export class UsersAPI {
+  static async getUsers(params: UserQueryParams = {}): Promise<UsersListResult> {
+    try {
+      // Clean params to avoid sending empty string which backend treats as false
+      const cleaned: Record<string, any> = {};
+      if (params.page !== undefined) cleaned.page = params.page;
+      if (params.limit !== undefined) cleaned.limit = params.limit;
+      if (params.search) cleaned.search = params.search;
+      if (params.role) cleaned.role = params.role;
+      if (params.isActive !== '' && params.isActive !== undefined) cleaned.isActive = params.isActive;
+
+      const response = await api.get('/users', { params: cleaned });
+      return {
+        users: response.data.users || [],
+        pagination: response.data.pagination,
+      };
+    } catch (error) {
+      console.error('Get users error:', error);
+      throw new Error('Không thể tải danh sách người dùng');
+    }
+  }
+
+  static async getUserById(userId: string): Promise<AdminUser> {
+    try {
+      const response = await api.get(`/users/${userId}`);
+      return response.data.user;
+    } catch (error) {
+      console.error('Get user error:', error);
+      throw new Error('Không thể tải thông tin người dùng');
+    }
+  }
+
+  static async createUser(data: CreateUserInput): Promise<AdminUser> {
+    try {
+      const response = await api.post('/users', data);
+      return response.data.user;
+    } catch (error: any) {
+      console.error('Create user error:', error);
+      const msg = error?.response?.data?.message || 'Không thể tạo người dùng';
+      throw new Error(msg);
+    }
+  }
+
+  static async updateUser(userId: string, data: UpdateUserInput): Promise<AdminUser> {
+    try {
+      const response = await api.put(`/users/${userId}`, data);
+      return response.data.user;
+    } catch (error) {
+      console.error('Update user error:', error);
+      throw new Error('Không thể cập nhật người dùng');
+    }
+  }
+
+  static async deleteUser(userId: string): Promise<void> {
+    try {
+      await api.delete(`/users/${userId}`);
+    } catch (error) {
+      console.error('Delete user error:', error);
+      throw new Error('Không thể xóa người dùng');
+    }
+  }
+
+  static async toggleUserStatus(userId: string): Promise<AdminUser> {
+    try {
+      const response = await api.put(`/users/${userId}/toggle-status`);
+      return response.data.user;
+    } catch (error: any) {
+      console.error('Toggle user status error:', error);
+      const msg = error?.response?.data?.message || 'Không thể thay đổi trạng thái người dùng';
+      throw new Error(msg);
+    }
+  }
+
+  static async updateUserRole(userId: string, role: 'admin' | 'user'): Promise<AdminUser> {
+    try {
+      const response = await api.put(`/users/${userId}/role`, { role });
+      return response.data.user;
+    } catch (error: any) {
+      console.error('Update user role error:', error);
+      const msg = error?.response?.data?.message || 'Không thể cập nhật quyền người dùng';
+      throw new Error(msg);
+    }
+  }
+
+  static async getStats(): Promise<UserStats['statistics']> {
+    try {
+      const response = await api.get('/users/stats');
+      return response.data.statistics;
+    } catch (error) {
+      console.error('Get user stats error:', error);
+      throw new Error('Không thể tải thống kê người dùng');
+    }
+  }
+}
+
+export const getUsers = UsersAPI.getUsers;
+export const getUserById = UsersAPI.getUserById;
+export const createUser = UsersAPI.createUser;
+export const updateUser = UsersAPI.updateUser;
+export const deleteUser = UsersAPI.deleteUser;
+export const toggleUserStatus = UsersAPI.toggleUserStatus;
+export const updateUserRole = UsersAPI.updateUserRole;
+export const getUserStats = UsersAPI.getStats;
 
 // Export convenient wrapper functions
 export const getPlacementTests = PlacementTestAPI.getTests;

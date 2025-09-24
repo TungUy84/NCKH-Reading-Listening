@@ -80,6 +80,63 @@ export interface AdminUser {
   updatedAt?: string;
 }
 
+// Users management types (admin)
+export type UserRole = 'admin' | 'user';
+
+export interface UserQueryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: UserRole | '';
+  isActive?: boolean | '';
+}
+
+export interface CreateUserInput {
+  username: string;
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  studentId?: string;
+  dateOfBirth?: string; // ISO string
+  role?: UserRole;
+}
+
+export interface UpdateUserInput {
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  studentId?: string;
+  dateOfBirth?: string | null; // allow clearing
+  avatar?: string;
+  role?: UserRole;
+  isActive?: boolean;
+}
+
+export interface UserStats {
+  statistics: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    adminUsers: number;
+    regularUsers: number;
+    newUsersLast30Days: number;
+  };
+}
+
+export interface UsersListPagination {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+export interface UsersListResult {
+  users: AdminUser[];
+  pagination: UsersListPagination;
+}
+
 export interface LoginCredentials {
   email: string;
   password: string;

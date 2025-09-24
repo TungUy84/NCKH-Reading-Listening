@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import Swal from 'sweetalert2';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTestAPI } from '../../services/api';
@@ -235,6 +236,72 @@ const EditTestPage: React.FC = () => {
     });
   };
 
+  // ---- Section add/delete ----
+  const addSection = () => {
+    setTest((prev) => {
+      if (!prev) return prev;
+      const sections = [...(prev.sections || [])];
+      const newSection = {
+        title: `PASSAGE ${sections.length + 1}`,
+        passage: '',
+        audio: '',
+        image: '',
+        timeLimit: 0,
+      } as any;
+      const next = { ...prev, sections } as PlacementTest;
+      next.sections!.push(newSection);
+      return next;
+    });
+    setOpenQuestionIdx(null);
+    // Move focus to the newly added section
+    setCurrentSectionIndex((idx) => {
+      const count = (test?.sections?.length || 0) + 1; // optimistic count after push
+      return Math.max(0, count - 1);
+    });
+  };
+
+  const deleteCurrentSection = async () => {
+    if (!test || !test.sections || !test.sections.length) return;
+    const result = await Swal.fire({
+      title: 'Xóa phần này?',
+      text: 'Hành động này sẽ xóa cả các câu hỏi thuộc phần. Bạn có chắc muốn xóa? ',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Có, xóa',
+      cancelButtonText: 'Hủy',
+      reverseButtons: true,
+      focusCancel: true,
+    });
+    if (!result.isConfirmed) return;
+
+    const sectionToDelete = test.sections[currentSectionIndex] as any;
+    const sectionIdStr = sectionToDelete?._id?.toString ? sectionToDelete._id.toString() : String(sectionToDelete?._id || '');
+
+    setTest((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev } as PlacementTest;
+      // Remove section
+      next.sections = (next.sections || []).filter((_, i) => i !== currentSectionIndex);
+      // Remove questions under this section
+      next.questions = (next.questions || []).filter((q: any) => {
+        const sid = q?.sectionId?.toString ? q.sectionId.toString() : String(q?.sectionId || '');
+        return !sectionIdStr || sid !== sectionIdStr;
+      });
+      return next;
+    });
+
+    // Adjust current index
+    setCurrentSectionIndex((idx) => {
+      const newLen = (test?.sections?.length || 1) - 1;
+      if (newLen <= 0) return 0;
+      return Math.min(idx, newLen - 1);
+    });
+    setOpenQuestionIdx(null);
+    toast.success('Đã xóa phần. Nhấn "Lưu nội dung" để cập nhật lên server.');
+  };
+
   const addQuestionToCurrentSection = () => {
     if (!test || !currentSection?._id) return;
     const sectionId = (currentSection as any)._id;
@@ -401,7 +468,14 @@ const EditTestPage: React.FC = () => {
                 </button>
               )}
             </div>
-            {test?.sections && (<div className="text-sm text-slate-500 whitespace-nowrap">{currentSectionIndex + 1} / {test.sections.length}</div>)}
+            {test?.sections && (
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-sm text-slate-500">{currentSectionIndex + 1} / {test.sections.length}</span>
+                <span className="mx-1 text-slate-300">|</span>
+                <button type="button" onClick={addSection} className="px-2 py-1 rounded-lg border hover:bg-slate-50">+ Thêm phần</button>
+                <button type="button" onClick={deleteCurrentSection} className="px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Xóa phần</button>
+              </div>
+            )}
           </div>
           <div className="p-3 space-y-4 flex-1 overflow-auto">
             <div className="space-y-2">
