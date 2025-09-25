@@ -10,12 +10,15 @@ import './index.css';
 import PlacementTestsPage from './pages/placement-tests/PlacementTestsPage';
 import ViewTestPage from './pages/placement-tests/ViewTestPage';
 import EditTestPage from './pages/placement-tests/EditTestPage';
+import CreateTestPage from './pages/placement-tests/CreateTestPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
 import PracticePage from './pages/PracticePage/PracticePage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
 import MockExamPage from './pages/MockExamPage/MockExamPage';
 import BlogPage from './pages/BlogPage/BlogPage';
 import UsersPage from './pages/UsersPage/UsersPage';
+import CreateUserPage from './pages/UsersPage/CreateUserPage';
+import EditUserPage from './pages/UsersPage/EditUserPage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -97,6 +100,7 @@ const App: React.FC = () => {
               
               {/* Placement Tests Management */}
               <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
+              <Route path="/admin/placement-tests/create" element={<CreateTestPage />} />
               <Route path="/admin/placement-tests/:testId/view" element={<ViewTestPage />} />
               <Route path="/admin/placement-tests/:testId/edit" element={<EditTestPage />} />
 
@@ -108,6 +112,8 @@ const App: React.FC = () => {
               <Route path="/admin/blog" element={<BlogPage />} />
               {/* Users Management */}
               <Route path="/admin/users" element={<UsersPage />} />
+              <Route path="/admin/users/create" element={<CreateUserPage />} />
+              <Route path="/admin/users/:userId/edit" element={<EditUserPage />} />
 
               
               {/* Default redirect */}

@@ -263,14 +263,17 @@ const getPlacementTestById = async (req, res) => {
 // Tạo bài test mới (Admin only)
 const createPlacementTest = async (req, res) => {
   try {
-    const { title, description, instructions, timeLimit, questions } = req.body;
+    const { title, description, instructions, timeLimit, questions = [], sections = [], category, isActive = true } = req.body;
 
     const test = new PlacementTest({
       title,
-      description,
-      instructions,
+      description: description || '',
+      instructions: Array.isArray(instructions) ? instructions : [],
+      category, // BẮT BUỘC theo schema
       timeLimit,
+      sections,
       questions,
+      isActive,
       createdBy: req.user._id
     });
 
@@ -282,6 +285,11 @@ const createPlacementTest = async (req, res) => {
     });
   } catch (error) {
     console.error('Create placement test error:', error);
+    if (error.name === 'ValidationError') {
+      // Trả lỗi 400 với chi tiết để FE hiển thị thân thiện
+      const errors = Object.values(error.errors || {}).map((e) => e.message);
+      return res.status(400).json({ message: 'Dữ liệu không hợp lệ', errors });
+    }
     res.status(500).json({ message: 'Lỗi server khi tạo bài test' });
   }
 };
@@ -339,7 +347,17 @@ const updateTestContent = async (req, res) => {
       }));
     }
     if (Array.isArray(questions)) {
-      test.questions = questions;
+      // Map questionNumber nếu chưa có và cố gắng gán sectionId khi thiếu dựa trên thứ tự section
+      const currentSections = test.sections || [];
+      const normalized = questions.map((q, idx) => {
+        const qq = { ...q };
+        if (!qq.questionNumber) qq.questionNumber = idx + 1;
+        if (!qq.sectionId && typeof qq.sectionIndex === 'number' && currentSections[qq.sectionIndex]?._id) {
+          qq.sectionId = currentSections[qq.sectionIndex]._id;
+        }
+        return qq;
+      });
+      test.questions = normalized;
     }
 
     // Tính lại tổng số câu hỏi và điểm

@@ -459,7 +459,12 @@ export class UsersAPI {
       return response.data.user;
     } catch (error: any) {
       console.error('Create user error:', error);
-      const msg = error?.response?.data?.message || 'Không thể tạo người dùng';
+      const res = error?.response?.data;
+      let msg = res?.message || 'Không thể tạo người dùng';
+      if (res?.errors && Array.isArray(res.errors)) {
+        const details = res.errors.map((e: any) => e.msg || e.message).filter(Boolean).join('; ');
+        if (details) msg = `${msg}: ${details}`;
+      }
       throw new Error(msg);
     }
   }

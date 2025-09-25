@@ -73,6 +73,9 @@ export interface AdminUser {
   firstName?: string;
   lastName?: string;
   avatar?: string;
+  phoneNumber?: string;
+  studentId?: string;
+  dateOfBirth?: string; // ISO string
   role: 'admin' | 'user';
   isActive: boolean;
   lastLogin?: string;
@@ -112,6 +115,7 @@ export interface UpdateUserInput {
   avatar?: string;
   role?: UserRole;
   isActive?: boolean;
+  password?: string; // allow admin to set new password
 }
 
 export interface UserStats {

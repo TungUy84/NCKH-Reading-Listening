@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { PlacementTestAPI } from '../../services/api';
 import { PlacementTest } from '../../types';
+import { FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 const PAGE_SIZE = 10;
 
@@ -13,7 +14,7 @@ const categoryLabel: Record<string, string> = {
   general: 'General',
 };
 
-const statusLabel = (isActive: boolean) => (isActive ? 'Đang hoạt động' : 'Tạm ẩn');
+const statusLabel = (isActive: boolean) => (isActive ? 'Hoạt động' : 'Tạm ẩn');
 
 const PlacementTestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ const PlacementTestsPage: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [category, setCategory] = useState<string>('');
   const [status, setStatus] = useState<string>('');
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
@@ -75,13 +77,20 @@ const PlacementTestsPage: React.FC = () => {
     load();
   };
 
-  const toggleStatus = async (test: PlacementTest) => {
+  const onToggleStatus = async (test: PlacementTest) => {
+    if (togglingId) return; // prevent parallel toggles
+    setTogglingId(test._id);
+    // Optimistic update for snappy UI
+    setTests((prev) => prev.map((x) => (x._id === test._id ? { ...x, isActive: !x.isActive } : x)));
     try {
       await PlacementTestAPI.updateTestInfo(test._id, { isActive: !test.isActive });
       toast.success('Đã cập nhật trạng thái');
-      load();
     } catch (err: any) {
+      // Revert optimistic change on error
+      setTests((prev) => prev.map((x) => (x._id === test._id ? { ...x, isActive: test.isActive } : x)));
       toast.error(err.message || 'Không thể cập nhật trạng thái');
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -95,7 +104,7 @@ const PlacementTestsPage: React.FC = () => {
       cancelButtonText: 'Hủy',
       confirmButtonColor: '#dc2626',
       cancelButtonColor: '#6b7280',
-      reverseButtons: true,
+      reverseButtons: false,
     });
     if (!result.isConfirmed) return;
     try {
@@ -124,7 +133,7 @@ const PlacementTestsPage: React.FC = () => {
             Import từ Word
           </button>
           <button
-            onClick={() => toast.info('Chức năng tạo mới sẽ được bổ sung')}
+            onClick={() => navigate('/admin/placement-tests/create')}
             className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
           >
             + Tạo bài test
@@ -173,15 +182,16 @@ const PlacementTestsPage: React.FC = () => {
                 <th className="text-left p-3 font-medium">Tiêu đề</th>
                 <th className="text-left p-3 font-medium">Loại</th>
                 <th className="text-left p-3 font-medium">Thời gian</th>
+                <th className="text-left p-3 font-medium">Số phần</th>
                 <th className="text-left p-3 font-medium">Câu hỏi</th>
-                <th className="text-left p-3 font-medium">Trạng thái</th>
+                <th className="text-center p-3 font-medium">Trạng thái</th>
                 <th className="text-right p-3 font-medium">Hành động</th>
               </tr>
             </thead>
             <tbody className="relative">
               {loading && (
                 <tr>
-                  <td colSpan={6} className="p-0">
+                  <td colSpan={7} className="p-0">
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-4">
                       <div className="flex gap-2">
                         <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
@@ -195,7 +205,7 @@ const PlacementTestsPage: React.FC = () => {
               )}
               {!loading && tests.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500">Chưa có bài test</td>
+                  <td colSpan={7} className="p-6 text-center text-slate-500">Chưa có bài test</td>
                 </tr>
               ) : (
                 tests.map((t) => (
@@ -206,30 +216,56 @@ const PlacementTestsPage: React.FC = () => {
                     </td>
                     <td className="p-3">{categoryLabel[t.category] || t.category}</td>
                     <td className="p-3">{t.timeLimit} phút</td>
+                    <td className="p-3">{Array.isArray(t.sections) ? t.sections.length : ((t as any).totalSections ?? 0)}</td>
                     <td className="p-3">{t.totalQuestions}</td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => toggleStatus(t)}
-                        className={`px-2 py-1 rounded-full text-xs ${t.isActive ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}
-                        title="Bấm để đổi trạng thái"
-                      >
-                        {statusLabel(t.isActive)}
-                      </button>
+                    <td className="p-3 text-center">
+                      <div className="inline-flex items-center gap-2 justify-center">
+                        <button
+                          type="button"
+                          aria-pressed={t.isActive}
+                          disabled={togglingId === t._id}
+                          onClick={() => onToggleStatus(t)}
+                          title={t.isActive ? 'Hoạt động' : 'Tạm ẩn'}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                            ${t.isActive ? 'bg-green-500' : 'bg-slate-300'}
+                            ${togglingId === t._id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                        >
+                          <span
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform
+                              ${t.isActive ? 'translate-x-5' : 'translate-x-1'}`}
+                          />
+                        </button>
+                        <span className={`text-xs font-medium ${t.isActive ? 'text-green-700' : 'text-slate-600'} w-24 text-left`}>
+                          {statusLabel(t.isActive)}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2 justify-end">
                         <button
                           onClick={() => navigate(`/admin/placement-tests/${t._id}/view`)}
-                          className="px-3 py-1 rounded-lg border text-slate-700 hover:bg-slate-50"
-                        >Xem</button>
+                          title="Xem"
+                          aria-label="Xem"
+                          className="p-2 rounded-lg border text-slate-700 hover:bg-slate-50"
+                        >
+                          {React.createElement(FiEye as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
+                        </button>
                         <button
                           onClick={() => navigate(`/admin/placement-tests/${t._id}/edit`)}
-                          className="px-3 py-1 rounded-lg border text-slate-700 hover:bg-slate-50"
-                        >Sửa</button>
+                          title="Sửa"
+                          aria-label="Sửa"
+                          className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                        >
+                          {React.createElement(FiEdit2 as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
+                        </button>
                         <button
                           onClick={() => remove(t)}
-                          className="px-3 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700"
-                        >Xóa</button>
+                          title="Xóa"
+                          aria-label="Xóa"
+                          className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                        >
+                          {React.createElement(FiTrash2 as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
+                        </button>
                       </div>
                     </td>
                   </tr>

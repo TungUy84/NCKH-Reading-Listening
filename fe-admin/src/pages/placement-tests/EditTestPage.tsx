@@ -1,15 +1,25 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTestAPI } from '../../services/api';
 import { PlacementTest } from '../../types';
 
 const EditTestPage: React.FC = () => {
   const { testId } = useParams();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Auto-save states
+  const [infoSaving, setInfoSaving] = useState(false);
+  const [contentSaving, setContentSaving] = useState(false);
+  const [invalidQuestionIdxs, setInvalidQuestionIdxs] = useState<Set<number>>(new Set());
+  const [infoSavedAt, setInfoSavedAt] = useState<number | null>(null);
+  const [contentSavedAt, setContentSavedAt] = useState<number | null>(null);
+  const hasLoadedRef = useRef(false);
+  const infoDebounceRef = useRef<number | null>(null);
+  const contentDebounceRef = useRef<number | null>(null);
+  const lastInfoSigRef = useRef<string | null>(null);
+  const lastContentSigRef = useRef<string | null>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [test, setTest] = useState<PlacementTest | null>(null);
   const [openQuestionIdx, setOpenQuestionIdx] = useState<number | null>(null);
@@ -59,6 +69,7 @@ const EditTestPage: React.FC = () => {
   const [category, setCategory] = useState<'reading' | 'listening' | 'general'>('reading');
   const [timeLimit, setTimeLimit] = useState<number>(60);
   const [instructions, setInstructions] = useState<string[]>(['']);
+  const [isActive, setIsActive] = useState<boolean>(true);
 
   useEffect(() => {
     const load = async () => {
@@ -69,14 +80,17 @@ const EditTestPage: React.FC = () => {
         setTitle(data.title);
         setDescription(data.description || '');
         setCategory(data.category);
-        setTimeLimit(data.timeLimit || 60);
-        setInstructions(data.instructions && data.instructions.length ? data.instructions : ['']);
+  setTimeLimit(data.timeLimit || 60);
+  setInstructions(data.instructions && data.instructions.length ? data.instructions : ['']);
+  setIsActive(typeof (data as any).isActive === 'boolean' ? !!(data as any).isActive : true);
         setTest(data);
       } catch (err: any) {
         console.error(err);
         toast.error(err.message || 'Không thể tải bài test');
       } finally {
         setLoading(false);
+        // Mark initial load complete so autosave won't trigger from initial setState
+        hasLoadedRef.current = true;
       }
     };
     load();
@@ -94,16 +108,20 @@ const EditTestPage: React.FC = () => {
 
   // Build pairs {q, idx} for the current section to support updates by absolute index
   const sectionQuestionPairs = useMemo(() => {
-    if (!test || !test.questions || !currentSection?._id) return [] as { q: any; idx: number }[];
-    const currId = (currentSection as any)?._id?.toString ? (currentSection as any)._id.toString() : String(currentSection._id);
+    if (!test || !test.questions) return [] as { q: any; idx: number }[];
+    const hasId = !!currentSection?._id;
+    const currId = hasId ? ((currentSection as any)?._id?.toString ? (currentSection as any)._id.toString() : String((currentSection as any)._id)) : '';
     return test.questions
       .map((q, idx) => ({ q, idx }))
       .filter(({ q }) => {
-        const sid = (q as any)?.sectionId && (q as any).sectionId.toString ? (q as any).sectionId.toString() : String((q as any).sectionId || '');
-        return sid === currId;
+        const qsid = (q as any)?.sectionId && (q as any).sectionId.toString ? (q as any).sectionId.toString() : String((q as any).sectionId || '');
+        if (hasId) return qsid === currId;
+        // fallback matching by sectionIndex when section has no _id yet
+        const qIndex = (q as any)?.sectionIndex;
+        return typeof qIndex === 'number' && qIndex === currentSectionIndex;
       })
       .sort((a, b) => ((a.q.questionNumber || 0) - (b.q.questionNumber || 0)));
-  }, [test, currentSection]);
+  }, [test, currentSection, currentSectionIndex]);
 
   const nextSection = () => {
     if (!test?.sections) return;
@@ -198,6 +216,91 @@ const EditTestPage: React.FC = () => {
     });
   };
 
+  // --- Auto-save: Basic Info ---
+  useEffect(() => {
+    if (!testId) return;
+    const infoPayload = {
+      title: title.trim(),
+      description: description.trim(),
+      category,
+      timeLimit,
+      instructions: instructions.map((i) => i.trim()).filter((i) => i),
+      isActive,
+    };
+    const sig = JSON.stringify(infoPayload);
+    if (!hasLoadedRef.current) {
+      lastInfoSigRef.current = sig;
+      return;
+    }
+    if (lastInfoSigRef.current === sig) return;
+    if (infoDebounceRef.current) window.clearTimeout(infoDebounceRef.current);
+    infoDebounceRef.current = window.setTimeout(async () => {
+      try {
+        setInfoSaving(true);
+        await PlacementTestAPI.updateTestInfo(testId, infoPayload);
+        lastInfoSigRef.current = sig;
+        setInfoSavedAt(Date.now());
+      } catch (err: any) {
+        // Silent fail for auto-save info
+        console.warn('Auto-save info failed (silent):', err);
+      } finally {
+        setInfoSaving(false);
+      }
+    }, 800);
+    return () => {
+      if (infoDebounceRef.current) window.clearTimeout(infoDebounceRef.current);
+    };
+  }, [testId, title, description, category, timeLimit, instructions, isActive]);
+
+  // --- Auto-save: Content (sections & questions) ---
+  useEffect(() => {
+    if (!testId) return;
+    // Build a minimal signature to detect changes without saving excessively
+    const sectionsSig = (test?.sections || []).map((s: any) => ({
+      _id: s?._id?.toString ? s._id.toString() : s?._id || null,
+      title: s?.title || '',
+      passage: s?.passage || '',
+      audio: s?.audio || '',
+      image: s?.image || '',
+      timeLimit: s?.timeLimit || 0,
+    }));
+    const questionsSig = (test?.questions || []).map((q: any) => ({
+      _id: q?._id?.toString ? q._id.toString() : q?._id || null,
+      sectionId: q?.sectionId?.toString ? q.sectionId.toString() : q?.sectionId || null,
+      sectionIndex: typeof q?.sectionIndex === 'number' ? q.sectionIndex : null,
+      type: q?.type || '',
+      content: q?.content || '',
+      options: Array.isArray(q?.options) ? q.options.map((op: any) => ({ text: op?.text || '', isCorrect: !!op?.isCorrect })) : [],
+      correctAnswers: Array.isArray(q?.correctAnswers) ? q.correctAnswers.map((x: any) => String(x || '')) : [],
+      explanation: q?.explanation || '',
+      points: typeof q?.points === 'number' ? q.points : 1,
+      questionNumber: typeof q?.questionNumber === 'number' ? q.questionNumber : null,
+    }));
+    const sig = JSON.stringify({ sectionsSig, questionsSig });
+    if (!hasLoadedRef.current) {
+      lastContentSigRef.current = sig;
+      return;
+    }
+    if (lastContentSigRef.current === sig) return;
+    if (contentDebounceRef.current) window.clearTimeout(contentDebounceRef.current);
+    contentDebounceRef.current = window.setTimeout(async () => {
+      try {
+        setContentSaving(true);
+        await PlacementTestAPI.updateTestContent(testId, { sections: test?.sections || [], questions: test?.questions || [] });
+        lastContentSigRef.current = sig;
+        setContentSavedAt(Date.now());
+      } catch (err: any) {
+        // Silent fail for auto-save content
+        console.warn('Auto-save content failed (silent):', err);
+      } finally {
+        setContentSaving(false);
+      }
+    }, 1200);
+    return () => {
+      if (contentDebounceRef.current) window.clearTimeout(contentDebounceRef.current);
+    };
+  }, [testId, test?.sections, test?.questions]);
+
   // Option-based types and defaults
   const optionTypeSet = new Set(['single_choice', 'multiple_choice', 'true_false_not_given', 'yes_no_not_given', 'summary_completion']);
   const defaultOptionsByType = (type: string): { text: string; isCorrect: boolean }[] => {
@@ -220,7 +323,7 @@ const EditTestPage: React.FC = () => {
     });
   };
 
-  const resequenceQuestionNumbers = (sectionObjectId?: any) => {
+  const resequenceQuestionNumbers = (sectionObjectId?: any, sectionIdx?: number) => {
     setTest((prev) => {
       if (!prev) return prev;
       const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
@@ -228,7 +331,8 @@ const EditTestPage: React.FC = () => {
       const pairs = next.questions.map((q: any, idx) => ({ q, idx }))
         .filter(({ q }) => {
           const qsid = q?.sectionId?.toString ? q.sectionId.toString() : String(q.sectionId || '');
-          return qsid === sid;
+          if (sid) return qsid === sid;
+          return typeof q.sectionIndex === 'number' && q.sectionIndex === sectionIdx;
         })
         .sort((a, b) => ((a.q.questionNumber || 0) - (b.q.questionNumber || 0)));
       pairs.forEach(({ idx }, i) => { (next.questions[idx] as any).questionNumber = i + 1; });
@@ -271,7 +375,7 @@ const EditTestPage: React.FC = () => {
       cancelButtonColor: '#3085d6',
       confirmButtonText: 'Có, xóa',
       cancelButtonText: 'Hủy',
-      reverseButtons: true,
+      reverseButtons: false,
       focusCancel: true,
     });
     if (!result.isConfirmed) return;
@@ -303,18 +407,23 @@ const EditTestPage: React.FC = () => {
   };
 
   const addQuestionToCurrentSection = () => {
-    if (!test || !currentSection?._id) return;
-    const sectionId = (currentSection as any)._id;
+    if (!test) return;
+    const hasId = !!currentSection?._id;
+    const sectionId = hasId ? (currentSection as any)._id : undefined;
     const skill = test.category === 'listening' || test.category === 'reading' ? test.category : 'reading';
     setTest((prev) => {
       if (!prev) return prev;
       const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
       const count = next.questions.filter((q: any) => {
-        const sid = q?.sectionId?.toString ? q.sectionId.toString() : String(q.sectionId || '');
-        const csid = sectionId?.toString ? sectionId.toString() : String(sectionId || '');
-        return sid === csid;
+        if (hasId) {
+          const sid = q?.sectionId?.toString ? q.sectionId.toString() : String(q.sectionId || '');
+          const csid = sectionId?.toString ? sectionId.toString() : String(sectionId || '');
+          return sid === csid;
+        }
+        return typeof q.sectionIndex === 'number' && q.sectionIndex === currentSectionIndex;
       }).length;
-      const newQ: any = { type: 'single_choice', content: '', skill, sectionId, questionNumber: count + 1, options: defaultOptionsByType('single_choice'), correctAnswers: [], points: 1, explanation: '' };
+      const base: any = { type: 'single_choice', content: '', skill, questionNumber: count + 1, options: defaultOptionsByType('single_choice'), correctAnswers: [], points: 1, explanation: '' };
+      const newQ: any = hasId ? { ...base, sectionId } : { ...base, sectionIndex: currentSectionIndex };
       next.questions.push(newQ);
       return next;
     });
@@ -323,22 +432,61 @@ const EditTestPage: React.FC = () => {
   const deleteQuestion = (qIdx: number) => {
     if (!test) return;
     const sid = (test.questions[qIdx] as any)?.sectionId;
+    const sIndex = (test.questions[qIdx] as any)?.sectionIndex;
     setTest((prev) => {
       if (!prev) return prev;
       const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
       next.questions.splice(qIdx, 1);
       return next;
     });
-    resequenceQuestionNumbers(sid);
+    resequenceQuestionNumbers(sid, sIndex);
   };
 
   const saveContent = async () => {
     if (!testId || !test) return;
+    // Validate: no empty question content
+    const empties: number[] = [];
+    (test.questions || []).forEach((q: any, idx: number) => {
+      const contentText = (q.content || '').trim();
+      if (!contentText) empties.push(idx);
+    });
+    if (empties.length) {
+      setInvalidQuestionIdxs(new Set(empties));
+      toast.error(`Có ${empties.length} câu hỏi trống. Vui lòng nhập nội dung trước khi lưu.`);
+      // Auto-expand the first empty question for convenience
+      setOpenQuestionIdx(empties[0]);
+      return;
+    } else if (invalidQuestionIdxs.size) {
+      setInvalidQuestionIdxs(new Set());
+    }
     try {
       setSaving(true);
       const payload = { sections: test.sections || [], questions: test.questions || [] } as any;
       await PlacementTestAPI.updateTestContent(testId, payload);
       toast.success('Đã lưu nội dung bài test');
+      // Update signature to prevent immediate autosave
+      const sectionsSig = (payload.sections || []).map((s: any) => ({
+        _id: s?._id?.toString ? s._id.toString() : s?._id || null,
+        title: s?.title || '',
+        passage: s?.passage || '',
+        audio: s?.audio || '',
+        image: s?.image || '',
+        timeLimit: s?.timeLimit || 0,
+      }));
+      const questionsSig = (payload.questions || []).map((q: any) => ({
+        _id: q?._id?.toString ? q._id.toString() : q?._id || null,
+        sectionId: q?.sectionId?.toString ? q.sectionId.toString() : q?.sectionId || null,
+        sectionIndex: typeof q?.sectionIndex === 'number' ? q.sectionIndex : null,
+        type: q?.type || '',
+        content: q?.content || '',
+        options: Array.isArray(q?.options) ? q.options.map((op: any) => ({ text: op?.text || '', isCorrect: !!op?.isCorrect })) : [],
+        correctAnswers: Array.isArray(q?.correctAnswers) ? q.correctAnswers.map((x: any) => String(x || '')) : [],
+        explanation: q?.explanation || '',
+        points: typeof q?.points === 'number' ? q.points : 1,
+        questionNumber: typeof q?.questionNumber === 'number' ? q.questionNumber : null,
+      }));
+      lastContentSigRef.current = JSON.stringify({ sectionsSig, questionsSig });
+      setContentSavedAt(Date.now());
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Không thể lưu nội dung');
@@ -353,9 +501,12 @@ const EditTestPage: React.FC = () => {
     if (!title.trim() || !description.trim()) { toast.error('Vui lòng nhập tiêu đề và mô tả'); return; }
     try {
       setSaving(true);
-      await PlacementTestAPI.updateTestInfo(testId, { title: title.trim(), description: description.trim(), category, timeLimit, instructions: instructions.filter((i) => i.trim()) });
-      toast.success('Đã lưu bài test');
-      navigate(`/admin/placement-tests/${testId}/view`);
+      const payload = { title: title.trim(), description: description.trim(), category, timeLimit, instructions: instructions.filter((i) => i.trim()), isActive };
+      await PlacementTestAPI.updateTestInfo(testId, payload);
+      toast.success('Đã lưu thông tin');
+      // Update signature to prevent immediate autosave
+      lastInfoSigRef.current = JSON.stringify(payload);
+      setInfoSavedAt(Date.now());
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Không thể lưu');
@@ -370,7 +521,21 @@ const EditTestPage: React.FC = () => {
     <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-800">Chỉnh sửa bài test</h1>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          {(infoSaving || contentSaving) ? (
+            <span className="inline-flex items-center text-slate-500 text-sm" title="Đang tự động lưu">
+              <svg className="animate-spin -ml-0.5 mr-1 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+            </span>
+          ) : ((infoSavedAt || contentSavedAt) ? (
+            <span className="inline-flex items-center text-green-600" title="Đã lưu gần đây">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </span>
+          ) : null)}
           <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Xem</Link>
           <Link to="/admin/placement-tests" className="px-4 py-2 rounded-lg bg-slate-800 text-white">Danh sách</Link>
         </div>
@@ -417,6 +582,15 @@ const EditTestPage: React.FC = () => {
                 <label className="block text-sm mb-1">Thời gian (phút)</label>
                 <input type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(parseInt(e.target.value || '0', 10))} className="w-full px-3 py-2 border rounded-lg" />
               </div>
+              <div>
+                <label className="block text-sm mb-1">Trạng thái</label>
+                <div className="w-full h-[42px] px-3 border rounded-lg flex items-center gap-2">
+                  <button type="button" onClick={() => setIsActive((v) => !v)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-slate-300'}`}>
+                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
+                  </button>
+                  <span className={`text-sm ${isActive ? 'text-green-700' : 'text-slate-600'}`}>{isActive ? 'Hoạt động' : 'Tạm ẩn'}</span>
+                </div>
+              </div>
             </div>
             <div>
               <label className="block text-sm mb-2">Hướng dẫn</label>
@@ -430,8 +604,11 @@ const EditTestPage: React.FC = () => {
                 <button type="button" onClick={addInstruction} className="px-4 py-2 rounded-lg border">+ Thêm hướng dẫn</button>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu</button>
+            <div className="flex items-center gap-3">
+              <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu ngay</button>
+              {infoSaving ? (
+                <span className="text-sm text-slate-500">Đang lưu…</span>
+              ) : (infoSavedAt ? <span className="text-sm text-green-600">Đã lưu</span> : null)}
               <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Hủy</Link>
             </div>
           </form>
@@ -510,7 +687,7 @@ const EditTestPage: React.FC = () => {
   <div className="bg-white lg:rounded-r-xl rounded-b-xl lg:rounded-bl-none border overflow-hidden lg:border-l-0 flex flex-col" style={{ height: panelHeight }}>
           <div className="h-12 px-4 border-b flex items-center justify-between gap-2">
             <h2 className="font-semibold">Câu hỏi trong phần này</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <button onClick={addQuestionToCurrentSection} className="px-2 py-1 rounded-lg border">+ Thêm câu hỏi</button>
               <button onClick={saveContent} disabled={saving} className="px-2 py-1 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu nội dung</button>
             </div>
@@ -524,12 +701,12 @@ const EditTestPage: React.FC = () => {
                 const answersFromOptions = hasOptions ? (q.options || []).filter((op: any) => op.isCorrect).map((op: any) => op.text) : [];
                 const finalAnswers = hasOptions ? answersFromOptions : (q.correctAnswers || []);
                 return (
-                  <div key={q._id || i} className={`${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} border rounded-lg transition-colors`}>
+                  <div key={q._id || i} className={`border rounded-lg transition-colors ${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} ${invalidQuestionIdxs.has(idx) ? 'border-red-400 bg-red-50/40' : ''}`}>
                     {/* Header row */}
                     <button type="button" onClick={() => setOpenQuestionIdx(openQuestionIdx === idx ? null : idx)} className={`${openQuestionIdx === idx ? 'bg-blue-50' : ''} w-full text-left p-3 flex items-start justify-between gap-3 rounded-t-lg`}>
                       <div className="flex-1 min-w-0">
                         <div className="text-sm text-slate-500">Câu {q.questionNumber ?? i + 1}</div>
-                        <div className="font-medium text-slate-800 whitespace-pre-wrap break-words">{q.content || '—'}</div>
+                        <div className={`font-medium whitespace-pre-wrap break-words ${invalidQuestionIdxs.has(idx) ? 'text-red-600' : 'text-slate-800'}`}>{q.content || '—'}</div>
                         <div className="mt-1 text-xs text-slate-600"><span className="font-medium">Đáp án:</span> {finalAnswers.length ? finalAnswers.join(', ') : '—'}</div>
                       </div>
                       <div className={`text-xs px-2 py-1 rounded h-min whitespace-nowrap flex-shrink-0 leading-none ${openQuestionIdx === idx ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{typeLabel(q.type)}</div>
