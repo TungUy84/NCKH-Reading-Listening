@@ -1,29 +1,66 @@
 const mongoose = require('mongoose');
 
+// Schema cho từng section trong bài test (như IELTS Reading có 3 passages)
+const sectionSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: [true, 'Tiêu đề section là bắt buộc']
+  },
+  passage: {
+    type: String, // Đoạn văn chính cho reading
+    default: ''
+  },
+  audio: {
+    type: String, // URL file audio cho listening
+    default: ''
+  },
+  image: {
+    type: String, // URL hình ảnh nếu có
+    default: ''
+  },
+  timeLimit: {
+    type: Number, // Thời gian làm section này (phút)
+    default: 20
+  }
+});
+
 // Schema cho từng câu hỏi trong bài test
 const questionSchema = new mongoose.Schema({
+  sectionId: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: false // Changed to false to allow creation without sectionId initially
+  },
+  questionNumber: {
+    type: Number,
+    required: [true, 'Số câu hỏi là bắt buộc']
+  },
   type: {
     type: String,
-    enum: ['single_choice', 'multiple_choice', 'fill_blank', 'essay'],
+    enum: [
+      'fill_blank',           // Fill in the blank (IELTS style)
+      'true_false_not_given', // True/False/Not Given
+      'yes_no_not_given',     // Yes/No/Not Given
+      'multiple_choice',      // Multiple choice A, B, C, D
+      'single_choice',        // Single choice A, B, C, D
+      'matching',             // Matching exercises
+      'summary_completion',   // Complete summary with word bank
+      'sentence_completion',  // Complete sentences
+      'essay'                 // Essay questions
+    ],
     required: [true, 'Loại câu hỏi là bắt buộc']
   },
   content: {
     type: String,
     required: [true, 'Nội dung câu hỏi là bắt buộc']
   },
-  passage: {
-    type: String, // Đoạn văn dài cho reading comprehension
-    default: ''
+  skill: {
+    type: String,
+    enum: ['listening', 'reading'],
+    default: 'reading'
   },
-  media: {
-    image: {
-      type: String, // URL của hình ảnh
-      default: ''
-    },
-    audio: {
-      type: String, // URL của file audio
-      default: ''
-    }
+  instructions: {
+    type: String, // Hướng dẫn làm bài cho nhóm câu hỏi
+    default: ''
   },
   options: [{
     text: {
@@ -35,7 +72,8 @@ const questionSchema = new mongoose.Schema({
       default: false
     }
   }],
-  correctAnswers: [String], // Đáp án đúng cho các loại câu hỏi khác nhau
+  wordBank: [String], // Danh sách từ cho loại summary completion
+  correctAnswers: [String], // Đáp án đúng
   explanation: {
     type: String,
     default: ''
@@ -43,16 +81,6 @@ const questionSchema = new mongoose.Schema({
   points: {
     type: Number,
     default: 1
-  },
-  skill: {
-    type: String,
-    enum: ['listening', 'reading', 'grammar', 'vocabulary'],
-    required: [true, 'Kỹ năng kiểm tra là bắt buộc']
-  },
-  level: {
-    type: String,
-    enum: ['AV1', 'AV2', 'AV3', 'AV4', 'AV5', 'AV6', 'AV7'],
-    required: [true, 'Cấp độ câu hỏi là bắt buộc']
   }
 });
 
@@ -68,20 +96,21 @@ const placementTestSchema = new mongoose.Schema({
     default: ''
   },
   instructions: {
-    type: [String], // Thay đổi từ String thành Array of String
+    type: [String], // Hướng dẫn chung cho cả bài test
     default: ['Hãy đọc kỹ câu hỏi và chọn đáp án đúng nhất.']
-  },
-  timeLimit: {
-    type: Number, // Thời gian làm bài (phút)
-    default: 60
   },
   category: {
     type: String,
     enum: ['listening', 'reading', 'general'],
-    default: 'general',
     required: [true, 'Loại bài test là bắt buộc']
   },
-  questions: [questionSchema],
+  timeLimit: {
+    type: Number, // Thời gian làm bài (phút)
+    required: [true, 'Thời gian làm bài là bắt buộc'],
+    min: [1, 'Thời gian tối thiểu là 1 phút']
+  },
+  sections: [sectionSchema], // Các section trong bài test
+  questions: [questionSchema], // Tất cả câu hỏi trong bài test
   totalQuestions: {
     type: Number,
     default: 0

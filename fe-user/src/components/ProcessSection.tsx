@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import Card from './ui/Card';
 
 const ProcessSection: React.FC = () => {
   const steps = [
@@ -30,74 +31,61 @@ const ProcessSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-20 bg-white">
-      <div className="section-container">
-        {/* Header */}
+    <section className="relative py-24 overflow-hidden">
+      <div className="absolute inset-0 -z-10 bg-gradient-to-b from-white via-blue-50/40 to-white" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16" data-aos="fade-up">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            🎯 Quy trình học tập đơn giản
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Chỉ 4 bước đơn giản để bắt đầu hành trình chinh phục tiếng Anh của bạn
-          </p>
+          <span className="inline-block text-xs font-semibold tracking-wider uppercase px-3 py-1 rounded-full bg-purple-50 text-purple-600 ring-1 ring-purple-600/10 mb-4">Quy trình</span>
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-5">Lộ trình 4 bước rõ ràng</h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">Tối ưu hoá hành trình học của bạn từ đánh giá đầu vào đến bứt phá điểm số.</p>
         </div>
 
-        {/* Steps */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {steps.map((step, index) => (
-            <div 
-              key={index} 
-              className="text-center group transform transition-all duration-500 hover:scale-105"
+        <div className="relative grid gap-10 md:grid-cols-2 lg:grid-cols-4 mb-20">
+          {steps.map((s, i) => (
+            <Card
+              key={s.number}
+              className="relative pt-10 pb-8 px-6 flex flex-col items-center text-center bg-white/70 backdrop-blur border-gray-200/70 shadow-sm"
               data-aos="fade-up"
-              data-aos-delay={index * 150 + 200}
+              data-aos-delay={i * 140 + 150}
             >
-              {/* Step Number */}
-              <div className={`${step.color} text-white w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold group-hover:scale-110 transition-transform duration-300 shadow-lg group-hover:shadow-xl`}>
-                {step.number}
-              </div>
-              
-              {/* Step Content */}
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors duration-300">
-                {step.title}
-              </h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {step.description}
-              </p>
-
-              {/* Connector Arrow (except last item) */}
-              {index < steps.length - 1 && (
-                <div className="hidden lg:block absolute top-10 left-full w-full">
-                  <svg className="w-8 h-8 text-gray-300 mx-auto animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              <div className={`${s.color} absolute -top-6 w-12 h-12 rounded-2xl flex items-center justify-center text-white text-lg font-bold shadow-lg ring-4 ring-white`}>{s.number}</div>
+              <h3 className="mt-2 text-base font-semibold text-gray-900 tracking-wide">{s.title}</h3>
+              <p className="mt-3 text-sm text-gray-600 leading-relaxed">{s.description}</p>
+              {i < steps.length - 1 && (
+                <div className="hidden lg:block absolute top-1/2 -right-5 translate-x-1/2 -translate-y-1/2 text-gray-300">
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
                   </svg>
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
 
-        {/* CTA Section */}
-        <div 
-          className="bg-gradient-to-r from-primary-600 via-primary-700 to-primary-800 rounded-2xl p-8 lg:p-12 text-center text-white shadow-2xl transform transition-all duration-500 hover:scale-105"
+        <Card
+          className="relative overflow-hidden text-center bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 border-none text-white py-14 px-6 md:px-16"
           data-aos="fade-up"
-          data-aos-delay="800"
+          data-aos-delay="400"
         >
-          <h3 className="text-2xl lg:text-3xl font-bold mb-4">
-            🚀 Sẵn sàng bắt đầu hành trình học tiếng Anh?
-          </h3>
-          <p className="text-primary-100 mb-8 max-w-2xl mx-auto text-lg">
-            Tham gia cùng hàng nghìn học viên đã cải thiện trình độ tiếng Anh của mình
-          </p>
-          <Link
-            to="/tests"
-            className="inline-flex items-center bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold px-10 py-5 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
-          >
-            ⭐ Bắt đầu ngay hôm nay
-            <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </Link>
-        </div>
+          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_center,white,transparent_70%)]" />
+          <div className="relative max-w-3xl mx-auto">
+            <h3 className="text-2xl md:text-3xl font-bold tracking-tight mb-4">
+              Sẵn sàng thăng hạng kỹ năng tiếng Anh?
+            </h3>
+            <p className="text-blue-100 mb-8 text-base md:text-lg">
+              Tham gia cùng hàng nghìn học viên đang luyện tập mỗi ngày và theo dõi tiến bộ rõ rệt.
+            </p>
+            <Link
+              to="/tests"
+              className="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold px-8 py-4 rounded-xl shadow hover:shadow-lg transition hover:-translate-y-0.5 text-sm md:text-base"
+            >
+              Bắt đầu ngay
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+              </svg>
+            </Link>
+          </div>
+        </Card>
       </div>
     </section>
   );

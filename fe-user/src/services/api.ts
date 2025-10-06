@@ -67,6 +67,15 @@ export const getTestForTaking = async (testId: string) => {
 };
 
 /**
+ * Get placement test for taking (IELTS format)
+ * Backend: GET /api/placement-tests/take/:testId
+ */
+export const getPlacementTestForTaking = async (testId: string) => {
+  const response = await apiService.get(`/placement-tests/take/${testId}`);
+  return response.data; // Backend returns { test: {...} }
+};
+
+/**
  * Submit test answers and get results immediately
  * Backend: POST /api/placement-tests/check
  */
@@ -79,6 +88,22 @@ export const submitTest = async (submission: {
   }>;
 }) => {
   const response = await apiService.post('/placement-tests/check', submission);
+  return response.data; // Backend returns { result: {...} }
+};
+
+/**
+ * Submit placement test (IELTS format)
+ * Backend: POST /api/placement-tests/check
+ */
+export const submitPlacementTest = async (testId: string, answers: Array<{
+  questionNumber: number;
+  selectedOptions?: string[];
+  userAnswer?: string;
+}>) => {
+  const response = await apiService.post('/placement-tests/check', {
+    testId,
+    answers
+  });
   return response.data; // Backend returns { result: {...} }
 };
 

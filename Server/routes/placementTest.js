@@ -1,4 +1,6 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
 const router = express.Router();
 const {
   // Public APIs
@@ -12,13 +14,40 @@ const {
   createPlacementTest,
   updatePlacementTest,
   deletePlacementTest,
-  getPlacementTestStats
+  getPlacementTestStats,
+  importPlacementTest,
+  updateTestContent
 } = require('../controllers/placementTestController');
 
 const { protect, authorize } = require('../middleware/auth');
 
 // Tạo middleware cho admin  
 const isAdmin = authorize('admin');
+
+// Configure multer for Word file upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/tests/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'test-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  },
+  fileFilter: function (req, file, cb) {
+    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      cb(null, true);
+    } else {
+      cb(new Error('Only Word (.docx) files are allowed!'), false);
+    }
+  }
+});
 
 // ======= PUBLIC ROUTES (Không cần đăng nhập) =======
 
@@ -49,7 +78,13 @@ router.post('/admin', protect, isAdmin, createPlacementTest);
 // Cập nhật bài test
 router.put('/admin/:testId', protect, isAdmin, updatePlacementTest);
 
+// Cập nhật nội dung bài test (sections + questions)
+router.put('/admin/:testId/content', protect, isAdmin, updateTestContent);
+
 // Xóa bài test
 router.delete('/admin/:testId', protect, isAdmin, deletePlacementTest);
+
+// Import bài test từ file Word
+router.post('/admin/import', protect, isAdmin, upload.single('testFile'), importPlacementTest);
 
 module.exports = router;

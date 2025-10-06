@@ -1,4 +1,5 @@
 import React from 'react';
+import Card from './ui/Card';
 
 const FeaturesSection: React.FC = () => {
   const features = [
@@ -38,37 +39,36 @@ const FeaturesSection: React.FC = () => {
   ];
 
   return (
-    <section className="py-20 bg-gray-50">
-      <div className="section-container">
-        {/* Header */}
+    <section className="relative py-24 bg-gradient-to-b from-white via-gray-50 to-white">
+      <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(circle_at_center,white,transparent)]" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center mb-16" data-aos="fade-up">
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
-            🌟 Tại sao chọn chúng tôi?
+          <span className="inline-block text-xs font-semibold tracking-wider uppercase px-3 py-1 rounded-full bg-blue-50 text-blue-600 ring-1 ring-blue-600/10 mb-4">Tính năng</span>
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-5">
+            Nền tảng học tập thúc đẩy tiến bộ
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Hệ thống luyện thi hiện đại với công nghệ giúp bạn đạt được kết quả tốt nhất
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            Công cụ thông minh giúp bạn tối ưu thời gian ôn luyện và theo dõi hiệu suất dễ dàng.
           </p>
         </div>
 
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="card hover:shadow-xl transition-all duration-500 text-center group transform hover:scale-105"
+        <div className="grid gap-8 md:grid-cols-3">
+          {features.map((f, i) => (
+            <Card
+              key={i}
+              className="text-center relative overflow-hidden group border-gray-200/70 hover:border-gray-300/70 transition"
               data-aos="fade-up"
-              data-aos-delay={index * 100 + 200}
+              data-aos-delay={i * 120 + 150}
             >
-              <div className={`${feature.bgColor} ${feature.color} w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors duration-300">
-                {feature.title}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/0 via-white/40 to-white/0" />
+              <div className={`${f.bgColor} ${f.color} w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm ring-1 ring-inset ring-white/50 group-hover:scale-105 transition-transform`}>{f.icon}</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
+                {f.title}
               </h3>
-              <p className="text-gray-600 leading-relaxed">
-                {feature.description}
+              <p className="text-sm text-gray-600 leading-relaxed max-w-xs mx-auto">
+                {f.description}
               </p>
-            </div>
+            </Card>
           ))}
         </div>
       </div>

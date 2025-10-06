@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTest, UserAnswer } from '../types';
 import { getTestForTaking, submitTest } from '../services/api';
+import { Card } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
 
 const TakeTestPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
@@ -110,6 +112,27 @@ const TakeTestPage: React.FC = () => {
     setCurrentQuestionIndex(index);
   };
 
+  const typeLabel = (t: string) => {
+    switch (t) {
+      case 'multiple_choice': return 'Nhiều lựa chọn';
+      case 'fill_blank': return 'Điền vào chỗ trống';
+      case 'true_false_not_given': return 'True / False / Not Given';
+      case 'yes_no_not_given': return 'Yes / No / Not Given';
+      case 'summary_completion': return 'Tóm tắt';
+      case 'matching': return 'Matching';
+      case 'sentence_completion': return 'Hoàn thành câu';
+      default: return t;
+    }
+  };
+
+  // Scroll active question into view (must be before any early return)
+  useEffect(() => {
+    if (!isLoading && test) {
+      const el = document.getElementById(`question-${currentQuestionIndex}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [currentQuestionIndex, isLoading, test]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -143,194 +166,262 @@ const TakeTestPage: React.FC = () => {
 
   const currentQuestion = test.questions[currentQuestionIndex];
 
+  // Compute current section & its questions
+  const currentSection = test.sections.find(s => s._id === currentQuestion.sectionId);
+  const sectionQuestions = test.questions
+    .map((q, idx) => ({ q, globalIndex: idx }))
+    .filter(item => item.q.sectionId === currentQuestion.sectionId);
+
+  const goToNextSection = () => {
+    if (!currentSection) return;
+    const currentSectionIndex = test.sections.findIndex(s => s._id === currentSection._id);
+    const nextSection = test.sections[currentSectionIndex + 1];
+    if (nextSection) {
+      const firstQuestionIndex = test.questions.findIndex(q => q.sectionId === nextSection._id);
+      if (firstQuestionIndex >= 0) setCurrentQuestionIndex(firstQuestionIndex);
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header with timer and progress */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div>
-              <h1 className="text-lg font-semibold text-gray-900">{test.title}</h1>
-              <p className="text-sm text-gray-500">
-                Câu {currentQuestionIndex + 1} / {test.questions.length}
-              </p>
-            </div>
-            <div className="flex items-center space-x-6">
-              <div className="text-lg font-mono text-blue-600">
-                {formatTime(timeRemaining)}
-              </div>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
-              >
-                {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
-              </button>
-            </div>
+      {/* Sticky header */}
+  <div className="sticky top-0 z-20 backdrop-blur border-b border-gray-200 bg-white/90">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          <div>
+            <h1 className="text-base font-semibold text-gray-900 leading-tight">{test.title}</h1>
+            <p className="text-xs text-gray-500">Câu {currentQuestionIndex + 1} / {test.questions.length}</p>
           </div>
-          
-          {/* Progress bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-            <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${((currentQuestionIndex + 1) / test.questions.length) * 100}%` }}
-            ></div>
+          <div className="flex items-center gap-4">
+            <div className="px-3 py-1 rounded-md bg-blue-50 text-blue-600 font-mono text-sm tracking-wide">
+              {formatTime(timeRemaining)}
+            </div>
+            <Button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              variant="danger"
+              size="sm"
+              loading={isSubmitting}
+            >
+              {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
+            </Button>
           </div>
+        </div>
+        <div className="h-1 w-full bg-gray-200/70 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 opacity-40" />
+          <div
+            className="h-full relative bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 transition-all duration-300 shadow-sm"
+            style={{ width: `${((currentQuestionIndex + 1) / test.questions.length) * 100}%` }}
+          />
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Question navigation sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Câu hỏi</h3>
-              <div className="grid grid-cols-5 gap-2">
-                {test.questions.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToQuestion(index)}
-                    className={`w-10 h-10 rounded text-sm font-medium ${
-                      index === currentQuestionIndex
-                        ? 'bg-blue-600 text-white'
-                        : answers[index]?.selectedOptions.length > 0 || answers[index]?.userAnswer
-                        ? 'bg-green-100 text-green-800 border border-green-300'
-                        : 'bg-gray-100 text-gray-600 border border-gray-300'
-                    }`}
-                  >
-                    {index + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="grid lg:grid-cols-12 gap-6 items-start">
+          {/* Left column: Passage + navigation */}
+            <div className="lg:col-span-5 space-y-6">
+              {(() => {
+                // Determine current section
+                const section = test.sections.find(s => s._id === currentQuestion.sectionId);
+                return (
+                  <Card className="sticky top-[88px] max-h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar" padding="lg">
+                    <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+                      <div>
+                        <h2 className="text-sm font-semibold text-gray-800">{section?.title || 'Phần hiện tại'}</h2>
+                        <p className="text-xs text-gray-500">Đoạn văn / Tư liệu dùng cho các câu thuộc phần này</p>
+                      </div>
+                      <div className="text-[10px] uppercase tracking-wide bg-gray-100 text-gray-600 px-2 py-1 rounded-md">Section</div>
+                    </div>
+                    {section?.audio && (
+                      <div className="mb-4">
+                        <audio controls className="w-full">
+                          <source src={section.audio} type="audio/mpeg" />
+                          Trình duyệt của bạn không hỗ trợ phát audio.
+                        </audio>
+                      </div>
+                    )}
+                    {section?.image && (
+                      <div className="mb-4">
+                        <img src={section.image} alt="Section illustration" className="rounded-lg border border-gray-200 max-h-60 object-cover w-full" />
+                      </div>
+                    )}
+                    {section?.passage ? (
+                      <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+                        {section.passage}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">Không có đoạn văn cho phần này.</p>
+                    )}
+                    {/* Quick mini section navigation if more than 1 section */}
+                    {test.sections.length > 1 && (
+                      <div className="mt-6 pt-4 border-t border-gray-100">
+                        <div className="text-xs font-medium text-gray-600 mb-2">Các phần khác</div>
+                        <div className="flex flex-wrap gap-2">
+                          {test.sections.map(sec => {
+                            const firstQuestionIndex = test.questions.findIndex(q => q.sectionId === sec._id);
+                            const isActive = sec._id === section?._id;
+                            return (
+                              <button
+                                key={sec._id}
+                                onClick={() => firstQuestionIndex >= 0 && goToQuestion(firstQuestionIndex)}
+                                className={`px-3 py-1 rounded-md text-xs border transition ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                              >
+                                {sec.title}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </Card>
+                );
+              })()}
 
-          {/* Main question area */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-lg shadow p-8">
-              {/* Question content */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-sm font-medium text-blue-600">
-                    {currentQuestion.type === 'single_choice' ? 'Một lựa chọn' :
-                     currentQuestion.type === 'multiple_choice' ? 'Nhiều lựa chọn' :
-                     currentQuestion.type === 'fill_blank' ? 'Điền vào chỗ trống' : 'Tự luận'}
-                  </span>
-                  <span className="text-sm text-gray-500">
-                    {currentQuestion.points} điểm
-                  </span>
+              {/* Question navigation moved under passage on large screens */}
+              <Card padding="md">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-900 text-sm">Câu hỏi</h3>
+                  <span className="text-xs text-gray-500">Chọn để chuyển nhanh</span>
                 </div>
-                
-                {/* Audio player for listening questions */}
-                {currentQuestion.media?.audioUrl && (
-                  <div className="mb-6">
-                    <audio controls className="w-full">
-                      <source src={currentQuestion.media.audioUrl} type="audio/mpeg" />
-                      Trình duyệt của bạn không hỗ trợ phát audio.
-                    </audio>
-                  </div>
-                )}
+                <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-2 mb-4">
+                  {test.questions.map((_, index) => {
+                    const answered = !!(answers[index]?.selectedOptions.length || answers[index]?.userAnswer);
+                    const isCurrent = index === currentQuestionIndex;
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => goToQuestion(index)}
+                        className={`h-8 w-8 rounded-md text-xs font-medium flex items-center justify-center border transition ${
+                          isCurrent
+                            ? 'bg-blue-600 text-white border-blue-600 shadow'
+                            : answered
+                            ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
+                            : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
+                        }`}
+                        aria-label={`Câu ${index + 1}${answered ? ' đã trả lời' : ''}`}
+                      >
+                        {index + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="flex flex-wrap gap-3 mt-1">
+                  <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-blue-600 inline-block"></span>Hiện tại</div>
+                  <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-green-400 inline-block border border-green-600"></span>Đã trả lời</div>
+                  <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-gray-200 inline-block border border-gray-400"></span>Chưa trả lời</div>
+                </div>
+              </Card>
+            </div>
 
-                {/* Reading passage */}
-                {currentQuestion.passage && (
-                  <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                    <h4 className="font-medium text-gray-900 mb-2">Đoạn văn:</h4>
-                    <div className="text-gray-700 whitespace-pre-wrap">
-                      {currentQuestion.passage}
+          {/* Right column: All questions for current section */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-700">Phần hiện tại: {currentSection?.title}</h2>
+              <span className="text-xs text-gray-500">Hiển thị {sectionQuestions.length} câu hỏi</span>
+            </div>
+            {sectionQuestions.map(({ q, globalIndex }) => {
+              const answer = answers[globalIndex] || { selectedOptions: [], userAnswer: '' };
+              const selectedCount = answer.selectedOptions.length;
+              return (
+                <Card key={q._id || globalIndex} padding="lg" id={`question-${globalIndex}`} className={globalIndex === currentQuestionIndex ? 'ring-1 ring-blue-300' : ''}>
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-wide text-blue-600 font-semibold mb-1">{typeLabel(q.type)}</div>
+                      <div className="text-base font-medium text-gray-900">Câu {globalIndex + 1}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-md">{q.points} điểm</div>
+                      {selectedCount > 0 && (
+                        <div className="text-[10px] text-green-600 font-medium">Đã chọn {selectedCount}</div>
+                      )}
                     </div>
                   </div>
-                )}
-
-                {/* Question text */}
-                <div className="text-lg text-gray-900 mb-6">
-                  <span className="font-medium">Câu {currentQuestionIndex + 1}:</span>{' '}
-                  {currentQuestion.content}
-                </div>
-              </div>
-
-              {/* Answer options */}
-              <div className="space-y-3">
-                {currentQuestion.type === 'single_choice' && currentQuestion.options?.map((option, optionIndex) => (
-                  <label key={optionIndex} className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name={`question-${currentQuestionIndex}`}
-                      value={option.text}
-                      checked={answers[currentQuestionIndex]?.selectedOptions[0] === option.text}
-                      onChange={(e) => handleAnswerChange(currentQuestionIndex, {
-                        selectedOptions: [e.target.value],
-                        userAnswer: e.target.value
-                      })}
-                      className="h-4 w-4 text-blue-600"
-                    />
-                    <span className="text-gray-700">{option.text}</span>
-                  </label>
-                ))}
-
-                {currentQuestion.type === 'multiple_choice' && currentQuestion.options?.map((option, optionIndex) => (
-                  <label key={optionIndex} className="flex items-center space-x-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      value={option.text}
-                      checked={answers[currentQuestionIndex]?.selectedOptions.includes(option.text)}
-                      onChange={(e) => {
-                        const currentAnswer = answers[currentQuestionIndex] || { selectedOptions: [], userAnswer: '' };
-                        const newSelected = e.target.checked
-                          ? [...currentAnswer.selectedOptions, option.text]
-                          : currentAnswer.selectedOptions.filter(item => item !== option.text);
-                        
-                        handleAnswerChange(currentQuestionIndex, {
-                          selectedOptions: newSelected,
-                          userAnswer: newSelected.join(', ')
-                        });
-                      }}
-                      className="h-4 w-4 text-blue-600"
-                    />
-                    <span className="text-gray-700">{option.text}</span>
-                  </label>
-                ))}
-
-                {(currentQuestion.type === 'fill_blank' || currentQuestion.type === 'essay') && (
-                  <textarea
-                    value={answers[currentQuestionIndex]?.userAnswer || ''}
-                    onChange={(e) => handleAnswerChange(currentQuestionIndex, {
-                      selectedOptions: [],
-                      userAnswer: e.target.value
-                    })}
-                    placeholder="Nhập câu trả lời của bạn..."
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    rows={currentQuestion.type === 'essay' ? 6 : 2}
-                  />
-                )}
-              </div>
-
-              {/* Navigation buttons */}
-              <div className="flex justify-between mt-8">
-                <button
-                  onClick={prevQuestion}
-                  disabled={currentQuestionIndex === 0}
-                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  ← Câu trước
-                </button>
-                
-                {currentQuestionIndex === test.questions.length - 1 ? (
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="px-6 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-                  >
+                  {q.media?.audioUrl && (
+                    <div className="mb-4">
+                      <audio controls className="w-full">
+                        <source src={q.media.audioUrl} type="audio/mpeg" />
+                        Trình duyệt của bạn không hỗ trợ phát audio.
+                      </audio>
+                    </div>
+                  )}
+                  <div className="text-gray-800 leading-relaxed mb-5">
+                    {q.content}
+                  </div>
+                  <div className="space-y-4">
+                    {q.type === 'multiple_choice' && (
+                      <div className="flex flex-col gap-2">
+                        {q.options?.map((option, optionIndex) => {
+                          const selected = answer.selectedOptions.includes(option.text);
+                          return (
+                            <button
+                              key={optionIndex}
+                              type="button"
+                              onClick={() => {
+                                const newSelected = selected
+                                  ? answer.selectedOptions.filter(item => item !== option.text)
+                                  : [...answer.selectedOptions, option.text];
+                                handleAnswerChange(globalIndex, {
+                                  selectedOptions: newSelected,
+                                  userAnswer: newSelected.join(', ')
+                                });
+                                setCurrentQuestionIndex(globalIndex); // focus highlight
+                              }}
+                              className={`relative w-full text-left px-4 py-3 rounded-lg border transition shadow-sm text-sm font-medium flex items-start gap-3 ${
+                                selected
+                                  ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                                  : 'bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700'
+                              }`}
+                            >
+                              <span className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold flex-shrink-0 ${
+                                selected ? 'bg-white text-blue-600 border-blue-600' : 'bg-gray-100 text-gray-500 border-gray-300'
+                              }`}>{String.fromCharCode(65 + optionIndex)}</span>
+                              <span className="flex-1 leading-relaxed">{option.text}</span>
+                              {selected && (
+                                <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-white shadow-inner" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {q.type === 'fill_blank' && (
+                      <div>
+                        <textarea
+                          value={answer.userAnswer || ''}
+                          onChange={(e) => {
+                            handleAnswerChange(globalIndex, {
+                              selectedOptions: [],
+                              userAnswer: e.target.value
+                            });
+                            setCurrentQuestionIndex(globalIndex);
+                          }}
+                          placeholder="Nhập câu trả lời của bạn..."
+                          className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white shadow-sm"
+                          rows={4}
+                        />
+                        <p className="mt-2 text-xs text-gray-500">Trả lời bằng tiếng Anh, kiểm tra lỗi chính tả trước khi nộp.</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+            <div className="flex items-center justify-between pt-2">
+              <div className="text-xs text-gray-500">Phần này có {sectionQuestions.length} câu.</div>
+              {(() => {
+                const currentSectionIndex = currentSection ? test.sections.findIndex(s => s._id === currentSection._id) : -1;
+                const hasNextSection = currentSectionIndex >= 0 && currentSectionIndex < test.sections.length - 1;
+                if (hasNextSection) {
+                  return (
+                    <Button variant="secondary" size="sm" onClick={goToNextSection}>Sang phần tiếp →</Button>
+                  );
+                }
+                return (
+                  <Button variant="danger" size="sm" onClick={handleSubmit} disabled={isSubmitting} loading={isSubmitting}>
                     {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={nextQuestion}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                  >
-                    Câu tiếp →
-                  </button>
-                )}
-              </div>
+                  </Button>
+                );
+              })()}
             </div>
           </div>
         </div>

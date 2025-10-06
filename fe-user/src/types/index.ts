@@ -14,12 +14,42 @@ export interface PlacementTest {
   category: 'listening' | 'reading' | 'general';
   instructions: string[];
   timeLimit: number;
-  questions: Question[];
+  sections: TestSection[];
+  questions: TestQuestion[];
   totalQuestions: number;
   totalPoints: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface TestSection {
+  _id: string;
+  title: string;
+  passage?: string;
+  audio?: string;
+  image?: string;
+  timeLimit: number;
+}
+
+export interface TestQuestion {
+  _id?: string;
+  sectionId: string;
+  questionNumber: number;
+  type: 'fill_blank' | 'true_false_not_given' | 'yes_no_not_given' | 'multiple_choice' | 'matching' | 'summary_completion' | 'sentence_completion';
+  content: string;
+  instructions?: string;
+  options?: Option[];
+  wordBank?: string[];
+  correctAnswers?: string[];
+  explanation?: string;
+  points: number;
+  level?: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
+  passage?: string; // added for reading context
+  media?: {
+    audioUrl?: string;
+    imageUrl?: string;
+  }; // added for listening / images
 }
 
 export interface Question {

@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Sidebar from './components/Sidebar';
 import AdminHeader from './components/AdminHeader';
 import DashboardPage from './pages/DashboardPage';
-import TestsPage from './pages/TestsPage';
 import LoginPage from './pages/LoginPage';
 import './index.css';
+import PlacementTestsPage from './pages/PracticePage/PlacementTestsPage';
+import ViewTestPage from './pages/PracticePage/ViewTestPage';
+import EditTestPage from './pages/PracticePage/EditTestPage';
+import CreateTestPage from './pages/PracticePage/CreateTestPage';
+import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
+import PracticePage from './pages/PracticePage/PracticePage';
+import LessonsPage from './pages/LessonsPage/LessonsPage';
+import MockExamPage from './pages/MockExamPage/MockExamPage';
+import BlogPage from './pages/BlogPage/BlogPage';
+import UsersPage from './pages/UsersPage/UsersPage';
+import CreateUserPage from './pages/UsersPage/CreateUserPage';
+import EditUserPage from './pages/UsersPage/EditUserPage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -61,7 +74,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-100 flex">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50">
         {/* Sidebar */}
         <Sidebar 
           isCollapsed={sidebarCollapsed}
@@ -69,37 +82,39 @@ const App: React.FC = () => {
         />
 
         {/* Main Content Area */}
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${
-          sidebarCollapsed ? 'ml-16' : 'ml-64'
+        <div className={`transition-all duration-300 ${
+          sidebarCollapsed ? 'ml-20' : 'ml-64'
         }`}>
           {/* Header */}
-          <AdminHeader onLogout={handleLogout} />
+          <AdminHeader 
+            onLogout={handleLogout} 
+            onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
+            sidebarCollapsed={sidebarCollapsed}
+          />
 
           {/* Page Content */}
-          <main className="flex-1 overflow-x-hidden overflow-y-auto">
+          <main className="p-6">
             <Routes>
               {/* Dashboard */}
               <Route path="/admin/dashboard" element={<DashboardPage />} />
               
-              {/* Tests Management */}
-              <Route path="/admin/tests" element={<TestsPage />} />
-              <Route path="/admin/tests/create" element={<div className="p-6"><h1 className="text-2xl font-bold">Tạo Test Mới</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/tests/:id/edit" element={<div className="p-6"><h1 className="text-2xl font-bold">Chỉnh Sửa Test</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/tests/:id/view" element={<div className="p-6"><h1 className="text-2xl font-bold">Chi Tiết Test</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* Students Management */}
-              <Route path="/admin/students" element={<div className="p-6"><h1 className="text-2xl font-bold">Quản Lý Học Sinh</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* Results & Analytics */}
-              <Route path="/admin/results" element={<div className="p-6"><h1 className="text-2xl font-bold">Kết Quả Thi</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/analytics" element={<div className="p-6"><h1 className="text-2xl font-bold">Thống Kê & Báo Cáo</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* System Management */}
-              <Route path="/admin/users" element={<div className="p-6"><h1 className="text-2xl font-bold">Quản Lý Người Dùng</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              <Route path="/admin/settings" element={<div className="p-6"><h1 className="text-2xl font-bold">Cài Đặt Hệ Thống</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
-              
-              {/* Profile */}
-              <Route path="/admin/profile" element={<div className="p-6"><h1 className="text-2xl font-bold">Thông Tin Cá Nhân</h1><p className="text-gray-600 mt-2">Trang này đang được phát triển...</p></div>} />
+              {/* Placement Tests Management */}
+              <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
+              <Route path="/admin/placement-tests/create" element={<CreateTestPage />} />
+              <Route path="/admin/placement-tests/:testId/view" element={<ViewTestPage />} />
+              <Route path="/admin/placement-tests/:testId/edit" element={<EditTestPage />} />
+
+              {/* Additional Feature Sections */}
+              <Route path="/admin/roadmap" element={<RoadmapPage />} />
+              <Route path="/admin/practice" element={<PracticePage />} />
+              <Route path="/admin/lessons" element={<LessonsPage />} />
+              <Route path="/admin/mock-exams" element={<MockExamPage />} />
+              <Route path="/admin/blog" element={<BlogPage />} />
+              {/* Users Management */}
+              <Route path="/admin/users" element={<UsersPage />} />
+              <Route path="/admin/users/create" element={<CreateUserPage />} />
+              <Route path="/admin/users/:userId/edit" element={<EditUserPage />} />
+
               
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
@@ -109,6 +124,20 @@ const App: React.FC = () => {
           </main>
         </div>
       </div>
+      
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </Router>
   );
 };

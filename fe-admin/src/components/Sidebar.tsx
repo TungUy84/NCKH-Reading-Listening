@@ -1,146 +1,173 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { SidebarItem } from '../types';
+import {
+  Squares2X2Icon,
+  UsersIcon,
+  ClipboardDocumentCheckIcon,
+  MapIcon,
+  AcademicCapIcon,
+  BookOpenIcon,
+  CheckBadgeIcon,
+  NewspaperIcon
+} from '@heroicons/react/24/outline';
 
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
 }
 
+interface MenuItem {
+  label: string;
+  href?: string;
+  icon: React.ReactNode;
+  children?: MenuItem[];
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
   const location = useLocation();
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
-  const sidebarItems: SidebarItem[] = [
+  const menuItems: MenuItem[] = [
     {
       label: 'Dashboard',
-      href: '/admin',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-        </svg>
-      ),
+      href: '/admin/dashboard',
+      icon: <Squares2X2Icon className="w-5 h-5" />,
     },
     {
-      label: 'Quản lý Tests',
-      href: '/admin/tests',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      ),
+      label: 'Người dùng',
+      href: '/admin/users',
+      icon: <UsersIcon className="w-5 h-5" />,
     },
     {
-      label: 'Tạo Test Mới',
-      href: '/admin/tests/create',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-        </svg>
-      ),
+      label: 'Kiểm tra đầu vào',
+      href: '/admin/placement-tests',
+      icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />,
     },
     {
-      label: 'Thống kê',
-      href: '/admin/analytics',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      ),
+      label: 'Lộ trình',
+      href: '/admin/roadmap',
+      icon: <MapIcon className="w-5 h-5" />,
     },
     {
-      label: 'Cài đặt',
-      href: '/admin/settings',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      ),
+      label: 'Ôn luyện',
+      href: '/admin/practice',
+      icon: <AcademicCapIcon className="w-5 h-5" />,
+    },
+    {
+      label: 'Bài học',
+      href: '/admin/lessons',
+      icon: <BookOpenIcon className="w-5 h-5" />,
+    },
+    {
+      label: 'Thi thử',
+      href: '/admin/mock-exams',
+      icon: <CheckBadgeIcon className="w-5 h-5" />,
+    },
+    {
+      label: 'Blog',
+      href: '/admin/blog',
+      icon: <NewspaperIcon className="w-5 h-5" />,
     },
   ];
 
   const isActiveRoute = (href: string) => {
-    if (href === '/admin') {
-      return location.pathname === '/admin';
+    if (href === '/admin/dashboard') {
+      return location.pathname === '/admin/dashboard' || location.pathname === '/admin';
     }
     return location.pathname.startsWith(href);
   };
 
-  return (
-    <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'} flex flex-col`}>
-      {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          {!isCollapsed && (
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">ET</span>
-              </div>
-              <span className="text-lg font-semibold text-gray-900">Admin Panel</span>
-            </div>
-          )}
-          <button
-            onClick={onToggle}
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-            aria-label="Toggle sidebar"
-          >
-            <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isCollapsed ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              )}
-            </svg>
-          </button>
-        </div>
-      </div>
+  const toggleExpanded = (label: string) => {
+    setExpandedItems(prev => 
+      prev.includes(label) 
+        ? prev.filter(item => item !== label)
+        : [...prev, label]
+    );
+  };
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {sidebarItems.map((item) => (
-          <Link
-            key={item.href}
-            to={item.href}
-            className={`${
-              isActiveRoute(item.href) ? 'sidebar-link-active' : 'sidebar-link-inactive'
-            } ${isCollapsed ? 'justify-center' : ''}`}
+  const renderMenuItem = (item: MenuItem, level: number = 0) => {
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedItems.includes(item.label);
+    const isActive = item.href ? isActiveRoute(item.href) : false;
+
+    if (hasChildren) {
+      return (
+        <div key={item.label} className="space-y-1">
+          <button
+            onClick={() => toggleExpanded(item.label)}
+            className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
+              isCollapsed ? 'justify-center' : ''
+            } text-slate-300 hover:text-white hover:bg-slate-700`}
             title={isCollapsed ? item.label : undefined}
           >
             <div className="flex items-center space-x-3">
-              <span className="flex-shrink-0">{item.icon}</span>
+              <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center">{item.icon}</span>
               {!isCollapsed && (
                 <span className="font-medium">{item.label}</span>
               )}
             </div>
-            {!isCollapsed && item.badge && (
-              <span className="ml-auto bg-primary-100 text-primary-600 text-xs font-medium px-2 py-1 rounded-full">
-                {item.badge}
-              </span>
-            )}
-          </Link>
-        ))}
-      </nav>
-
-      {/* User Info */}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            {!isCollapsed && (
+              <svg 
+                className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
+            )}
+          </button>
+          {!isCollapsed && isExpanded && (
+            <div className="pl-6 space-y-2">
+              {item.children?.map(child => renderMenuItem(child, level + 1))}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                Admin User
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                admin@vanlang.edu.vn
-              </p>
-            </div>
-          </div>
+          )}
         </div>
-      )}
+      );
+    }
+
+    return (
+      <Link
+        key={item.href}
+        to={item.href!}
+        className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${
+          isActive 
+            ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform' 
+            : 'text-slate-300 hover:text-white hover:bg-slate-700'
+        } ${isCollapsed ? 'justify-center' : ''} ${level > 0 ? 'text-sm ml-3' : ''}`}
+        title={isCollapsed ? item.label : undefined}
+      >
+        <div className="flex items-center space-x-3">
+          <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center">{item.icon}</span>
+          {!isCollapsed && (
+            <span className="font-medium">{item.label}</span>
+          )}
+        </div>
+      </Link>
+    );
+  };
+
+  return (
+    <div className={`fixed left-0 top-0 h-full bg-[#0f172a] bg-gradient-to-b from-slate-900 via-slate-850 to-slate-900 border-r border-slate-800/70 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'} flex flex-col shadow-xl z-40`}>
+      {/* Branding */}
+      <div className="h-14 flex items-center px-4 border-b border-slate-800/60">
+        <div className="flex items-center gap-3 w-full justify-center md:justify-start">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow text-white text-sm font-semibold">
+            A
+          </div>
+          {!isCollapsed && (
+            <div className="leading-tight">
+              <p className="text-white font-semibold text-lg tracking-tight">Admin Panel</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {menuItems.map((item) => renderMenuItem(item))}
+      </nav>
+      {/* Removed static user block for a cleaner admin sidebar */}
     </div>
   );
 };

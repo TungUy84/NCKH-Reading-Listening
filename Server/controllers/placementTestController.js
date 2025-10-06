@@ -1,4 +1,6 @@
 const { PlacementTest } = require('../models/PlacementTest');
+const mammoth = require('mammoth');
+const fs = require('fs');
 // Không cần import PlacementResult vì không lưu kết quả vào database
 
 // Lấy danh sách các bài test theo category (Public)
@@ -184,20 +186,40 @@ const checkPlacementTest = async (req, res) => {
 
 // === ADMIN FUNCTIONS ===
 
-// Lấy tất cả bài test (Admin only)
+// Lấy tất cả bài test (Admin only) - hỗ trợ phân trang + tìm kiếm + lọc
 const getAllPlacementTests = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const tests = await PlacementTest.find()
-      .populate('createdBy', 'firstName lastName email')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
+    // Filters
+    const { search, category, status } = req.query;
+    const filter = {};
 
-    const total = await PlacementTest.countDocuments();
+    if (category && ['listening', 'reading', 'general'].includes(category)) {
+      filter.category = category;
+    }
+
+    if (status === 'active') filter.isActive = true;
+    if (status === 'inactive') filter.isActive = false;
+
+    if (search && typeof search === 'string') {
+      const regex = new RegExp(search.trim(), 'i');
+      filter.$or = [
+        { title: regex },
+        { description: regex },
+      ];
+    }
+
+    const [tests, total] = await Promise.all([
+      PlacementTest.find(filter)
+        .populate('createdBy', 'firstName lastName email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      PlacementTest.countDocuments(filter),
+    ]);
 
     res.json({
       message: 'Lấy danh sách bài test thành công',
@@ -205,6 +227,7 @@ const getAllPlacementTests = async (req, res) => {
       pagination: {
         page,
         limit,
+        totalItems: total,
         total,
         pages: Math.ceil(total / limit)
       }
@@ -240,14 +263,17 @@ const getPlacementTestById = async (req, res) => {
 // Tạo bài test mới (Admin only)
 const createPlacementTest = async (req, res) => {
   try {
-    const { title, description, instructions, timeLimit, questions } = req.body;
+    const { title, description, instructions, timeLimit, questions = [], sections = [], category, isActive = true } = req.body;
 
     const test = new PlacementTest({
       title,
-      description,
-      instructions,
+      description: description || '',
+      instructions: Array.isArray(instructions) ? instructions : [],
+      category, // BẮT BUỘC theo schema
       timeLimit,
+      sections,
       questions,
+      isActive,
       createdBy: req.user._id
     });
 
@@ -259,6 +285,11 @@ const createPlacementTest = async (req, res) => {
     });
   } catch (error) {
     console.error('Create placement test error:', error);
+    if (error.name === 'ValidationError') {
+      // Trả lỗi 400 với chi tiết để FE hiển thị thân thiện
+      const errors = Object.values(error.errors || {}).map((e) => e.message);
+      return res.status(400).json({ message: 'Dữ liệu không hợp lệ', errors });
+    }
     res.status(500).json({ message: 'Lỗi server khi tạo bài test' });
   }
 };
@@ -267,7 +298,7 @@ const createPlacementTest = async (req, res) => {
 const updatePlacementTest = async (req, res) => {
   try {
     const { testId } = req.params;
-    const { title, description, instructions, timeLimit, questions, isActive } = req.body;
+    const { title, description, instructions, timeLimit, questions, isActive, category } = req.body;
 
     const test = await PlacementTest.findById(testId);
     if (!test) {
@@ -275,12 +306,13 @@ const updatePlacementTest = async (req, res) => {
     }
 
     // Cập nhật các field
-    if (title) test.title = title;
+    if (typeof title === 'string') test.title = title;
     if (description !== undefined) test.description = description;
-    if (instructions) test.instructions = instructions;
-    if (timeLimit) test.timeLimit = timeLimit;
-    if (questions) test.questions = questions;
-    if (isActive !== undefined) test.isActive = isActive;
+    if (Array.isArray(instructions)) test.instructions = instructions;
+    if (timeLimit !== undefined) test.timeLimit = timeLimit;
+    if (Array.isArray(questions)) test.questions = questions;
+    if (typeof isActive === 'boolean') test.isActive = isActive;
+    if (category) test.category = category;
 
     await test.save();
 
@@ -291,6 +323,56 @@ const updatePlacementTest = async (req, res) => {
   } catch (error) {
     console.error('Update placement test error:', error);
     res.status(500).json({ message: 'Lỗi server khi cập nhật bài test' });
+  }
+};
+
+  // Cập nhật nội dung bài test: sections + questions (Admin only)
+const updateTestContent = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const { sections = [], questions = [] } = req.body;
+
+    const test = await PlacementTest.findById(testId);
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    // Cập nhật sections và questions nếu được gửi lên
+    if (Array.isArray(sections)) {
+      const currentSections = test.sections || [];
+      // Giữ nguyên _id của section nếu FE không gửi lên để không làm lệch liên kết sectionId của câu hỏi
+      test.sections = sections.map((s, idx) => ({
+        _id: s._id || currentSections[idx]?._id,
+        ...s,
+      }));
+    }
+    if (Array.isArray(questions)) {
+      // Map questionNumber nếu chưa có và cố gắng gán sectionId khi thiếu dựa trên thứ tự section
+      const currentSections = test.sections || [];
+      const normalized = questions.map((q, idx) => {
+        const qq = { ...q };
+        if (!qq.questionNumber) qq.questionNumber = idx + 1;
+        if (!qq.sectionId && typeof qq.sectionIndex === 'number' && currentSections[qq.sectionIndex]?._id) {
+          qq.sectionId = currentSections[qq.sectionIndex]._id;
+        }
+        return qq;
+      });
+      test.questions = normalized;
+    }
+
+    // Tính lại tổng số câu hỏi và điểm
+    test.totalQuestions = test.questions?.length || 0;
+    test.totalPoints = (test.questions || []).reduce((sum, q) => sum + (q.points || 1), 0);
+
+    await test.save();
+
+    res.json({
+      message: 'Cập nhật nội dung bài test thành công',
+      test
+    });
+  } catch (error) {
+    console.error('Update test content error:', error);
+    res.status(500).json({ message: 'Lỗi server khi cập nhật nội dung bài test' });
   }
 };
 
@@ -344,6 +426,154 @@ const getPlacementTestStats = async (req, res) => {
   }
 };
 
+// Import bài test từ file Word (Admin)
+const importPlacementTest = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Không tìm thấy file upload' });
+    }
+
+    const filePath = req.file.path;
+    
+    try {
+      // Đọc file Word
+      const result = await mammoth.extractRawText({ path: filePath });
+      const content = result.value;
+      
+      // Parse nội dung file
+      const previewTest = parseWordContent(content);
+      
+      // Xóa file tạm
+      fs.unlinkSync(filePath);
+      
+      res.json({
+        message: 'Phân tích file thành công',
+        previewTest
+      });
+    } catch (parseError) {
+      // Xóa file tạm nếu có lỗi
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      throw parseError;
+    }
+  } catch (error) {
+    console.error('Import placement test error:', error);
+    res.status(500).json({ message: 'Lỗi khi xử lý file Word: ' + error.message });
+  }
+};
+
+// Helper function để parse nội dung Word
+const parseWordContent = (content) => {
+  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+  
+  if (lines.length < 6) {
+    throw new Error('File không đúng format. Cần ít nhất: tiêu đề, mô tả, loại, thời gian, hướng dẫn và dấu phân cách ---');
+  }
+
+  let currentLine = 0;
+  
+  // Parse thông tin cơ bản
+  const title = lines[currentLine++];
+  const description = lines[currentLine++];
+  const category = lines[currentLine++].toLowerCase();
+  const timeLimit = parseInt(lines[currentLine++]);
+  
+  // Validate category
+  if (!['listening', 'reading', 'general'].includes(category)) {
+    throw new Error('Loại bài test phải là: listening, reading, hoặc general');
+  }
+  
+  if (isNaN(timeLimit) || timeLimit <= 0) {
+    throw new Error('Thời gian phải là số nguyên dương');
+  }
+
+  // Parse hướng dẫn
+  const instructions = [];
+  while (currentLine < lines.length && lines[currentLine] !== '---') {
+    instructions.push(lines[currentLine++]);
+  }
+  
+  if (currentLine >= lines.length || lines[currentLine] !== '---') {
+    throw new Error('Không tìm thấy dấu phân cách --- giữa hướng dẫn và câu hỏi');
+  }
+  
+  currentLine++; // Skip '---'
+
+  // Parse câu hỏi
+  const questions = [];
+  let currentQuestion = null;
+  
+  while (currentLine < lines.length) {
+    const line = lines[currentLine++];
+    
+    // Kiểm tra nếu là câu hỏi mới (bắt đầu bằng Q[số]:)
+    const questionMatch = line.match(/^Q(\d+):\s*(.+?)\s*\(Level:\s*(AV[1-7]),\s*Skill:\s*(listening|reading|grammar|vocabulary),\s*Points:\s*(\d+)\)$/i);
+    
+    if (questionMatch) {
+      // Lưu câu hỏi trước đó nếu có
+      if (currentQuestion) {
+        questions.push(currentQuestion);
+      }
+      
+      // Tạo câu hỏi mới
+      currentQuestion = {
+        type: 'single_choice', // Mặc định
+        content: questionMatch[2].trim(),
+        level: questionMatch[3].toUpperCase(),
+        skill: questionMatch[4].toLowerCase(),
+        points: parseInt(questionMatch[5]),
+        options: [],
+        correctAnswers: []
+      };
+    }
+    // Kiểm tra nếu là đáp án (A), B), C), D))
+    else if (currentQuestion && line.match(/^[A-D]\)/)) {
+      const isCorrect = line.endsWith('*');
+      const optionText = line.replace(/^[A-D]\)\s*/, '').replace(/\s*\*$/, '').trim();
+      
+      currentQuestion.options.push(optionText);
+      
+      if (isCorrect) {
+        currentQuestion.correctAnswers.push(optionText);
+      }
+    }
+    // Kiểm tra nếu là đoạn văn (Passage:)
+    else if (currentQuestion && line.toLowerCase().startsWith('passage:')) {
+      currentQuestion.passage = line.substring(8).trim();
+    }
+  }
+  
+  // Lưu câu hỏi cuối cùng
+  if (currentQuestion) {
+    questions.push(currentQuestion);
+  }
+  
+  if (questions.length === 0) {
+    throw new Error('Không tìm thấy câu hỏi nào trong file');
+  }
+
+  // Xác định loại câu hỏi dựa trên số đáp án đúng
+  questions.forEach(question => {
+    if (question.correctAnswers.length > 1) {
+      question.type = 'multiple_choice';
+    } else if (question.options.length === 0) {
+      question.type = 'fill_blank';
+    } else {
+      question.type = 'single_choice';
+    }
+  });
+
+  return {
+    title,
+    description,
+    category,
+    timeLimit,
+    instructions,
+    questions
+  };
+};
+
 module.exports = {
   // Public APIs
   getActivePlacementTests,
@@ -356,5 +586,7 @@ module.exports = {
   createPlacementTest,
   updatePlacementTest,
   deletePlacementTest,
-  getPlacementTestStats
+  getPlacementTestStats,
+  importPlacementTest,
+  updateTestContent
 };
