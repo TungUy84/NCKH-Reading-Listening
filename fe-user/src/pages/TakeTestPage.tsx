@@ -26,10 +26,11 @@ const TakeTestPage: React.FC = () => {
         if (response.test) {
           setTest(response.test);
           setTimeRemaining(response.test.timeLimit * 60); // Convert to seconds
-          setAnswers(new Array(response.test.questions.length).fill({ 
-            selectedOptions: [], 
-            userAnswer: '' 
-          }));
+          setAnswers(Array.from({ length: response.test.questions.length }, () => ({
+            selectedOptions: [],
+            userAnswer: '',
+            matchingAnswers: []
+          })));
         } else {
           throw new Error('Không tìm thấy bài test');
         }
@@ -55,7 +56,8 @@ const TakeTestPage: React.FC = () => {
         answers: answers.map((answer, index) => ({
           questionId: test.questions[index]._id || `question_${index}`,
           selectedOptions: answer.selectedOptions,
-          userAnswer: answer.userAnswer
+          userAnswer: answer.userAnswer,
+          matchingAnswers: answer.matchingAnswers || []
         }))
       };
       
@@ -114,13 +116,10 @@ const TakeTestPage: React.FC = () => {
 
   const typeLabel = (t: string) => {
     switch (t) {
-      case 'multiple_choice': return 'Nhiều lựa chọn';
-      case 'fill_blank': return 'Điền vào chỗ trống';
-      case 'true_false_not_given': return 'True / False / Not Given';
-      case 'yes_no_not_given': return 'Yes / No / Not Given';
-      case 'summary_completion': return 'Tóm tắt';
-      case 'matching': return 'Matching';
-      case 'sentence_completion': return 'Hoàn thành câu';
+      case 'multi_choice': return 'Nhiều lựa chọn';
+      case 'short_answer': return 'Trả lời ngắn';
+      case 'dropdown': return 'Dropdown';
+      case 'matching': return 'Ghép cặp';
       default: return t;
     }
   };
@@ -285,7 +284,11 @@ const TakeTestPage: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-2 mb-4">
                   {test.questions.map((_, index) => {
-                    const answered = !!(answers[index]?.selectedOptions.length || answers[index]?.userAnswer);
+                    const answered = !!(
+                      answers[index]?.selectedOptions.length ||
+                      answers[index]?.userAnswer ||
+                      answers[index]?.matchingAnswers?.some(m => m.selected && m.selected.trim().length > 0)
+                    );
                     const isCurrent = index === currentQuestionIndex;
                     return (
                       <button
@@ -320,8 +323,10 @@ const TakeTestPage: React.FC = () => {
               <span className="text-xs text-gray-500">Hiển thị {sectionQuestions.length} câu hỏi</span>
             </div>
             {sectionQuestions.map(({ q, globalIndex }) => {
-              const answer = answers[globalIndex] || { selectedOptions: [], userAnswer: '' };
-              const selectedCount = answer.selectedOptions.length;
+              const answer = answers[globalIndex] || { selectedOptions: [], userAnswer: '', matchingAnswers: [] };
+              const allowMultiple = q.allowMultiple ?? false;
+              const matchingCount = answer.matchingAnswers?.filter((pair) => pair.selected && pair.selected.trim().length > 0).length || 0;
+              const selectedCount = answer.selectedOptions.length || matchingCount || (answer.userAnswer ? 1 : 0);
               return (
                 <Card key={q._id || globalIndex} padding="lg" id={`question-${globalIndex}`} className={globalIndex === currentQuestionIndex ? 'ring-1 ring-blue-300' : ''}>
                   <div className="mb-5 flex items-start justify-between gap-4">
@@ -348,7 +353,7 @@ const TakeTestPage: React.FC = () => {
                     {q.content}
                   </div>
                   <div className="space-y-4">
-                    {q.type === 'multiple_choice' && (
+                    {q.type === 'multi_choice' && (
                       <div className="flex flex-col gap-2">
                         {q.options?.map((option, optionIndex) => {
                           const selected = answer.selectedOptions.includes(option.text);
@@ -357,14 +362,20 @@ const TakeTestPage: React.FC = () => {
                               key={optionIndex}
                               type="button"
                               onClick={() => {
-                                const newSelected = selected
-                                  ? answer.selectedOptions.filter(item => item !== option.text)
-                                  : [...answer.selectedOptions, option.text];
+                                let newSelected: string[];
+                                if (allowMultiple) {
+                                  newSelected = selected
+                                    ? answer.selectedOptions.filter(item => item !== option.text)
+                                    : Array.from(new Set([...answer.selectedOptions, option.text]));
+                                } else {
+                                  newSelected = selected ? [] : [option.text];
+                                }
                                 handleAnswerChange(globalIndex, {
                                   selectedOptions: newSelected,
-                                  userAnswer: newSelected.join(', ')
+                                  userAnswer: allowMultiple ? newSelected.join(', ') : '',
+                                  matchingAnswers: answer.matchingAnswers || []
                                 });
-                                setCurrentQuestionIndex(globalIndex); // focus highlight
+                                setCurrentQuestionIndex(globalIndex);
                               }}
                               className={`relative w-full text-left px-4 py-3 rounded-lg border transition shadow-sm text-sm font-medium flex items-start gap-3 ${
                                 selected
@@ -382,16 +393,41 @@ const TakeTestPage: React.FC = () => {
                             </button>
                           );
                         })}
+                        {!allowMultiple && (
+                          <p className="text-xs text-gray-500">Chỉ chọn một đáp án.</p>
+                        )}
                       </div>
                     )}
-                    {q.type === 'fill_blank' && (
+                    {q.type === 'dropdown' && (
+                      <div className="space-y-2">
+                        <select
+                          value={answer.selectedOptions[0] || ''}
+                          onChange={(e) => {
+                            handleAnswerChange(globalIndex, {
+                              selectedOptions: e.target.value ? [e.target.value] : [],
+                              userAnswer: '',
+                              matchingAnswers: answer.matchingAnswers || []
+                            });
+                            setCurrentQuestionIndex(globalIndex);
+                          }}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white shadow-sm"
+                        >
+                          <option value="">Chọn đáp án...</option>
+                          {q.options?.map((option, optionIndex) => (
+                            <option key={optionIndex} value={option.text}>{option.text}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {q.type === 'short_answer' && (
                       <div>
                         <textarea
                           value={answer.userAnswer || ''}
                           onChange={(e) => {
                             handleAnswerChange(globalIndex, {
                               selectedOptions: [],
-                              userAnswer: e.target.value
+                              userAnswer: e.target.value,
+                              matchingAnswers: answer.matchingAnswers || []
                             });
                             setCurrentQuestionIndex(globalIndex);
                           }}
@@ -400,6 +436,38 @@ const TakeTestPage: React.FC = () => {
                           rows={4}
                         />
                         <p className="mt-2 text-xs text-gray-500">Trả lời bằng tiếng Anh, kiểm tra lỗi chính tả trước khi nộp.</p>
+                      </div>
+                    )}
+                    {q.type === 'matching' && (
+                      <div className="space-y-3">
+                        {(q.matchingPairs || []).map((pair, pairIndex) => {
+                          const current = answer.matchingAnswers?.find((ans) => ans.prompt === pair.prompt)?.selected || '';
+                          return (
+                            <div key={pairIndex} className="space-y-1">
+                              <div className="text-sm font-medium text-gray-700">{pair.prompt}</div>
+                              <input
+                                value={current}
+                                onChange={(e) => {
+                                  const updatedPairs = (q.matchingPairs || []).map((p) => {
+                                    const prevSelected = answer.matchingAnswers?.find((ans) => ans.prompt === p.prompt)?.selected || '';
+                                    if (p.prompt === pair.prompt) {
+                                      return { prompt: p.prompt, selected: e.target.value };
+                                    }
+                                    return { prompt: p.prompt, selected: prevSelected };
+                                  });
+                                  handleAnswerChange(globalIndex, {
+                                    matchingAnswers: updatedPairs,
+                                    selectedOptions: answer.selectedOptions,
+                                    userAnswer: answer.userAnswer
+                                  });
+                                  setCurrentQuestionIndex(globalIndex);
+                                }}
+                                placeholder="Nhập câu trả lời ghép cặp"
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white shadow-sm"
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

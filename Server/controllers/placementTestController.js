@@ -68,27 +68,69 @@ const checkPlacementTest = async (req, res) => {
     let earnedPoints = 0;
     const detailedResults = [];
 
+    const answerById = new Map();
+    const answerByNumber = new Map();
+    (answers || []).forEach((ans, idx) => {
+      if (!ans) return;
+      if (ans.questionId) answerById.set(String(ans.questionId), ans);
+      if (typeof ans.questionNumber === 'number') answerByNumber.set(ans.questionNumber, ans);
+      answerByNumber.set(idx + 1, ans);
+    });
+
     test.questions.forEach((question, index) => {
-      const userAnswer = answers[index];
+      const qId = question._id ? String(question._id) : undefined;
+      const userAnswer = (qId && answerById.get(qId))
+        || answerByNumber.get(question.questionNumber)
+        || answers?.[index];
       let isCorrect = false;
       let pointsEarned = 0;
 
       if (userAnswer) {
-        if (question.type === 'single_choice') {
-          isCorrect = question.options.some(option => 
-            option.text === userAnswer.selectedOptions[0] && option.isCorrect
-          );
-        } else if (question.type === 'multiple_choice') {
-          const correctOptions = question.options
-            .filter(option => option.isCorrect)
-            .map(option => option.text);
-          
-          isCorrect = correctOptions.length === userAnswer.selectedOptions.length &&
-            correctOptions.every(option => userAnswer.selectedOptions.includes(option));
-        } else if (question.type === 'fill_blank') {
-          isCorrect = question.correctAnswers.some(correct => 
-            correct.toLowerCase().trim() === userAnswer.userAnswer.toLowerCase().trim()
-          );
+        const selectedOptions = Array.isArray(userAnswer.selectedOptions) ? userAnswer.selectedOptions : [];
+        const normalizedSelected = selectedOptions.map((opt) => String(opt || '').trim());
+
+        switch (question.type) {
+          case 'multi_choice': {
+            const correctOptions = (question.options || [])
+              .filter((option) => option.isCorrect)
+              .map((option) => String(option.text || '').trim());
+            if (question.allowMultiple) {
+              const uniqueSelected = Array.from(new Set(normalizedSelected));
+              isCorrect = correctOptions.length > 0 &&
+                correctOptions.length === uniqueSelected.length &&
+                correctOptions.every((opt) => uniqueSelected.includes(opt));
+            } else {
+              const singleAnswer = normalizedSelected[0] || '';
+              isCorrect = correctOptions.length === 1 && correctOptions[0] === singleAnswer;
+            }
+            break;
+          }
+          case 'dropdown': {
+            const correctOption = (question.options || []).find((option) => option.isCorrect);
+            const answer = normalizedSelected[0] || '';
+            isCorrect = !!correctOption && String(correctOption.text || '').trim() === answer;
+            break;
+          }
+          case 'short_answer': {
+            const answer = (userAnswer.userAnswer || '').trim().toLowerCase();
+            isCorrect = !!answer && (question.correctAnswers || []).some((correct) =>
+              String(correct || '').trim().toLowerCase() === answer
+            );
+            break;
+          }
+          case 'matching': {
+            const expectedPairs = question.matchingPairs || [];
+            const submittedPairs = Array.isArray(userAnswer.matchingAnswers) ? userAnswer.matchingAnswers : [];
+            if (expectedPairs.length && expectedPairs.length === submittedPairs.length) {
+              isCorrect = expectedPairs.every((pair) => {
+                const actual = submittedPairs.find((ans) => String(ans.prompt || '') === String(pair.prompt || ''));
+                return actual && String(actual.selected || '') === String(pair.correctOption || '');
+              });
+            }
+            break;
+          }
+          default:
+            isCorrect = false;
         }
 
         if (isCorrect) {
@@ -104,13 +146,24 @@ const checkPlacementTest = async (req, res) => {
           content: question.content,
           passage: question.passage,
           media: question.media,
-          options: question.options
+          options: question.options,
+          allowMultiple: question.allowMultiple,
+          matchingPairs: question.matchingPairs
         },
         userAnswer: {
           selectedOptions: userAnswer?.selectedOptions || [],
-          userAnswer: userAnswer?.userAnswer || ''
+          userAnswer: userAnswer?.userAnswer || '',
+          matchingAnswers: userAnswer?.matchingAnswers || []
         },
-        correctAnswers: question.correctAnswers,
+        correctAnswers: (() => {
+          if (question.type === 'matching') {
+            return (question.matchingPairs || []).map((pair) => `${pair.prompt} → ${pair.correctOption}`);
+          }
+          if (question.type === 'multi_choice' || question.type === 'dropdown') {
+            return (question.options || []).filter((option) => option.isCorrect).map((option) => option.text);
+          }
+          return question.correctAnswers;
+        })(),
         isCorrect,
         pointsEarned,
         explanation: question.explanation
@@ -518,13 +571,14 @@ const parseWordContent = (content) => {
       
       // Tạo câu hỏi mới
       currentQuestion = {
-        type: 'single_choice', // Mặc định
+        type: 'multi_choice', // Mặc định
         content: questionMatch[2].trim(),
         level: questionMatch[3].toUpperCase(),
         skill: questionMatch[4].toLowerCase(),
         points: parseInt(questionMatch[5]),
         options: [],
-        correctAnswers: []
+        correctAnswers: [],
+        allowMultiple: false
       };
     }
     // Kiểm tra nếu là đáp án (A), B), C), D))
@@ -532,7 +586,7 @@ const parseWordContent = (content) => {
       const isCorrect = line.endsWith('*');
       const optionText = line.replace(/^[A-D]\)\s*/, '').replace(/\s*\*$/, '').trim();
       
-      currentQuestion.options.push(optionText);
+      currentQuestion.options.push({ text: optionText, isCorrect });
       
       if (isCorrect) {
         currentQuestion.correctAnswers.push(optionText);
@@ -556,11 +610,14 @@ const parseWordContent = (content) => {
   // Xác định loại câu hỏi dựa trên số đáp án đúng
   questions.forEach(question => {
     if (question.correctAnswers.length > 1) {
-      question.type = 'multiple_choice';
+      question.type = 'multi_choice';
+      question.allowMultiple = true;
     } else if (question.options.length === 0) {
-      question.type = 'fill_blank';
+      question.type = 'short_answer';
+      question.allowMultiple = false;
     } else {
-      question.type = 'single_choice';
+      question.type = 'multi_choice';
+      question.allowMultiple = false;
     }
   });
 

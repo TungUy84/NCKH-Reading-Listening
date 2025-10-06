@@ -85,6 +85,7 @@ export const submitTest = async (submission: {
     questionId: string;
     selectedOptions?: string[];
     userAnswer?: string;
+    matchingAnswers?: { prompt: string; selected: string }[];
   }>;
 }) => {
   const response = await apiService.post('/placement-tests/check', submission);
@@ -99,6 +100,7 @@ export const submitPlacementTest = async (testId: string, answers: Array<{
   questionNumber: number;
   selectedOptions?: string[];
   userAnswer?: string;
+  matchingAnswers?: { prompt: string; selected: string }[];
 }>) => {
   const response = await apiService.post('/placement-tests/check', {
     testId,

@@ -57,11 +57,19 @@ const IELTSTestPage: React.FC<IELTSTestPageProps> = () => {
     }
   };
 
-  const handleAnswerChange = (questionNumber: number, answer: UserAnswer) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionNumber]: answer
-    }));
+  const handleAnswerChange = (questionNumber: number, answer: Partial<UserAnswer>) => {
+    setAnswers(prev => {
+      const prevAnswer = prev[questionNumber] || { selectedOptions: [], userAnswer: '', matchingAnswers: [] };
+      const updated: UserAnswer = {
+        selectedOptions: answer.selectedOptions ?? prevAnswer.selectedOptions ?? [],
+        userAnswer: answer.userAnswer ?? prevAnswer.userAnswer ?? '',
+        matchingAnswers: answer.matchingAnswers ?? prevAnswer.matchingAnswers ?? []
+      };
+      return {
+        ...prev,
+        [questionNumber]: updated
+      };
+    });
   };
 
   const handleSubmitTest = async () => {
@@ -129,121 +137,137 @@ const IELTSTestPage: React.FC<IELTSTestPageProps> = () => {
   };
 
   const renderQuestion = (question: TestQuestion) => {
-    const answer = answers[question.questionNumber];
-    
-    switch (question.type) {
-      case 'fill_blank':
-        return (
-          <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
-            <p className="font-medium text-gray-800 mb-3">
-              {question.questionNumber}. {question.content}
-            </p>
-            <input
-              type="text"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Type your answer here..."
-              value={answer?.userAnswer || ''}
-              onChange={(e) => handleAnswerChange(question.questionNumber, {
-                selectedOptions: [],
-                userAnswer: e.target.value
-              })}
-            />
-          </div>
-        );
-        
-      case 'true_false_not_given':
-      case 'yes_no_not_given':
-        const options = question.type === 'true_false_not_given' 
-          ? ['TRUE', 'FALSE', 'NOT GIVEN']
-          : ['YES', 'NO', 'NOT GIVEN'];
-          
-        return (
-          <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
-            <p className="font-medium text-gray-800 mb-3">
-              {question.questionNumber}. {question.content}
-            </p>
-            <div className="space-y-2">
-              {options.map((option, index) => (
+    const answer = answers[question.questionNumber] || { selectedOptions: [], userAnswer: '', matchingAnswers: [] };
+    const allowMultiple = question.allowMultiple ?? false;
+
+    if (question.type === 'short_answer') {
+      return (
+        <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-800 mb-3">
+            {question.questionNumber}. {question.content}
+          </p>
+          <input
+            type="text"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="Nhập câu trả lời của bạn"
+            value={answer.userAnswer}
+            onChange={(e) => handleAnswerChange(question.questionNumber, {
+              selectedOptions: [],
+              userAnswer: e.target.value
+            })}
+          />
+        </div>
+      );
+    }
+
+    if (question.type === 'multi_choice') {
+      return (
+        <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-800 mb-3">
+            {question.questionNumber}. {question.content}
+          </p>
+          <div className="space-y-2">
+            {question.options?.map((option, index) => {
+              const isChecked = answer.selectedOptions.includes(option.text);
+              return (
                 <label key={index} className="flex items-center space-x-3 cursor-pointer">
                   <input
-                    type="radio"
-                    name={`question-${question.questionNumber}`}
-                    value={option}
-                    checked={answer?.selectedOptions[0] === option}
-                    onChange={() => handleAnswerChange(question.questionNumber, {
-                      selectedOptions: [option],
-                      userAnswer: ''
-                    })}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-gray-700">{option}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-        );
-        
-      case 'multiple_choice':
-        return (
-          <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
-            <p className="font-medium text-gray-800 mb-3">
-              {question.questionNumber}. {question.content}
-            </p>
-            <div className="space-y-2">
-              {question.options?.map((option, index) => (
-                <label key={index} className="flex items-center space-x-3 cursor-pointer">
-                  <input
-                    type="radio"
+                    type={allowMultiple ? 'checkbox' : 'radio'}
                     name={`question-${question.questionNumber}`}
                     value={option.text}
-                    checked={answer?.selectedOptions[0] === option.text}
-                    onChange={() => handleAnswerChange(question.questionNumber, {
-                      selectedOptions: [option.text],
-                      userAnswer: ''
-                    })}
+                    checked={allowMultiple ? isChecked : answer.selectedOptions[0] === option.text}
+                    onChange={(e) => {
+                      if (allowMultiple) {
+                        const updated = e.target.checked
+                          ? Array.from(new Set([...answer.selectedOptions, option.text]))
+                          : answer.selectedOptions.filter((opt) => opt !== option.text);
+                        handleAnswerChange(question.questionNumber, {
+                          selectedOptions: updated,
+                          userAnswer: ''
+                        });
+                      } else {
+                        handleAnswerChange(question.questionNumber, {
+                          selectedOptions: [option.text],
+                          userAnswer: ''
+                        });
+                      }
+                    }}
                     className="w-4 h-4 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-gray-700">{option.text}</span>
                 </label>
-              ))}
-            </div>
+              );
+            })}
           </div>
-        );
-        
-      case 'summary_completion':
-        return (
-          <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
-            <p className="font-medium text-gray-800 mb-3">
-              {question.questionNumber}. {question.content}
-            </p>
-            {question.wordBank && question.wordBank.length > 0 && (
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <p className="text-sm font-medium text-gray-600 mb-2">Choose from:</p>
-                <div className="flex flex-wrap gap-2">
-                  {question.wordBank.map((word, index) => (
-                    <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                      {word}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            <input
-              type="text"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Choose a word from the list above..."
-              value={answer?.userAnswer || ''}
-              onChange={(e) => handleAnswerChange(question.questionNumber, {
-                selectedOptions: [],
-                userAnswer: e.target.value
-              })}
-            />
-          </div>
-        );
-        
-      default:
-        return null;
+        </div>
+      );
     }
+
+    if (question.type === 'dropdown') {
+      return (
+        <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-800 mb-3">
+            {question.questionNumber}. {question.content}
+          </p>
+          <select
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            value={answer.selectedOptions[0] || ''}
+            onChange={(e) => handleAnswerChange(question.questionNumber, {
+              selectedOptions: e.target.value ? [e.target.value] : [],
+              userAnswer: ''
+            })}
+          >
+            <option value="">Chọn đáp án...</option>
+            {question.options?.map((option, index) => (
+              <option key={index} value={option.text}>{option.text}</option>
+            ))}
+          </select>
+        </div>
+      );
+    }
+
+    if (question.type === 'matching') {
+      const existingPairs = answer.matchingAnswers || [];
+      return (
+        <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200">
+          <p className="font-medium text-gray-800 mb-3">
+            {question.questionNumber}. {question.content}
+          </p>
+          <div className="space-y-3">
+            {(question.matchingPairs || []).map((pair, index) => {
+              const current = existingPairs.find((ans) => ans.prompt === pair.prompt);
+              return (
+                <div key={index} className="space-y-1">
+                  <div className="text-sm font-medium text-gray-700">{pair.prompt}</div>
+                  <input
+                    type="text"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Nhập câu trả lời ghép cặp"
+                    value={current?.selected || ''}
+                    onChange={(e) => {
+                      const updatedPairs = (question.matchingPairs || []).map((p) => {
+                        const prevSelected = existingPairs.find((ans) => ans.prompt === p.prompt)?.selected || '';
+                        if (p.prompt === pair.prompt) {
+                          return { prompt: p.prompt, selected: e.target.value };
+                        }
+                        return { prompt: p.prompt, selected: prevSelected };
+                      });
+                      handleAnswerChange(question.questionNumber, {
+                        matchingAnswers: updatedPairs,
+                        selectedOptions: [],
+                        userAnswer: ''
+                      });
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+
+    return null;
   };
 
   if (loading) {

@@ -40,7 +40,9 @@ export interface Question {
   sectionId?: string;
   questionId?: number;
   questionNumber?: number;
-  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay' | 'true_false_not_given' | 'yes_no_not_given' | 'summary_completion';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
+  allowMultiple?: boolean;
+  matchingPairs?: MatchingPair[];
   content?: string;
   text?: string;
   skill?: 'listening' | 'reading';
@@ -63,6 +65,11 @@ export interface Option {
 export interface QuestionOption {
   text: string;
   isCorrect: boolean;
+}
+
+export interface MatchingPair {
+  prompt: string;
+  correctOption: string;
 }
 
 // Admin-specific types
@@ -185,7 +192,7 @@ export interface TestUpdateData {
 }
 
 export interface QuestionFormData {
-  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
   skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
   passage?: string;
@@ -194,6 +201,8 @@ export interface QuestionFormData {
     audio?: string;
   };
   options?: OptionFormData[];
+  allowMultiple?: boolean;
+  matchingPairs?: MatchingPair[];
   correctAnswers: string[];
   points: number;
   explanation?: string;

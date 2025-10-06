@@ -31,13 +31,10 @@ const EditTestPage: React.FC = () => {
 
   // Friendly labels for question types
   const TYPE_LABELS: Record<string, string> = {
-    single_choice: 'Single choice',
-    multiple_choice: 'Multiple choice',
-    fill_blank: 'Fill in the blank',
-    true_false_not_given: 'True / False / Not Given',
-    yes_no_not_given: 'Yes / No / Not Given',
-    summary_completion: 'Summary completion',
-    essay: 'Essay',
+    multi_choice: 'Multiple choice',
+    short_answer: 'Short answer',
+    matching: 'Matching',
+    dropdown: 'Dropdown',
   };
   const typeLabel = (t: string) => TYPE_LABELS[t] ?? t;
 
@@ -156,7 +153,7 @@ const EditTestPage: React.FC = () => {
       const oldQ = next.questions[qIdx] || {} as any;
       const newQ = updater({ ...oldQ });
       newQ.sectionId = oldQ.sectionId; // keep link
-      if (Array.isArray(newQ.options)) {
+      if (Array.isArray(newQ.options) && optionTypeSet.has(newQ.type)) {
         newQ.correctAnswers = newQ.options.filter((op: any) => op.isCorrect).map((op: any) => String(op.text || ''));
       }
       next.questions[qIdx] = newQ;
@@ -174,8 +171,8 @@ const EditTestPage: React.FC = () => {
       const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
       const q: any = { ...(next.questions[qIdx] || {}) };
       const opts = [...(q.options || [])];
-      const singleAnswerTypes = new Set(['single_choice', 'true_false_not_given', 'yes_no_not_given']);
-      if (patch.isCorrect && singleAnswerTypes.has(q.type)) {
+      const requiresSingleAnswer = q.type === 'dropdown' || (q.type === 'multi_choice' && !q.allowMultiple);
+      if (patch.isCorrect && requiresSingleAnswer) {
         for (let i = 0; i < opts.length; i++) {
           if (i !== optIdx) opts[i] = { ...(opts[i] || {}), isCorrect: false };
         }
@@ -213,6 +210,29 @@ const EditTestPage: React.FC = () => {
       const arr = [...(q.correctAnswers || [])];
       arr.splice(ansIdx, 1);
       return { ...q, correctAnswers: arr };
+    });
+  };
+
+  const addMatchingPair = (qIdx: number) => {
+    updateQuestion(qIdx, (q) => ({
+      ...q,
+      matchingPairs: [...(q.matchingPairs || []), { prompt: '', correctOption: '' }]
+    }));
+  };
+
+  const updateMatchingPair = (qIdx: number, pairIdx: number, patch: Partial<{ prompt: string; correctOption: string }>) => {
+    updateQuestion(qIdx, (q) => {
+      const pairs = [...(q.matchingPairs || [])];
+      pairs[pairIdx] = { ...(pairs[pairIdx] || { prompt: '', correctOption: '' }), ...patch };
+      return { ...q, matchingPairs: pairs };
+    });
+  };
+
+  const removeMatchingPair = (qIdx: number, pairIdx: number) => {
+    updateQuestion(qIdx, (q) => {
+      const pairs = [...(q.matchingPairs || [])];
+      pairs.splice(pairIdx, 1);
+      return { ...q, matchingPairs: pairs };
     });
   };
 
@@ -302,22 +322,48 @@ const EditTestPage: React.FC = () => {
   }, [testId, test?.sections, test?.questions]);
 
   // Option-based types and defaults
-  const optionTypeSet = new Set(['single_choice', 'multiple_choice', 'true_false_not_given', 'yes_no_not_given', 'summary_completion']);
+  const optionTypeSet = new Set(['multi_choice', 'dropdown']);
   const defaultOptionsByType = (type: string): { text: string; isCorrect: boolean }[] => {
-    if (type === 'true_false_not_given') return [{ text: 'True', isCorrect: false }, { text: 'False', isCorrect: false }, { text: 'Not Given', isCorrect: false }];
-    if (type === 'yes_no_not_given') return [{ text: 'Yes', isCorrect: false }, { text: 'No', isCorrect: false }, { text: 'Not Given', isCorrect: false }];
+    if (type === 'dropdown') {
+      return [{ text: 'Option 1', isCorrect: true }, { text: 'Option 2', isCorrect: false }, { text: 'Option 3', isCorrect: false }];
+    }
     return [{ text: 'A', isCorrect: false }, { text: 'B', isCorrect: false }, { text: 'C', isCorrect: false }, { text: 'D', isCorrect: false }];
   };
 
   const onTypeChange = (qIdx: number, newType: string) => {
     updateQuestion(qIdx, (q) => {
       const next: any = { ...q, type: newType };
-      if (optionTypeSet.has(newType)) {
-        if (!Array.isArray(next.options) || next.options.length === 0) next.options = defaultOptionsByType(newType);
+      if (newType === 'multi_choice') {
+        next.allowMultiple = !!q.allowMultiple;
+        if (!Array.isArray(next.options) || next.options.length === 0) {
+          next.options = defaultOptionsByType(newType);
+        }
         next.correctAnswers = (next.options || []).filter((op: any) => op.isCorrect).map((op: any) => String(op.text || ''));
-      } else {
+        next.matchingPairs = [];
+      } else if (newType === 'dropdown') {
+        next.allowMultiple = false;
+        if (!Array.isArray(next.options) || next.options.length === 0) {
+          next.options = defaultOptionsByType(newType);
+        }
+        if (!(next.options || []).some((op: any) => op.isCorrect)) {
+          next.options = next.options.map((op: any, idx: number) => ({ ...op, isCorrect: idx === 0 }));
+        }
+        next.correctAnswers = (next.options || []).filter((op: any) => op.isCorrect).map((op: any) => String(op.text || ''));
+        next.matchingPairs = [];
+      } else if (newType === 'short_answer') {
+        next.allowMultiple = false;
         next.options = [];
-        if (!Array.isArray(next.correctAnswers) || next.correctAnswers.length === 0) next.correctAnswers = [''];
+        next.matchingPairs = [];
+        if (!Array.isArray(next.correctAnswers) || next.correctAnswers.length === 0) {
+          next.correctAnswers = [''];
+        }
+      } else if (newType === 'matching') {
+        next.allowMultiple = false;
+        next.options = [];
+        next.correctAnswers = [];
+        if (!Array.isArray(next.matchingPairs) || next.matchingPairs.length === 0) {
+          next.matchingPairs = [{ prompt: '', correctOption: '' }];
+        }
       }
       return next;
     });
@@ -422,7 +468,18 @@ const EditTestPage: React.FC = () => {
         }
         return typeof q.sectionIndex === 'number' && q.sectionIndex === currentSectionIndex;
       }).length;
-      const base: any = { type: 'single_choice', content: '', skill, questionNumber: count + 1, options: defaultOptionsByType('single_choice'), correctAnswers: [], points: 1, explanation: '' };
+      const base: any = {
+        type: 'multi_choice',
+        allowMultiple: false,
+        content: '',
+        skill,
+        questionNumber: count + 1,
+        options: defaultOptionsByType('multi_choice'),
+        correctAnswers: [],
+        points: 1,
+        explanation: '',
+        matchingPairs: []
+      };
       const newQ: any = hasId ? { ...base, sectionId } : { ...base, sectionIndex: currentSectionIndex };
       next.questions.push(newQ);
       return next;
@@ -697,9 +754,16 @@ const EditTestPage: React.FC = () => {
               <div className="text-slate-500 text-sm">Chưa có câu hỏi cho phần này.</div>
             ) : (
               sectionQuestionPairs.map(({ q, idx }, i) => {
-                const hasOptions = Array.isArray(q.options) && q.options.length > 0;
+                const hasOptions = optionTypeSet.has(q.type) && Array.isArray(q.options) && q.options.length > 0;
                 const answersFromOptions = hasOptions ? (q.options || []).filter((op: any) => op.isCorrect).map((op: any) => op.text) : [];
-                const finalAnswers = hasOptions ? answersFromOptions : (q.correctAnswers || []);
+                let finalAnswers: string[];
+                if (q.type === 'matching' && Array.isArray(q.matchingPairs)) {
+                  finalAnswers = q.matchingPairs.map((pair: any) => `${pair.prompt || '—'} → ${pair.correctOption || '—'}`);
+                } else if (hasOptions) {
+                  finalAnswers = answersFromOptions;
+                } else {
+                  finalAnswers = (q.correctAnswers || []);
+                }
                 return (
                   <div key={q._id || i} className={`border rounded-lg transition-colors ${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} ${invalidQuestionIdxs.has(idx) ? 'border-red-400 bg-red-50/40' : ''}`}>
                     {/* Header row */}
@@ -718,14 +782,31 @@ const EditTestPage: React.FC = () => {
                           <div>
                             <label className="block text-sm font-medium">Loại câu hỏi</label>
                             <select value={q.type} onChange={(e) => onTypeChange(idx, e.target.value)} className="w-full px-3 py-2 border rounded-lg">
-                              <option value="single_choice">Single choice</option>
-                              <option value="multiple_choice">Multiple choice</option>
-                              <option value="fill_blank">Fill in the blank</option>
-                              <option value="true_false_not_given">True / False / Not Given</option>
-                              <option value="yes_no_not_given">Yes / No / Not Given</option>
-                              <option value="summary_completion">Summary completion</option>
-                              <option value="essay">Essay</option>
+                              <option value="multi_choice">Multiple choice</option>
+                              <option value="short_answer">Short answer</option>
+                              <option value="matching">Matching</option>
+                              <option value="dropdown">Dropdown</option>
                             </select>
+                            {q.type === 'multi_choice' && (
+                              <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600">
+                                <input
+                                  type="checkbox"
+                                  checked={!!q.allowMultiple}
+                                  onChange={(e) => updateQuestion(idx, (qq) => {
+                                    const next = { ...qq, allowMultiple: e.target.checked };
+                                    if (!e.target.checked) {
+                                      const firstCorrectIdx = (next.options || []).findIndex((op: any) => op.isCorrect);
+                                      next.options = (next.options || []).map((op: any, opIdx: number) => ({
+                                        ...op,
+                                        isCorrect: opIdx === Math.max(firstCorrectIdx, 0)
+                                      }));
+                                    }
+                                    return next;
+                                  })}
+                                />
+                                Cho phép chọn nhiều đáp án đúng
+                              </label>
+                            )}
                           </div>
                           <div className="w-full md:w-40">
                             <label className="block text-sm font-medium">Điểm</label>
@@ -734,7 +815,7 @@ const EditTestPage: React.FC = () => {
                         </div>
                         <label className="block text-sm font-medium">Nội dung</label>
                         <textarea value={q.content || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, content: e.target.value }))} rows={3} className="w-full px-3 py-2 border rounded-lg" />
-                        {hasOptions ? (
+                        {optionTypeSet.has(q.type) ? (
                           <div className="space-y-2">
                             <div className="text-sm font-medium">Phương án</div>
                             {(q.options || []).map((op: any, opIdx: number) => (
@@ -746,9 +827,33 @@ const EditTestPage: React.FC = () => {
                             ))}
                             <button type="button" onClick={() => addOption(idx)} className="px-3 py-2 border rounded">+ Thêm phương án</button>
                           </div>
+                        ) : q.type === 'matching' ? (
+                          <div className="space-y-2">
+                            <div className="text-sm font-medium">Ghép cặp</div>
+                            {(q.matchingPairs || []).map((pair: any, pairIdx: number) => (
+                              <div key={pairIdx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                <input
+                                  value={pair.prompt || ''}
+                                  onChange={(e) => updateMatchingPair(idx, pairIdx, { prompt: e.target.value })}
+                                  className="px-3 py-2 border rounded-lg"
+                                  placeholder={`Câu hỏi ${pairIdx + 1}`}
+                                />
+                                <div className="flex gap-2">
+                                  <input
+                                    value={pair.correctOption || ''}
+                                    onChange={(e) => updateMatchingPair(idx, pairIdx, { correctOption: e.target.value })}
+                                    className="flex-1 px-3 py-2 border rounded-lg"
+                                    placeholder="Đáp án đúng"
+                                  />
+                                  <button type="button" onClick={() => removeMatchingPair(idx, pairIdx)} className="px-2 py-2 border rounded">Xóa</button>
+                                </div>
+                              </div>
+                            ))}
+                            <button type="button" onClick={() => addMatchingPair(idx)} className="px-3 py-2 border rounded">+ Thêm ghép cặp</button>
+                          </div>
                         ) : (
                           <div className="space-y-2">
-                            <div className="text-sm font-medium">Đáp án đúng (Fill blank)</div>
+                            <div className="text-sm font-medium">Đáp án đúng</div>
                             {(q.correctAnswers || []).map((ans: string, ansIdx: number) => (
                               <div key={ansIdx} className="flex items-center gap-2">
                                 <input value={ans} onChange={(e) => updateCorrectAnswer(idx, ansIdx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />

@@ -37,17 +37,16 @@ const questionSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      'fill_blank',           // Fill in the blank (IELTS style)
-      'true_false_not_given', // True/False/Not Given
-      'yes_no_not_given',     // Yes/No/Not Given
-      'multiple_choice',      // Multiple choice A, B, C, D
-      'single_choice',        // Single choice A, B, C, D
-      'matching',             // Matching exercises
-      'summary_completion',   // Complete summary with word bank
-      'sentence_completion',  // Complete sentences
-      'essay'                 // Essay questions
+      'multi_choice',   // Có thể chọn 1 hoặc nhiều đáp án
+      'short_answer',   // Trả lời ngắn
+      'matching',       // Ghép cặp
+      'dropdown'        // Chọn đáp án từ menu thả xuống
     ],
     required: [true, 'Loại câu hỏi là bắt buộc']
+  },
+  allowMultiple: {
+    type: Boolean,
+    default: false
   },
   content: {
     type: String,
@@ -70,6 +69,16 @@ const questionSchema = new mongoose.Schema({
     isCorrect: {
       type: Boolean,
       default: false
+    }
+  }],
+  matchingPairs: [{
+    prompt: {
+      type: String,
+      required: true
+    },
+    correctOption: {
+      type: String,
+      required: true
     }
   }],
   wordBank: [String], // Danh sách từ cho loại summary completion
@@ -168,6 +177,10 @@ const placementResultSchema = new mongoose.Schema({
     },
     selectedOptions: [String], // Các đáp án đã chọn
     userAnswer: String, // Câu trả lời tự luận
+    matchingAnswers: [{
+      prompt: String,
+      selected: String
+    }],
     isCorrect: Boolean,
     pointsEarned: Number
   }],

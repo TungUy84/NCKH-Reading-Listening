@@ -36,7 +36,7 @@ export interface TestQuestion {
   _id?: string;
   sectionId: string;
   questionNumber: number;
-  type: 'fill_blank' | 'true_false_not_given' | 'yes_no_not_given' | 'multiple_choice' | 'matching' | 'summary_completion' | 'sentence_completion';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
   instructions?: string;
   options?: Option[];
@@ -50,11 +50,13 @@ export interface TestQuestion {
     audioUrl?: string;
     imageUrl?: string;
   }; // added for listening / images
+  allowMultiple?: boolean;
+  matchingPairs?: MatchingPair[];
 }
 
 export interface Question {
   _id?: string;
-  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
   level: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
   skill: 'listening' | 'reading' | 'speaking' | 'writing';
@@ -65,6 +67,8 @@ export interface Question {
   };
   options?: Option[];
   correctAnswers?: string[]; // Only visible to admin
+  allowMultiple?: boolean;
+  matchingPairs?: MatchingPair[];
   points: number;
   explanation?: string; // Only visible after submission
 }
@@ -74,15 +78,25 @@ export interface Option {
   isCorrect?: boolean; // Hidden in take test, visible in admin
 }
 
+export interface MatchingPair {
+  prompt: string;
+  correctOption: string;
+}
+
 // User Answer Types
 export interface UserAnswer {
   selectedOptions: string[];
   userAnswer: string;
+  matchingAnswers?: { prompt: string; selected: string }[];
+}
+
+export interface SubmittedAnswer extends UserAnswer {
+  questionId: string;
 }
 
 export interface TestSubmission {
   testId: string;
-  answers: UserAnswer[];
+  answers: SubmittedAnswer[];
 }
 
 // Test Result Types (matching backend response)
@@ -112,6 +126,7 @@ export interface DetailedResult {
   userAnswer: {
     selectedOptions: string[];
     userAnswer: string;
+    matchingAnswers?: { prompt: string; selected: string }[];
   };
   correctAnswers: string[];
   isCorrect: boolean;
