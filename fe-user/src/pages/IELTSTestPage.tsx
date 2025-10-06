@@ -110,7 +110,7 @@ const IELTSTestPage: React.FC<IELTSTestPageProps> = () => {
     // Group questions by instructions
     const questionGroups: TestQuestion[][] = [];
     let currentGroup: TestQuestion[] = [];
-    let lastInstruction = '';
+    let lastInstruction: string | undefined = undefined;
     
     sectionQuestions.forEach(question => {
       if (question.instructions !== lastInstruction && currentGroup.length > 0) {
@@ -190,7 +190,7 @@ const IELTSTestPage: React.FC<IELTSTestPageProps> = () => {
               {question.questionNumber}. {question.content}
             </p>
             <div className="space-y-2">
-              {question.options.map((option, index) => (
+              {question.options?.map((option, index) => (
                 <label key={index} className="flex items-center space-x-3 cursor-pointer">
                   <input
                     type="radio"

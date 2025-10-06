@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import {
+  Squares2X2Icon,
+  UsersIcon,
+  ClipboardDocumentCheckIcon,
+  MapIcon,
+  AcademicCapIcon,
+  BookOpenIcon,
+  CheckBadgeIcon,
+  NewspaperIcon
+} from '@heroicons/react/24/outline';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -21,75 +31,42 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
     {
       label: 'Dashboard',
       href: '/admin/dashboard',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-        </svg>
-      ),
+      icon: <Squares2X2Icon className="w-5 h-5" />,
     },
     {
       label: 'Người dùng',
       href: '/admin/users',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m10-6.26a4 4 0 11-8 0 4 4 0 018 0zM7 8a4 4 0 118 0" />
-        </svg>
-      ),
+      icon: <UsersIcon className="w-5 h-5" />,
     },
     {
       label: 'Kiểm tra đầu vào',
       href: '/admin/placement-tests',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      ),
+      icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />,
     },
     {
       label: 'Lộ trình',
       href: '/admin/roadmap',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
-        </svg>
-      ),
+      icon: <MapIcon className="w-5 h-5" />,
     },
     {
       label: 'Ôn luyện',
       href: '/admin/practice',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m6-6H6" />
-        </svg>
-      ),
+      icon: <AcademicCapIcon className="w-5 h-5" />,
     },
     {
       label: 'Bài học',
       href: '/admin/lessons',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20l9-5-9-5-9 5 9 5z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 12l9-5-9-5-9 5 9 5z" />
-        </svg>
-      ),
+      icon: <BookOpenIcon className="w-5 h-5" />,
     },
     {
       label: 'Thi thử',
       href: '/admin/mock-exams',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6-2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6l2 2h6a2 2 0 012 2z" />
-        </svg>
-      ),
+      icon: <CheckBadgeIcon className="w-5 h-5" />,
     },
     {
       label: 'Blog',
       href: '/admin/blog',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2h-3.34a1 1 0 01-.7-.29l-1.93-1.93A1 1 0 0010.66 4H5A2 2 0 003 6v5" />
-        </svg>
-      ),
+      icon: <NewspaperIcon className="w-5 h-5" />,
     },
   ];
 

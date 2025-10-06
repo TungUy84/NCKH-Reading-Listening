@@ -45,6 +45,11 @@ export interface TestQuestion {
   explanation?: string;
   points: number;
   level?: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
+  passage?: string; // added for reading context
+  media?: {
+    audioUrl?: string;
+    imageUrl?: string;
+  }; // added for listening / images
 }
 
 export interface Question {
