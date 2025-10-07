@@ -20,6 +20,7 @@ Backend cho website hỗ trợ luyện thi đầu ra tiếng Anh tại Trường
 - ✅ Kích hoạt/Vô hiệu hóa tài khoản
 - ✅ Xóa tài khoản người dùng
 - ✅ Xem thống kê người dùng
+- ✅ Import đề kiểm tra từ Word/PDF/Excel kèm trình phân tích và kiểm tra trước khi lưu
 
 ## 🛠️ Công nghệ sử dụng
 

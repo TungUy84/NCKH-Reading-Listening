@@ -106,6 +106,19 @@ fe-admin/
 - Media upload support
 - Bulk operations
 
+## 📥 Import bài test
+
+- Upload trực tiếp đề thi từ các định dạng **Word (.docx), PDF (.pdf) và Excel (.xlsx)**.
+- Công cụ nằm trong mục **Kiểm tra đầu vào → Import** với bản xem trước câu hỏi trước khi lưu.
+- Có thể tinh chỉnh tiêu đề, mô tả, thời gian, hướng dẫn và trạng thái kích hoạt trước khi tạo test.
+- Các file mẫu được đặt tại `fe-admin/public/import-samples/` và có thể tải ngay trong giao diện Import:
+  - `sample-placement-test.docx`
+  - `sample-placement-test.xlsx`
+- Khi tự chuẩn bị file:
+  - Word/PDF: khai báo metadata theo key-value, dùng `---` để phân cách phần câu hỏi; đánh dấu đáp án đúng bằng dấu `*` hoặc `[x]`.
+  - Excel: Sheet `Metadata` chứa cột `Field`/`Value`; sheet `Questions` gồm các cột `QuestionNumber`, `Type`, `Content`, `Level`, `Skill`, `Points`, `Options`, `CorrectAnswers`, `MatchingPairs`, ... (ngăn cách nhiều giá trị bằng `|`).
+
+
 ## 🎨 **Design System**
 
 ### Colors:

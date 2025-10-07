@@ -1,6 +1,8 @@
-const { PlacementTest } = require('../models/PlacementTest');
-const mammoth = require('mammoth');
+const path = require('path');
 const fs = require('fs');
+const mongoose = require('mongoose');
+const { PlacementTest } = require('../models/PlacementTest');
+const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/placementTestImport');
 // Không cần import PlacementResult vì không lưu kết quả vào database
 
 // Lấy danh sách các bài test theo category (Public)
@@ -318,14 +320,106 @@ const createPlacementTest = async (req, res) => {
   try {
     const { title, description, instructions, timeLimit, questions = [], sections = [], category, isActive = true } = req.body;
 
+    // Chuẩn hoá sections: nếu không có, tạo 1 section mặc định
+    const sectionObjects = [];
+    const explicitSections = Array.isArray(sections) ? sections : [];
+
+    if (explicitSections.length) {
+      explicitSections.forEach((section, idx) => {
+        const objectId = section?._id ? section._id : new mongoose.Types.ObjectId();
+        sectionObjects.push({
+          _id: objectId,
+          title: section?.title || `Section ${idx + 1}`,
+          passage: section?.passage || '',
+          audio: section?.audio || '',
+          image: section?.image || '',
+          timeLimit: section?.timeLimit || timeLimit || 0
+        });
+      });
+    } else {
+      // Nếu không có sections từ FE, tạo dựa trên sectionIndex của câu hỏi
+      const sectionIndexes = new Set();
+      questions.forEach((q) => {
+        if (typeof q?.sectionIndex === 'number' && q.sectionIndex >= 0) {
+          sectionIndexes.add(q.sectionIndex);
+        }
+      });
+
+      if (sectionIndexes.size === 0) {
+        sectionObjects.push({
+          _id: new mongoose.Types.ObjectId(),
+          title: title ? `${title} - Section 1` : 'Section 1',
+          passage: '',
+          audio: '',
+          image: '',
+          timeLimit: timeLimit || 0
+        });
+      } else {
+        Array.from(sectionIndexes).sort((a, b) => a - b).forEach((idx, order) => {
+          sectionObjects.push({
+            _id: new mongoose.Types.ObjectId(),
+            title: `Section ${order + 1}`,
+            passage: '',
+            audio: '',
+            image: '',
+            timeLimit: timeLimit || 0
+          });
+        });
+      }
+    }
+
+    const sectionIdByIndex = new Map();
+    sectionObjects.forEach((section, idx) => {
+      sectionIdByIndex.set(idx, section._id);
+    });
+
+    const normalizedQuestions = Array.isArray(questions)
+      ? questions.map((rawQuestion, idx) => {
+          const question = { ...rawQuestion };
+          const sectionIndex = typeof question.sectionIndex === 'number' && sectionIdByIndex.has(question.sectionIndex)
+            ? question.sectionIndex
+            : 0;
+          const sectionId = question.sectionId || sectionIdByIndex.get(sectionIndex) || sectionObjects[0]._id;
+
+          return {
+            questionNumber: typeof question.questionNumber === 'number' ? question.questionNumber : idx + 1,
+            type: question.type || 'multi_choice',
+            allowMultiple: !!question.allowMultiple,
+            content: question.content || question.text || '',
+            skill: question.skill === 'listening' ? 'listening' : 'reading',
+            instructions: question.instructions || '',
+            options: Array.isArray(question.options)
+              ? question.options.map((op) => ({
+                  text: op?.text || '',
+                  isCorrect: !!op?.isCorrect
+                })).filter((op) => op.text)
+              : [],
+            matchingPairs: Array.isArray(question.matchingPairs)
+              ? question.matchingPairs.map((pair) => ({
+                  prompt: pair?.prompt || '',
+                  correctOption: pair?.correctOption || ''
+                })).filter((pair) => pair.prompt && pair.correctOption)
+              : [],
+            wordBank: Array.isArray(question.wordBank) ? question.wordBank.filter(Boolean) : [],
+            correctAnswers: Array.isArray(question.correctAnswers)
+              ? question.correctAnswers.map((ans) => String(ans || '').trim()).filter(Boolean)
+              : [],
+            explanation: question.explanation || '',
+            points: typeof question.points === 'number' && question.points > 0 ? question.points : 1,
+            sectionId,
+            sectionIndex,
+          };
+        })
+      : [];
+
     const test = new PlacementTest({
       title,
       description: description || '',
       instructions: Array.isArray(instructions) ? instructions : [],
       category, // BẮT BUỘC theo schema
       timeLimit,
-      sections,
-      questions,
+      sections: sectionObjects,
+      questions: normalizedQuestions,
       isActive,
       createdBy: req.user._id
     });
@@ -479,7 +573,7 @@ const getPlacementTestStats = async (req, res) => {
   }
 };
 
-// Import bài test từ file Word (Admin)
+// Import bài test từ file Word/PDF/Excel (Admin)
 const importPlacementTest = async (req, res) => {
   try {
     if (!req.file) {
@@ -487,148 +581,36 @@ const importPlacementTest = async (req, res) => {
     }
 
     const filePath = req.file.path;
-    
+    const extension = path.extname(req.file.originalname || filePath).toLowerCase();
+    let previewTest;
+
     try {
-      // Đọc file Word
-      const result = await mammoth.extractRawText({ path: filePath });
-      const content = result.value;
-      
-      // Parse nội dung file
-      const previewTest = parseWordContent(content);
-      
-      // Xóa file tạm
-      fs.unlinkSync(filePath);
-      
+      if (extension === '.docx') {
+        previewTest = await parseDocxFile(filePath);
+      } else if (extension === '.pdf') {
+        const buffer = fs.readFileSync(filePath);
+        previewTest = await parsePdfBuffer(buffer);
+      } else if (extension === '.xlsx') {
+        const buffer = fs.readFileSync(filePath);
+        previewTest = parseExcelBuffer(buffer);
+      } else {
+        throw new Error('Định dạng file không được hỗ trợ. Vui lòng sử dụng DOCX, PDF hoặc XLSX');
+      }
+
       res.json({
         message: 'Phân tích file thành công',
-        previewTest
+        previewTest,
+        source: extension.replace('.', '')
       });
-    } catch (parseError) {
-      // Xóa file tạm nếu có lỗi
+    } finally {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-      throw parseError;
     }
   } catch (error) {
     console.error('Import placement test error:', error);
-    res.status(500).json({ message: 'Lỗi khi xử lý file Word: ' + error.message });
+    res.status(500).json({ message: 'Lỗi khi xử lý file: ' + error.message });
   }
-};
-
-// Helper function để parse nội dung Word
-const parseWordContent = (content) => {
-  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
-  if (lines.length < 6) {
-    throw new Error('File không đúng format. Cần ít nhất: tiêu đề, mô tả, loại, thời gian, hướng dẫn và dấu phân cách ---');
-  }
-
-  let currentLine = 0;
-  
-  // Parse thông tin cơ bản
-  const title = lines[currentLine++];
-  const description = lines[currentLine++];
-  const category = lines[currentLine++].toLowerCase();
-  const timeLimit = parseInt(lines[currentLine++]);
-  
-  // Validate category
-  if (!['listening', 'reading', 'general'].includes(category)) {
-    throw new Error('Loại bài test phải là: listening, reading, hoặc general');
-  }
-  
-  if (isNaN(timeLimit) || timeLimit <= 0) {
-    throw new Error('Thời gian phải là số nguyên dương');
-  }
-
-  // Parse hướng dẫn
-  const instructions = [];
-  while (currentLine < lines.length && lines[currentLine] !== '---') {
-    instructions.push(lines[currentLine++]);
-  }
-  
-  if (currentLine >= lines.length || lines[currentLine] !== '---') {
-    throw new Error('Không tìm thấy dấu phân cách --- giữa hướng dẫn và câu hỏi');
-  }
-  
-  currentLine++; // Skip '---'
-
-  // Parse câu hỏi
-  const questions = [];
-  let currentQuestion = null;
-  
-  while (currentLine < lines.length) {
-    const line = lines[currentLine++];
-    
-    // Kiểm tra nếu là câu hỏi mới (bắt đầu bằng Q[số]:)
-    const questionMatch = line.match(/^Q(\d+):\s*(.+?)\s*\(Level:\s*(AV[1-7]),\s*Skill:\s*(listening|reading|grammar|vocabulary),\s*Points:\s*(\d+)\)$/i);
-    
-    if (questionMatch) {
-      // Lưu câu hỏi trước đó nếu có
-      if (currentQuestion) {
-        questions.push(currentQuestion);
-      }
-      
-      // Tạo câu hỏi mới
-      currentQuestion = {
-        type: 'multi_choice', // Mặc định
-        content: questionMatch[2].trim(),
-        level: questionMatch[3].toUpperCase(),
-        skill: questionMatch[4].toLowerCase(),
-        points: parseInt(questionMatch[5]),
-        options: [],
-        correctAnswers: [],
-        allowMultiple: false
-      };
-    }
-    // Kiểm tra nếu là đáp án (A), B), C), D))
-    else if (currentQuestion && line.match(/^[A-D]\)/)) {
-      const isCorrect = line.endsWith('*');
-      const optionText = line.replace(/^[A-D]\)\s*/, '').replace(/\s*\*$/, '').trim();
-      
-      currentQuestion.options.push({ text: optionText, isCorrect });
-      
-      if (isCorrect) {
-        currentQuestion.correctAnswers.push(optionText);
-      }
-    }
-    // Kiểm tra nếu là đoạn văn (Passage:)
-    else if (currentQuestion && line.toLowerCase().startsWith('passage:')) {
-      currentQuestion.passage = line.substring(8).trim();
-    }
-  }
-  
-  // Lưu câu hỏi cuối cùng
-  if (currentQuestion) {
-    questions.push(currentQuestion);
-  }
-  
-  if (questions.length === 0) {
-    throw new Error('Không tìm thấy câu hỏi nào trong file');
-  }
-
-  // Xác định loại câu hỏi dựa trên số đáp án đúng
-  questions.forEach(question => {
-    if (question.correctAnswers.length > 1) {
-      question.type = 'multi_choice';
-      question.allowMultiple = true;
-    } else if (question.options.length === 0) {
-      question.type = 'short_answer';
-      question.allowMultiple = false;
-    } else {
-      question.type = 'multi_choice';
-      question.allowMultiple = false;
-    }
-  });
-
-  return {
-    title,
-    description,
-    category,
-    timeLimit,
-    instructions,
-    questions
-  };
 };
 
 module.exports = {

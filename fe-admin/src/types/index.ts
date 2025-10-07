@@ -42,6 +42,7 @@ export interface Question {
   questionNumber?: number;
   type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   allowMultiple?: boolean;
+  sectionIndex?: number;
   matchingPairs?: MatchingPair[];
   content?: string;
   text?: string;
@@ -53,6 +54,7 @@ export interface Question {
   };
   options?: QuestionOption[];
   correctAnswers: string[];
+  wordBank?: string[];
   points: number;
   explanation?: string;
 }
@@ -70,6 +72,25 @@ export interface QuestionOption {
 export interface MatchingPair {
   prompt: string;
   correctOption: string;
+}
+
+export interface PlacementTestImportPreview {
+  title: string;
+  description: string;
+  category: 'listening' | 'reading' | 'general';
+  timeLimit: number;
+  instructions: string[];
+  sections?: TestSection[];
+  questions: Question[];
+  totalPoints?: number;
+  totalQuestions?: number;
+  source?: string;
+}
+
+export interface PlacementTestImportResponse {
+  message: string;
+  previewTest: PlacementTestImportPreview;
+  source?: string;
 }
 
 // Admin-specific types
@@ -177,6 +198,7 @@ export interface TestFormData {
   instructions: string[];
   timeLimit: number;
   isActive: boolean;
+  sections?: TestSection[];
   questions: QuestionFormData[];
 }
 
@@ -195,6 +217,7 @@ export interface QuestionFormData {
   type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
   skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
+  sectionIndex?: number;
   passage?: string;
   media?: {
     image?: string;
@@ -203,6 +226,7 @@ export interface QuestionFormData {
   options?: OptionFormData[];
   allowMultiple?: boolean;
   matchingPairs?: MatchingPair[];
+  wordBank?: string[];
   correctAnswers: string[];
   points: number;
   explanation?: string;

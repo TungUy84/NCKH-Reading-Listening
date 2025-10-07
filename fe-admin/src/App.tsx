@@ -11,6 +11,7 @@ import PlacementTestsPage from './pages/PracticePage/PlacementTestsPage';
 import ViewTestPage from './pages/PracticePage/ViewTestPage';
 import EditTestPage from './pages/PracticePage/EditTestPage';
 import CreateTestPage from './pages/PracticePage/CreateTestPage';
+import ImportTestPage from './pages/PracticePage/ImportTestPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
 import PracticePage from './pages/PracticePage/PracticePage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
@@ -101,6 +102,7 @@ const App: React.FC = () => {
               {/* Placement Tests Management */}
               <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
               <Route path="/admin/placement-tests/create" element={<CreateTestPage />} />
+              <Route path="/admin/placement-tests/import" element={<ImportTestPage />} />
               <Route path="/admin/placement-tests/:testId/view" element={<ViewTestPage />} />
               <Route path="/admin/placement-tests/:testId/edit" element={<EditTestPage />} />
 

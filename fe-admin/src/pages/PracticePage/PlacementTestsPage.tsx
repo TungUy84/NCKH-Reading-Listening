@@ -130,7 +130,7 @@ const PlacementTestsPage: React.FC = () => {
             onClick={() => navigate('/admin/placement-tests/import')}
             className="px-4 py-2 rounded-lg bg-amber-500 text-white hover:bg-amber-600"
           >
-            Import từ Word
+            Import
           </button>
           <button
             onClick={() => navigate('/admin/placement-tests/create')}

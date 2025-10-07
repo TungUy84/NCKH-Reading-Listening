@@ -24,16 +24,23 @@ const { protect, authorize } = require('../middleware/auth');
 // Tạo middleware cho admin  
 const isAdmin = authorize('admin');
 
-// Configure multer for Word file upload
+// Configure multer for placement test import files (Word/PDF/Excel)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'uploads/tests/');
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'test-' + uniqueSuffix + path.extname(file.originalname));
+    const fallbackExt = path.extname(file.originalname) || allowedMimeTypes[file.mimetype] || '.bin';
+    cb(null, 'test-' + uniqueSuffix + fallbackExt);
   }
 });
+
+const allowedMimeTypes = {
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/pdf': '.pdf',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx'
+};
 
 const upload = multer({ 
   storage: storage,
@@ -41,10 +48,10 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: function (req, file, cb) {
-    if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    if (allowedMimeTypes[file.mimetype]) {
       cb(null, true);
     } else {
-      cb(new Error('Only Word (.docx) files are allowed!'), false);
+      cb(new Error('Định dạng không hỗ trợ. Vui lòng sử dụng file Word (.docx), PDF (.pdf) hoặc Excel (.xlsx).'), false);
     }
   }
 });
@@ -84,7 +91,7 @@ router.put('/admin/:testId/content', protect, isAdmin, updateTestContent);
 // Xóa bài test
 router.delete('/admin/:testId', protect, isAdmin, deletePlacementTest);
 
-// Import bài test từ file Word
+// Import bài test từ file (Word/PDF/Excel)
 router.post('/admin/import', protect, isAdmin, upload.single('testFile'), importPlacementTest);
 
 module.exports = router;

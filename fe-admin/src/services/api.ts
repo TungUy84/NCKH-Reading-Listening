@@ -11,7 +11,8 @@ import {
   UserQueryParams,
   CreateUserInput,
   UpdateUserInput,
-  UserStats
+  UserStats,
+  PlacementTestImportResponse
 } from '../types';
 
 // Create axios instance with auth
@@ -262,7 +263,7 @@ export class FileAPI {
   }
 
   // Upload Word file for test import
-  static async uploadTestFile(formData: FormData): Promise<any> {
+  static async uploadTestFile(formData: FormData): Promise<PlacementTestImportResponse> {
     try {
       const response = await api.post('/placement-tests/admin/import', formData, {
         headers: {
@@ -274,7 +275,7 @@ export class FileAPI {
       return response.data;
     } catch (error) {
       console.error('Test file upload error:', error);
-      throw new Error('Không thể xử lý file Word. Vui lòng kiểm tra format và thử lại.');
+      throw new Error('Không thể xử lý file. Vui lòng kiểm tra định dạng (Word/PDF/Excel) và thử lại.');
     }
   }
 }
