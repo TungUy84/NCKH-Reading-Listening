@@ -4,7 +4,6 @@ const xlsx = require('xlsx');
 
 const CATEGORY_VALUES = ['listening', 'reading', 'general'];
 const SKILL_VALUES = ['listening', 'reading', 'speaking', 'writing', 'grammar', 'vocabulary'];
-const LEVEL_VALUES = ['AV1', 'AV2', 'AV3', 'AV4', 'AV5', 'AV6', 'AV7'];
 const TRUE_VALUES = ['true', 'yes', '1', 'y'];
 
 const normalizeQuestionTypeValue = (value) => {
@@ -65,12 +64,6 @@ const normaliseSkill = (value) => {
   return SKILL_VALUES.includes(lower) ? lower : lower;
 };
 
-const normaliseLevel = (value) => {
-  const upper = String(value || '').trim().toUpperCase();
-  if (!upper) return 'AV1';
-  return LEVEL_VALUES.includes(upper) ? upper : upper;
-};
-
 const parseOptionsFromString = (raw) => {
   if (!raw) return [];
   return String(raw)
@@ -107,7 +100,6 @@ const parseKeyValueQuestionBlock = (lines, fallbackNumber) => {
     questionNumber: fallbackNumber,
     type: 'multi_choice',
     content: '',
-    level: 'AV1',
     skill: 'reading',
     points: 1,
     allowMultiple: false,
@@ -184,9 +176,6 @@ const parseKeyValueQuestionBlock = (lines, fallbackNumber) => {
         break;
       case 'content':
         question.content = value;
-        break;
-      case 'level':
-        question.level = normaliseLevel(value);
         break;
       case 'skill':
         question.skill = normaliseSkill(value);
@@ -835,7 +824,6 @@ const parseExcelBuffer = (buffer) => {
       questionNumber: coerceNumber(row.QuestionNumber || row['Question Number'], index + 1),
       type: type || (matchingPairs.length ? 'matching' : options.length ? 'multi_choice' : 'short_answer'),
       content: String(row.Content || row.Question || '').trim(),
-      level: normaliseLevel(row.Level),
       skill: normaliseSkill(row.Skill),
       points: coerceNumber(row.Points, 1),
       allowMultiple,

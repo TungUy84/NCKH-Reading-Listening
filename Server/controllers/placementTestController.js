@@ -9,7 +9,7 @@ const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/pl
 const getActivePlacementTests = async (req, res) => {
   try {
     const { category } = req.query; // listening, reading, general
-    
+
     const filter = { isActive: true };
     if (category && ['listening', 'reading', 'general'].includes(category)) {
       filter.category = category;
@@ -368,6 +368,7 @@ const createPlacementTest = async (req, res) => {
       }
     }
 
+    /** @type {Map<number, mongoose.Types.ObjectId>} */
     const sectionIdByIndex = new Map();
     sectionObjects.forEach((section, idx) => {
       sectionIdByIndex.set(idx, section._id);
@@ -375,41 +376,41 @@ const createPlacementTest = async (req, res) => {
 
     const normalizedQuestions = Array.isArray(questions)
       ? questions.map((rawQuestion, idx) => {
-          const question = { ...rawQuestion };
-          const sectionIndex = typeof question.sectionIndex === 'number' && sectionIdByIndex.has(question.sectionIndex)
-            ? question.sectionIndex
-            : 0;
-          const sectionId = question.sectionId || sectionIdByIndex.get(sectionIndex) || sectionObjects[0]._id;
+        const question = { ...rawQuestion };
+        const sectionIndex = typeof question.sectionIndex === 'number' && sectionIdByIndex.has(question.sectionIndex)
+          ? question.sectionIndex
+          : 0;
+        const sectionId = question.sectionId || sectionIdByIndex.get(sectionIndex) || sectionObjects[0]._id;
 
-          return {
-            questionNumber: typeof question.questionNumber === 'number' ? question.questionNumber : idx + 1,
-            type: question.type || 'multi_choice',
-            allowMultiple: !!question.allowMultiple,
-            content: question.content || question.text || '',
-            skill: question.skill === 'listening' ? 'listening' : 'reading',
-            instructions: question.instructions || '',
-            options: Array.isArray(question.options)
-              ? question.options.map((op) => ({
-                  text: op?.text || '',
-                  isCorrect: !!op?.isCorrect
-                })).filter((op) => op.text)
-              : [],
-            matchingPairs: Array.isArray(question.matchingPairs)
-              ? question.matchingPairs.map((pair) => ({
-                  prompt: pair?.prompt || '',
-                  correctOption: pair?.correctOption || ''
-                })).filter((pair) => pair.prompt && pair.correctOption)
-              : [],
-            wordBank: Array.isArray(question.wordBank) ? question.wordBank.filter(Boolean) : [],
-            correctAnswers: Array.isArray(question.correctAnswers)
-              ? question.correctAnswers.map((ans) => String(ans || '').trim()).filter(Boolean)
-              : [],
-            explanation: question.explanation || '',
-            points: typeof question.points === 'number' && question.points > 0 ? question.points : 1,
-            sectionId,
-            sectionIndex,
-          };
-        })
+        return {
+          questionNumber: typeof question.questionNumber === 'number' ? question.questionNumber : idx + 1,
+          type: question.type || 'multi_choice',
+          allowMultiple: !!question.allowMultiple,
+          content: question.content || question.text || '',
+          skill: question.skill === 'listening' ? 'listening' : 'reading',
+          instructions: question.instructions || '',
+          options: Array.isArray(question.options)
+            ? question.options.map((op) => ({
+              text: op?.text || '',
+              isCorrect: !!op?.isCorrect
+            })).filter((op) => op.text)
+            : [],
+          matchingPairs: Array.isArray(question.matchingPairs)
+            ? question.matchingPairs.map((pair) => ({
+              prompt: pair?.prompt || '',
+              correctOption: pair?.correctOption || ''
+            })).filter((pair) => pair.prompt && pair.correctOption)
+            : [],
+          wordBank: Array.isArray(question.wordBank) ? question.wordBank.filter(Boolean) : [],
+          correctAnswers: Array.isArray(question.correctAnswers)
+            ? question.correctAnswers.map((ans) => String(ans || '').trim()).filter(Boolean)
+            : [],
+          explanation: question.explanation || '',
+          points: typeof question.points === 'number' && question.points > 0 ? question.points : 1,
+          sectionId,
+          sectionIndex,
+        };
+      })
       : [];
 
     const test = new PlacementTest({
@@ -473,7 +474,7 @@ const updatePlacementTest = async (req, res) => {
   }
 };
 
-  // Cập nhật nội dung bài test: sections + questions (Admin only)
+// Cập nhật nội dung bài test: sections + questions (Admin only)
 const updateTestContent = async (req, res) => {
   try {
     const { testId } = req.params;
@@ -618,7 +619,7 @@ module.exports = {
   getActivePlacementTests,
   getPlacementTestForTaking,
   checkPlacementTest, // Thay thế submitPlacementTest
-  
+
   // Admin APIs
   getAllPlacementTests,
   getPlacementTestById,

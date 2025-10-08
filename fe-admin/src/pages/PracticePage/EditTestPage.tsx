@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea/dnd';
 import Swal from 'sweetalert2';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -37,6 +38,41 @@ const EditTestPage: React.FC = () => {
     dropdown: 'Dropdown',
   };
   const typeLabel = (t: string) => TYPE_LABELS[t] ?? t;
+
+  const normalizeId = (value: any): string => {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    if (value.toString) return value.toString();
+    return String(value);
+  };
+
+  const getSectionIndexFromQuestion = (question: any, sections: any[]): number | undefined => {
+    if (!question) return undefined;
+    if (typeof question.sectionIndex === 'number') return question.sectionIndex;
+    if (question.sectionId && Array.isArray(sections)) {
+      const idStr = normalizeId(question.sectionId);
+      const idx = sections.findIndex((section: any) => normalizeId(section?._id) === idStr);
+      return idx >= 0 ? idx : undefined;
+    }
+    return undefined;
+  };
+
+  const updateQuestionNumbersInPlace = (questions: any[]) => {
+    if (!Array.isArray(questions)) return;
+    for (let i = 0; i < questions.length; i++) {
+      (questions[i] as any).questionNumber = i + 1;
+    }
+  };
+
+  const collectInvalidQuestionIndexes = (questions: any[]) => {
+    const invalid: number[] = [];
+    (questions || []).forEach((q: any, idx: number) => {
+      if (!String(q?.content || '').trim()) {
+        invalid.push(idx);
+      }
+    });
+    return invalid;
+  };
 
   // Compute dynamic height so panels fill the available viewport height
   useEffect(() => {
@@ -107,11 +143,11 @@ const EditTestPage: React.FC = () => {
   const sectionQuestionPairs = useMemo(() => {
     if (!test || !test.questions) return [] as { q: any; idx: number }[];
     const hasId = !!currentSection?._id;
-    const currId = hasId ? ((currentSection as any)?._id?.toString ? (currentSection as any)._id.toString() : String((currentSection as any)._id)) : '';
+    const currId = hasId ? normalizeId((currentSection as any)?._id) : '';
     return test.questions
       .map((q, idx) => ({ q, idx }))
       .filter(({ q }) => {
-        const qsid = (q as any)?.sectionId && (q as any).sectionId.toString ? (q as any).sectionId.toString() : String((q as any).sectionId || '');
+        const qsid = normalizeId((q as any)?.sectionId);
         if (hasId) return qsid === currId;
         // fallback matching by sectionIndex when section has no _id yet
         const qIndex = (q as any)?.sectionIndex;
@@ -119,6 +155,10 @@ const EditTestPage: React.FC = () => {
       })
       .sort((a, b) => ((a.q.questionNumber || 0) - (b.q.questionNumber || 0)));
   }, [test, currentSection, currentSectionIndex]);
+
+  const currentSectionDroppableId = currentSection?._id
+    ? `section-${normalizeId((currentSection as any)._id)}`
+    : `section-index-${currentSectionIndex}`;
 
   const nextSection = () => {
     if (!test?.sections) return;
@@ -150,7 +190,7 @@ const EditTestPage: React.FC = () => {
     setTest((prev) => {
       if (!prev) return prev;
       const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
-      const oldQ = next.questions[qIdx] || {} as any;
+      const oldQ = next.questions[qIdx] || ({} as any);
       const newQ = updater({ ...oldQ });
       newQ.sectionId = oldQ.sectionId; // keep link
       if (Array.isArray(newQ.options) && optionTypeSet.has(newQ.type)) {
@@ -234,6 +274,242 @@ const EditTestPage: React.FC = () => {
       pairs.splice(pairIdx, 1);
       return { ...q, matchingPairs: pairs };
     });
+  };
+
+  const addSection = () => {
+    setTest((prev) => {
+      if (!prev) return prev;
+      const sections = [...(prev.sections || [])];
+      const newSection = {
+        title: `PASSAGE ${sections.length + 1}`,
+        passage: '',
+        audio: '',
+        image: '',
+        timeLimit: 0,
+      } as any;
+      const next = { ...prev, sections } as PlacementTest;
+      next.sections!.push(newSection);
+      return next;
+    });
+    setOpenQuestionIdx(null);
+    setCurrentSectionIndex((idx) => {
+      const count = (test?.sections?.length || 0) + 1;
+      return Math.max(0, count - 1);
+    });
+  };
+
+  const deleteCurrentSection = async () => {
+    if (!test || !test.sections || !test.sections.length) return;
+    const result = await Swal.fire({
+      title: 'Xóa phần này?',
+      text: 'Hành động này sẽ xóa cả các câu hỏi thuộc phần. Bạn có chắc muốn xóa? ',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Có, xóa',
+      cancelButtonText: 'Hủy',
+      reverseButtons: false,
+      focusCancel: true,
+    });
+    if (!result.isConfirmed) return;
+
+    const sectionToDelete = test.sections[currentSectionIndex] as any;
+    const sectionIdStr = normalizeId(sectionToDelete?._id);
+    let newInvalidIndices: number[] | null = null;
+
+    setTest((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev } as PlacementTest;
+      const sections = next.sections || [];
+      next.sections = sections.filter((_, i) => i !== currentSectionIndex);
+      next.questions = (next.questions || []).filter((q: any) => {
+        if (sectionIdStr) {
+          return normalizeId(q?.sectionId) !== sectionIdStr;
+        }
+        const sIdx = getSectionIndexFromQuestion(q, sections || []);
+        return typeof sIdx === 'number' ? sIdx !== currentSectionIndex : true;
+      });
+      updateQuestionNumbersInPlace(next.questions || []);
+      newInvalidIndices = collectInvalidQuestionIndexes(next.questions || []);
+      return next;
+    });
+
+    setCurrentSectionIndex((idx) => {
+      const newLen = (test?.sections?.length || 1) - 1;
+      if (newLen <= 0) return 0;
+      return Math.min(idx, newLen - 1);
+    });
+    setOpenQuestionIdx(null);
+    if (newInvalidIndices) {
+      setInvalidQuestionIdxs(new Set(newInvalidIndices));
+    }
+    toast.success('Đã xóa phần. Nhấn "Lưu nội dung" để cập nhật lên server.');
+  };
+
+  const addQuestionToCurrentSection = () => {
+    if (!test) return;
+    const hasId = !!currentSection?._id;
+    const sectionId = hasId ? (currentSection as any)._id : undefined;
+    const sectionIdStr = normalizeId(sectionId);
+    const skill = test.category === 'listening' || test.category === 'reading' ? test.category : 'reading';
+    let newOpenIndex: number | null = null;
+    let newInvalidIndices: number[] | null = null;
+
+    setTest((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      const questions = next.questions;
+      const sections = next.sections || [];
+      const currentIdx = currentSectionIndex;
+
+      const sectionEntries = questions
+        .map((q: any, idx: number) => ({ q, idx }))
+        .filter(({ q }) => {
+          if (hasId) {
+            return normalizeId(q?.sectionId) === sectionIdStr;
+          }
+          const sIdx = getSectionIndexFromQuestion(q, sections);
+          return typeof sIdx === 'number' && sIdx === currentIdx;
+        });
+
+      let insertAt = questions.length;
+      if (openQuestionIdx !== null && openQuestionIdx >= 0 && openQuestionIdx < questions.length) {
+        const anchor = questions[openQuestionIdx];
+        if (anchor) {
+          const anchorSectionIdx = getSectionIndexFromQuestion(anchor, sections);
+          const anchorMatches = hasId
+            ? normalizeId(anchor?.sectionId) === sectionIdStr
+            : typeof anchorSectionIdx === 'number' && anchorSectionIdx === currentIdx;
+          if (anchorMatches) {
+            insertAt = openQuestionIdx + 1;
+          }
+        }
+      }
+
+      if (insertAt === questions.length) {
+        if (sectionEntries.length) {
+          insertAt = sectionEntries[sectionEntries.length - 1].idx + 1;
+        } else {
+          const firstAfter = questions.findIndex((q: any) => {
+            const sIdx = getSectionIndexFromQuestion(q, sections);
+            return typeof sIdx === 'number' && sIdx > currentIdx;
+          });
+          insertAt = firstAfter === -1 ? questions.length : firstAfter;
+        }
+      }
+
+      const base: any = {
+        type: 'multi_choice',
+        allowMultiple: false,
+        content: '',
+        skill,
+        questionNumber: questions.length + 1,
+        options: defaultOptionsByType('multi_choice'),
+        correctAnswers: [],
+        points: 1,
+        explanation: '',
+        matchingPairs: [],
+      };
+
+      const newQ: any = hasId ? { ...base, sectionId } : { ...base, sectionIndex: currentSectionIndex };
+      questions.splice(insertAt, 0, newQ);
+      updateQuestionNumbersInPlace(questions);
+      newOpenIndex = insertAt;
+      newInvalidIndices = collectInvalidQuestionIndexes(questions);
+      return next;
+    });
+
+    if (newOpenIndex !== null) {
+      setOpenQuestionIdx(newOpenIndex);
+    }
+    if (newInvalidIndices) {
+      setInvalidQuestionIdxs(new Set(newInvalidIndices));
+    }
+  };
+
+  const deleteQuestion = (qIdx: number) => {
+    if (!test) return;
+    let newInvalidIndices: number[] | null = null;
+    let newOpenIndex: number | null = openQuestionIdx;
+    setTest((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      next.questions.splice(qIdx, 1);
+      updateQuestionNumbersInPlace(next.questions);
+      newInvalidIndices = collectInvalidQuestionIndexes(next.questions);
+      if (typeof newOpenIndex === 'number') {
+        if (newOpenIndex === qIdx) {
+          newOpenIndex = Math.max(0, newOpenIndex - 1);
+        } else if (newOpenIndex > qIdx) {
+          newOpenIndex = newOpenIndex - 1;
+        }
+        if (next.questions.length === 0) {
+          newOpenIndex = null;
+        } else if (typeof newOpenIndex === 'number' && newOpenIndex >= next.questions.length) {
+          newOpenIndex = next.questions.length - 1;
+        }
+      }
+      return next;
+    });
+    setOpenQuestionIdx(typeof newOpenIndex === 'number' && newOpenIndex >= 0 ? newOpenIndex : null);
+    if (newInvalidIndices) {
+      setInvalidQuestionIdxs(new Set(newInvalidIndices));
+    }
+  };
+
+  const handleQuestionDragEnd = (result: DropResult) => {
+    const { destination, source } = result;
+    if (!destination) return;
+    if (destination.droppableId !== source.droppableId) return;
+    if (destination.index === source.index) return;
+
+    let newInvalidIndices: number[] | null = null;
+    let movedGlobalIndex: number | null = null;
+
+    setTest((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      const questions = next.questions;
+      const sections = next.sections || [];
+
+      const sectionEntries = questions
+        .map((q: any, idx: number) => ({ q, idx }))
+        .filter(({ q }) => {
+          if (currentSection?._id) {
+            return normalizeId(q?.sectionId) === normalizeId((currentSection as any)._id);
+          }
+          const sIdx = getSectionIndexFromQuestion(q, sections);
+          return typeof sIdx === 'number' && sIdx === currentSectionIndex;
+        });
+
+      if (!sectionEntries.length || !sectionEntries[source.index]) {
+        return prev;
+      }
+
+      const sectionIndices = sectionEntries.map((entry) => entry.idx);
+      const sectionQuestions = sectionIndices.map((idx) => questions[idx]);
+      const [movedQuestion] = sectionQuestions.splice(source.index, 1);
+      if (!movedQuestion) {
+        return prev;
+      }
+      const insertAt = Math.max(0, Math.min(destination.index, sectionQuestions.length));
+      sectionQuestions.splice(insertAt, 0, movedQuestion);
+      sectionIndices.forEach((questionIdx, orderIdx) => {
+        questions[questionIdx] = sectionQuestions[orderIdx];
+      });
+      updateQuestionNumbersInPlace(questions);
+      newInvalidIndices = collectInvalidQuestionIndexes(questions);
+      movedGlobalIndex = questions.indexOf(movedQuestion);
+      return next;
+    });
+
+    if (newInvalidIndices) {
+      setInvalidQuestionIdxs(new Set(newInvalidIndices));
+    }
+    if (typeof movedGlobalIndex === 'number' && movedGlobalIndex >= 0) {
+      setOpenQuestionIdx(movedGlobalIndex);
+    }
   };
 
   // --- Auto-save: Basic Info ---
@@ -369,135 +645,6 @@ const EditTestPage: React.FC = () => {
     });
   };
 
-  const resequenceQuestionNumbers = (sectionObjectId?: any, sectionIdx?: number) => {
-    setTest((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
-      const sid = sectionObjectId?.toString ? sectionObjectId.toString() : String(sectionObjectId || '');
-      const pairs = next.questions.map((q: any, idx) => ({ q, idx }))
-        .filter(({ q }) => {
-          const qsid = q?.sectionId?.toString ? q.sectionId.toString() : String(q.sectionId || '');
-          if (sid) return qsid === sid;
-          return typeof q.sectionIndex === 'number' && q.sectionIndex === sectionIdx;
-        })
-        .sort((a, b) => ((a.q.questionNumber || 0) - (b.q.questionNumber || 0)));
-      pairs.forEach(({ idx }, i) => { (next.questions[idx] as any).questionNumber = i + 1; });
-      return next;
-    });
-  };
-
-  // ---- Section add/delete ----
-  const addSection = () => {
-    setTest((prev) => {
-      if (!prev) return prev;
-      const sections = [...(prev.sections || [])];
-      const newSection = {
-        title: `PASSAGE ${sections.length + 1}`,
-        passage: '',
-        audio: '',
-        image: '',
-        timeLimit: 0,
-      } as any;
-      const next = { ...prev, sections } as PlacementTest;
-      next.sections!.push(newSection);
-      return next;
-    });
-    setOpenQuestionIdx(null);
-    // Move focus to the newly added section
-    setCurrentSectionIndex((idx) => {
-      const count = (test?.sections?.length || 0) + 1; // optimistic count after push
-      return Math.max(0, count - 1);
-    });
-  };
-
-  const deleteCurrentSection = async () => {
-    if (!test || !test.sections || !test.sections.length) return;
-    const result = await Swal.fire({
-      title: 'Xóa phần này?',
-      text: 'Hành động này sẽ xóa cả các câu hỏi thuộc phần. Bạn có chắc muốn xóa? ',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Có, xóa',
-      cancelButtonText: 'Hủy',
-      reverseButtons: false,
-      focusCancel: true,
-    });
-    if (!result.isConfirmed) return;
-
-    const sectionToDelete = test.sections[currentSectionIndex] as any;
-    const sectionIdStr = sectionToDelete?._id?.toString ? sectionToDelete._id.toString() : String(sectionToDelete?._id || '');
-
-    setTest((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev } as PlacementTest;
-      // Remove section
-      next.sections = (next.sections || []).filter((_, i) => i !== currentSectionIndex);
-      // Remove questions under this section
-      next.questions = (next.questions || []).filter((q: any) => {
-        const sid = q?.sectionId?.toString ? q.sectionId.toString() : String(q?.sectionId || '');
-        return !sectionIdStr || sid !== sectionIdStr;
-      });
-      return next;
-    });
-
-    // Adjust current index
-    setCurrentSectionIndex((idx) => {
-      const newLen = (test?.sections?.length || 1) - 1;
-      if (newLen <= 0) return 0;
-      return Math.min(idx, newLen - 1);
-    });
-    setOpenQuestionIdx(null);
-    toast.success('Đã xóa phần. Nhấn "Lưu nội dung" để cập nhật lên server.');
-  };
-
-  const addQuestionToCurrentSection = () => {
-    if (!test) return;
-    const hasId = !!currentSection?._id;
-    const sectionId = hasId ? (currentSection as any)._id : undefined;
-    const skill = test.category === 'listening' || test.category === 'reading' ? test.category : 'reading';
-    setTest((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
-      const count = next.questions.filter((q: any) => {
-        if (hasId) {
-          const sid = q?.sectionId?.toString ? q.sectionId.toString() : String(q.sectionId || '');
-          const csid = sectionId?.toString ? sectionId.toString() : String(sectionId || '');
-          return sid === csid;
-        }
-        return typeof q.sectionIndex === 'number' && q.sectionIndex === currentSectionIndex;
-      }).length;
-      const base: any = {
-        type: 'multi_choice',
-        allowMultiple: false,
-        content: '',
-        skill,
-        questionNumber: count + 1,
-        options: defaultOptionsByType('multi_choice'),
-        correctAnswers: [],
-        points: 1,
-        explanation: '',
-        matchingPairs: []
-      };
-      const newQ: any = hasId ? { ...base, sectionId } : { ...base, sectionIndex: currentSectionIndex };
-      next.questions.push(newQ);
-      return next;
-    });
-  };
-
-  const deleteQuestion = (qIdx: number) => {
-    if (!test) return;
-    const sid = (test.questions[qIdx] as any)?.sectionId;
-    const sIndex = (test.questions[qIdx] as any)?.sectionIndex;
-    setTest((prev) => {
-      if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
-      next.questions.splice(qIdx, 1);
-      return next;
-    });
-    resequenceQuestionNumbers(sid, sIndex);
-  };
 
   const saveContent = async () => {
     if (!testId || !test) return;
@@ -749,129 +896,165 @@ const EditTestPage: React.FC = () => {
               <button onClick={saveContent} disabled={saving} className="px-2 py-1 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu nội dung</button>
             </div>
           </div>
-          <div className="p-4 flex-1 overflow-auto space-y-4">
+          <div className="p-4 flex-1 overflow-auto">
             {sectionQuestionPairs.length === 0 ? (
               <div className="text-slate-500 text-sm">Chưa có câu hỏi cho phần này.</div>
             ) : (
-              sectionQuestionPairs.map(({ q, idx }, i) => {
-                const hasOptions = optionTypeSet.has(q.type) && Array.isArray(q.options) && q.options.length > 0;
-                const answersFromOptions = hasOptions ? (q.options || []).filter((op: any) => op.isCorrect).map((op: any) => op.text) : [];
-                let finalAnswers: string[];
-                if (q.type === 'matching' && Array.isArray(q.matchingPairs)) {
-                  finalAnswers = q.matchingPairs.map((pair: any) => `${pair.prompt || '—'} → ${pair.correctOption || '—'}`);
-                } else if (hasOptions) {
-                  finalAnswers = answersFromOptions;
-                } else {
-                  finalAnswers = (q.correctAnswers || []);
-                }
-                return (
-                  <div key={q._id || i} className={`border rounded-lg transition-colors ${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} ${invalidQuestionIdxs.has(idx) ? 'border-red-400 bg-red-50/40' : ''}`}>
-                    {/* Header row */}
-                    <button type="button" onClick={() => setOpenQuestionIdx(openQuestionIdx === idx ? null : idx)} className={`${openQuestionIdx === idx ? 'bg-blue-50' : ''} w-full text-left p-3 flex items-start justify-between gap-3 rounded-t-lg`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-slate-500">Câu {q.questionNumber ?? i + 1}</div>
-                        <div className={`font-medium whitespace-pre-wrap break-words ${invalidQuestionIdxs.has(idx) ? 'text-red-600' : 'text-slate-800'}`}>{q.content || '—'}</div>
-                        <div className="mt-1 text-xs text-slate-600"><span className="font-medium">Đáp án:</span> {finalAnswers.length ? finalAnswers.join(', ') : '—'}</div>
-                      </div>
-                      <div className={`text-xs px-2 py-1 rounded h-min whitespace-nowrap flex-shrink-0 leading-none ${openQuestionIdx === idx ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{typeLabel(q.type)}</div>
-                    </button>
-                    {openQuestionIdx === idx && (
-                      <div className="border-t p-3 space-y-3">
-                        <div className="flex justify-end"><button type="button" onClick={() => deleteQuestion(idx)} className="px-2 py-1 text-red-600 border border-red-200 rounded">Xóa câu</button></div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-sm font-medium">Loại câu hỏi</label>
-                            <select value={q.type} onChange={(e) => onTypeChange(idx, e.target.value)} className="w-full px-3 py-2 border rounded-lg">
-                              <option value="multi_choice">Multiple choice</option>
-                              <option value="short_answer">Short answer</option>
-                              <option value="matching">Matching</option>
-                              <option value="dropdown">Dropdown</option>
-                            </select>
-                            {q.type === 'multi_choice' && (
-                              <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600">
-                                <input
-                                  type="checkbox"
-                                  checked={!!q.allowMultiple}
-                                  onChange={(e) => updateQuestion(idx, (qq) => {
-                                    const next = { ...qq, allowMultiple: e.target.checked };
-                                    if (!e.target.checked) {
-                                      const firstCorrectIdx = (next.options || []).findIndex((op: any) => op.isCorrect);
-                                      next.options = (next.options || []).map((op: any, opIdx: number) => ({
-                                        ...op,
-                                        isCorrect: opIdx === Math.max(firstCorrectIdx, 0)
-                                      }));
-                                    }
-                                    return next;
-                                  })}
-                                />
-                                Cho phép chọn nhiều đáp án đúng
-                              </label>
-                            )}
-                          </div>
-                          <div className="w-full md:w-40">
-                            <label className="block text-sm font-medium">Điểm</label>
-                            <input type="number" min={0} value={q.points ?? 1} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, points: Number(e.target.value || 0) }))} className="w-full px-3 py-2 border rounded-lg" />
-                          </div>
-                        </div>
-                        <label className="block text-sm font-medium">Nội dung</label>
-                        <textarea value={q.content || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, content: e.target.value }))} rows={3} className="w-full px-3 py-2 border rounded-lg" />
-                        {optionTypeSet.has(q.type) ? (
-                          <div className="space-y-2">
-                            <div className="text-sm font-medium">Phương án</div>
-                            {(q.options || []).map((op: any, opIdx: number) => (
-                              <div key={opIdx} className="flex items-center gap-2">
-                                <input type="checkbox" checked={!!op.isCorrect} onChange={(e) => updateOption(idx, opIdx, { isCorrect: e.target.checked })} />
-                                <input value={op.text || ''} onChange={(e) => updateOption(idx, opIdx, { text: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg" />
-                                <button type="button" onClick={() => removeOption(idx, opIdx)} className="px-2 py-2 border rounded">Xóa</button>
-                              </div>
-                            ))}
-                            <button type="button" onClick={() => addOption(idx)} className="px-3 py-2 border rounded">+ Thêm phương án</button>
-                          </div>
-                        ) : q.type === 'matching' ? (
-                          <div className="space-y-2">
-                            <div className="text-sm font-medium">Ghép cặp</div>
-                            {(q.matchingPairs || []).map((pair: any, pairIdx: number) => (
-                              <div key={pairIdx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                <input
-                                  value={pair.prompt || ''}
-                                  onChange={(e) => updateMatchingPair(idx, pairIdx, { prompt: e.target.value })}
-                                  className="px-3 py-2 border rounded-lg"
-                                  placeholder={`Câu hỏi ${pairIdx + 1}`}
-                                />
-                                <div className="flex gap-2">
-                                  <input
-                                    value={pair.correctOption || ''}
-                                    onChange={(e) => updateMatchingPair(idx, pairIdx, { correctOption: e.target.value })}
-                                    className="flex-1 px-3 py-2 border rounded-lg"
-                                    placeholder="Đáp án đúng"
-                                  />
-                                  <button type="button" onClick={() => removeMatchingPair(idx, pairIdx)} className="px-2 py-2 border rounded">Xóa</button>
+              <DragDropContext onDragEnd={handleQuestionDragEnd}>
+                <Droppable droppableId={currentSectionDroppableId}>
+                  {(dropProvided, dropSnapshot) => (
+                    <div
+                      ref={dropProvided.innerRef}
+                      {...dropProvided.droppableProps}
+                      className={`space-y-4 transition-colors ${dropSnapshot.isDraggingOver ? 'bg-blue-50/40 rounded-lg p-2' : ''}`}
+                    >
+                      {sectionQuestionPairs.map(({ q, idx }, i) => {
+                        const hasOptions = optionTypeSet.has(q.type) && Array.isArray(q.options) && q.options.length > 0;
+                        const answersFromOptions = hasOptions ? (q.options || []).filter((op: any) => op.isCorrect).map((op: any) => op.text) : [];
+                        let finalAnswers: string[];
+                        if (q.type === 'matching' && Array.isArray(q.matchingPairs)) {
+                          finalAnswers = q.matchingPairs.map((pair: any) => `${pair.prompt || '—'} → ${pair.correctOption || '—'}`);
+                        } else if (hasOptions) {
+                          finalAnswers = answersFromOptions;
+                        } else {
+                          finalAnswers = (q.correctAnswers || []);
+                        }
+                        const draggableId = `question-${normalizeId((q as any)?._id) || idx}`;
+                        return (
+                          <Draggable key={draggableId} draggableId={draggableId} index={i}>
+                            {(dragProvided, dragSnapshot) => (
+                              <div
+                                ref={dragProvided.innerRef}
+                                {...dragProvided.draggableProps}
+                                className={`border rounded-lg transition-colors ${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} ${invalidQuestionIdxs.has(idx) ? 'border-red-400 bg-red-50/40' : ''} ${dragSnapshot.isDragging ? 'shadow-lg ring-2 ring-blue-200' : ''}`}
+                              >
+                                <div className="flex items-stretch">
+                                  <span
+                                    {...dragProvided.dragHandleProps}
+                                    className={`px-2 py-3 flex items-center text-slate-400 ${dragSnapshot.isDragging ? 'cursor-grabbing' : 'cursor-grab'} select-none border-r border-slate-200 ${openQuestionIdx === idx ? 'bg-blue-50' : invalidQuestionIdxs.has(idx) ? 'bg-red-50/40' : 'bg-white'} rounded-l-lg`}
+                                    aria-label="Giữ để di chuyển câu hỏi"
+                                  >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                      <path d="M7 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM11 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM7 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM11 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM7 14a1 1 0 112 0v1a1 1 0 11-2 0v-1zM11 14a1 1 0 112 0v1a1 1 0 11-2 0v-1z" />
+                                    </svg>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenQuestionIdx(openQuestionIdx === idx ? null : idx)}
+                                    className={`${openQuestionIdx === idx ? 'bg-blue-50' : ''} flex-1 text-left p-3 flex items-start justify-between gap-3 rounded-tr-lg`}
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm text-slate-500">Câu {q.questionNumber ?? i + 1}</div>
+                                      <div className={`font-medium whitespace-pre-wrap break-words ${invalidQuestionIdxs.has(idx) ? 'text-red-600' : 'text-slate-800'}`}>{q.content || '—'}</div>
+                                      <div className="mt-1 text-xs text-slate-600"><span className="font-medium">Đáp án:</span> {finalAnswers.length ? finalAnswers.join(', ') : '—'}</div>
+                                    </div>
+                                    <div className={`text-xs px-2 py-1 rounded h-min whitespace-nowrap flex-shrink-0 leading-none ${openQuestionIdx === idx ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{typeLabel(q.type)}</div>
+                                  </button>
                                 </div>
+                                {openQuestionIdx === idx && (
+                                  <div className="border-t p-3 space-y-3">
+                                    <div className="flex justify-end"><button type="button" onClick={() => deleteQuestion(idx)} className="px-2 py-1 text-red-600 border border-red-200 rounded">Xóa câu</button></div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      <div>
+                                        <label className="block text-sm font-medium">Loại câu hỏi</label>
+                                        <select value={q.type} onChange={(e) => onTypeChange(idx, e.target.value)} className="w-full px-3 py-2 border rounded-lg">
+                                          <option value="multi_choice">Multiple choice</option>
+                                          <option value="short_answer">Short answer</option>
+                                          <option value="matching">Matching</option>
+                                          <option value="dropdown">Dropdown</option>
+                                        </select>
+                                        {q.type === 'multi_choice' && (
+                                          <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600">
+                                            <input
+                                              type="checkbox"
+                                              checked={!!q.allowMultiple}
+                                              onChange={(e) => updateQuestion(idx, (qq) => {
+                                                const next = { ...qq, allowMultiple: e.target.checked };
+                                                if (!e.target.checked) {
+                                                  const firstCorrectIdx = (next.options || []).findIndex((op: any) => op.isCorrect);
+                                                  next.options = (next.options || []).map((op: any, opIdx: number) => ({
+                                                    ...op,
+                                                    isCorrect: opIdx === Math.max(firstCorrectIdx, 0)
+                                                  }));
+                                                }
+                                                return next;
+                                              })}
+                                            />
+                                            Cho phép chọn nhiều đáp án đúng
+                                          </label>
+                                        )}
+                                      </div>
+                                      <div className="w-full md:w-40">
+                                        <label className="block text-sm font-medium">Điểm</label>
+                                        <input type="number" min={0} value={q.points ?? 1} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, points: Number(e.target.value || 0) }))} className="w-full px-3 py-2 border rounded-lg" />
+                                      </div>
+                                    </div>
+                                    <label className="block text-sm font-medium">Nội dung</label>
+                                    <textarea value={q.content || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, content: e.target.value }))} rows={3} className="w-full px-3 py-2 border rounded-lg" />
+                                    {optionTypeSet.has(q.type) ? (
+                                      <div className="space-y-2">
+                                        <div className="text-sm font-medium">Phương án</div>
+                                        {(q.options || []).map((op: any, opIdx: number) => (
+                                          <div key={opIdx} className="flex items-center gap-2">
+                                            <input type="checkbox" checked={!!op.isCorrect} onChange={(e) => updateOption(idx, opIdx, { isCorrect: e.target.checked })} />
+                                            <input value={op.text || ''} onChange={(e) => updateOption(idx, opIdx, { text: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg" />
+                                            <button type="button" onClick={() => removeOption(idx, opIdx)} className="px-2 py-2 border rounded">Xóa</button>
+                                          </div>
+                                        ))}
+                                        <button type="button" onClick={() => addOption(idx)} className="px-3 py-2 border rounded">+ Thêm phương án</button>
+                                      </div>
+                                    ) : q.type === 'matching' ? (
+                                      <div className="space-y-2">
+                                        <div className="text-sm font-medium">Ghép cặp</div>
+                                        {(q.matchingPairs || []).map((pair: any, pairIdx: number) => (
+                                          <div key={pairIdx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                            <input
+                                              value={pair.prompt || ''}
+                                              onChange={(e) => updateMatchingPair(idx, pairIdx, { prompt: e.target.value })}
+                                              className="px-3 py-2 border rounded-lg"
+                                              placeholder={`Câu hỏi ${pairIdx + 1}`}
+                                            />
+                                            <div className="flex gap-2">
+                                              <input
+                                                value={pair.correctOption || ''}
+                                                onChange={(e) => updateMatchingPair(idx, pairIdx, { correctOption: e.target.value })}
+                                                className="flex-1 px-3 py-2 border rounded-lg"
+                                                placeholder="Đáp án đúng"
+                                              />
+                                              <button type="button" onClick={() => removeMatchingPair(idx, pairIdx)} className="px-2 py-2 border rounded">Xóa</button>
+                                            </div>
+                                          </div>
+                                        ))}
+                                        <button type="button" onClick={() => addMatchingPair(idx)} className="px-3 py-2 border rounded">+ Thêm ghép cặp</button>
+                                      </div>
+                                    ) : (
+                                      <div className="space-y-2">
+                                        <div className="text-sm font-medium">Đáp án đúng</div>
+                                        {(q.correctAnswers || []).map((ans: string, ansIdx: number) => (
+                                          <div key={ansIdx} className="flex items-center gap-2">
+                                            <input value={ans} onChange={(e) => updateCorrectAnswer(idx, ansIdx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />
+                                            <button type="button" onClick={() => removeCorrectAnswer(idx, ansIdx)} className="px-2 py-2 border rounded">Xóa</button>
+                                          </div>
+                                        ))}
+                                        <button type="button" onClick={() => addCorrectAnswer(idx)} className="px-3 py-2 border rounded">+ Thêm đáp án</button>
+                                      </div>
+                                    )}
+                                    <div>
+                                      <label className="block text-sm font-medium mb-1">Giải thích</label>
+                                      <textarea value={q.explanation || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, explanation: e.target.value }))} rows={2} className="w-full px-3 py-2 border rounded-lg" />
+                                    </div>
+                                  </div>
+                                )}
                               </div>
-                            ))}
-                            <button type="button" onClick={() => addMatchingPair(idx)} className="px-3 py-2 border rounded">+ Thêm ghép cặp</button>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            <div className="text-sm font-medium">Đáp án đúng</div>
-                            {(q.correctAnswers || []).map((ans: string, ansIdx: number) => (
-                              <div key={ansIdx} className="flex items-center gap-2">
-                                <input value={ans} onChange={(e) => updateCorrectAnswer(idx, ansIdx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />
-                                <button type="button" onClick={() => removeCorrectAnswer(idx, ansIdx)} className="px-2 py-2 border rounded">Xóa</button>
-                              </div>
-                            ))}
-                            <button type="button" onClick={() => addCorrectAnswer(idx)} className="px-3 py-2 border rounded">+ Thêm đáp án</button>
-                          </div>
-                        )}
-                        <div>
-                          <label className="block text-sm font-medium mb-1">Giải thích</label>
-                          <textarea value={q.explanation || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, explanation: e.target.value }))} rows={2} className="w-full px-3 py-2 border rounded-lg" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                      {dropProvided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
             )}
           </div>
           {/* Spacer footer to match left footer height for perfect alignment */}
