@@ -519,7 +519,7 @@ const updateTestContent = async (req, res) => {
       test
     });
   } catch (error) {
-    console.error('Update test content error:', error);
+    // console.error('Update test content error:', error);
     res.status(500).json({ message: 'Lỗi server khi cập nhật nội dung bài test' });
   }
 };

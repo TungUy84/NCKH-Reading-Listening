@@ -538,7 +538,6 @@ const EditTestPage: React.FC = () => {
         setInfoSavedAt(Date.now());
       } catch (err: any) {
         // Silent fail for auto-save info
-        console.warn('Auto-save info failed (silent):', err);
       } finally {
         setInfoSaving(false);
       }
@@ -580,14 +579,22 @@ const EditTestPage: React.FC = () => {
     if (lastContentSigRef.current === sig) return;
     if (contentDebounceRef.current) window.clearTimeout(contentDebounceRef.current);
     contentDebounceRef.current = window.setTimeout(async () => {
+      const currentQuestions = test?.questions || [];
+      const invalidIndexes = collectInvalidQuestionIndexes(currentQuestions);
+      if (invalidIndexes.length) {
+        setInvalidQuestionIdxs(new Set(invalidIndexes));
+        lastContentSigRef.current = sig;
+        return; // Bỏ qua auto-save khi dữ liệu còn thiếu để tránh spam lỗi 500
+      }
+
       try {
         setContentSaving(true);
-        await PlacementTestAPI.updateTestContent(testId, { sections: test?.sections || [], questions: test?.questions || [] });
+        await PlacementTestAPI.updateTestContent(testId, { sections: test?.sections || [], questions: currentQuestions });
         lastContentSigRef.current = sig;
         setContentSavedAt(Date.now());
+        setInvalidQuestionIdxs((prev) => (prev.size ? new Set() : prev));
       } catch (err: any) {
         // Silent fail for auto-save content
-        console.warn('Auto-save content failed (silent):', err);
       } finally {
         setContentSaving(false);
       }

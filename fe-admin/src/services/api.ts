@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { 
+import {
   PlacementTest, 
   TestFormData, 
   AdminUser, 
@@ -15,9 +15,12 @@ import {
   PlacementTestImportResponse
 } from '../types';
 
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export const ASSET_BASE_URL = API_BASE_URL.replace(/\/?api\/?$/, '');
+
 // Create axios instance with auth
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -333,7 +336,6 @@ export class PlacementTestAPI {
       const response = await api.put(`/placement-tests/admin/${testId}`, testData);
       return response.data.test;
     } catch (error) {
-      console.error('Update test error:', error);
       throw new Error('Không thể cập nhật bài test');
     }
   }
@@ -344,7 +346,6 @@ export class PlacementTestAPI {
       const response = await api.put(`/placement-tests/admin/${testId}`, testData);
       return response.data.test;
     } catch (error) {
-      console.error('Update test info error:', error);
       throw new Error('Không thể cập nhật bài test');
     }
   }
@@ -415,7 +416,6 @@ export class PlacementTestAPI {
       const response = await api.put(`/placement-tests/admin/${testId}/content`, data);
       return response.data.test;
     } catch (error) {
-      console.error('Update test content error:', error);
       throw new Error('Không thể cập nhật nội dung bài test');
     }
   }

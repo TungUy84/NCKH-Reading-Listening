@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { AuthAPI } from '../services/api';
+import { ASSET_BASE_URL, AuthAPI } from '../services/api';
 import { AdminUser } from '../types';
 
 interface AdminHeaderProps {
@@ -9,9 +9,21 @@ interface AdminHeaderProps {
   sidebarCollapsed?: boolean;
 }
 
+const buildAvatarUrl = (user: AdminUser | null, errored: boolean): string => {
+  const displayName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.username || 'Admin';
+  const raw = user?.avatar;
+  if (raw && !errored) {
+    if (/^https?:/i.test(raw)) return raw;
+    const normalized = raw.startsWith('/') ? raw : `/${raw}`;
+    return `${ASSET_BASE_URL}${normalized}`;
+  }
+  return `https://ui-avatars.com/api/?background=4C6EF5&color=fff&name=${encodeURIComponent(displayName)}`;
+};
+
 const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, sidebarCollapsed }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const location = useLocation();
 
   // Derive breadcrumb label (could be extended later)
@@ -32,6 +44,12 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
     };
     loadUser();
   }, []);
+
+  useEffect(() => {
+    setAvatarError(false);
+  }, [user?.avatar]);
+
+  const avatarUrl = buildAvatarUrl(user, avatarError);
 
   return (
   <header className="bg-white/95 supports-[backdrop-filter]:backdrop-blur-sm border-b border-gray-200 px-4 md:px-6 h-14 flex items-center sticky top-0 z-30 shadow-sm">
@@ -72,8 +90,13 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
               onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center space-x-3 pl-1 pr-3 py-1.5 rounded-full border border-gray-200 bg-white hover:shadow-sm hover:border-gray-300 transition-all"
             >
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-full flex items-center justify-center shadow text-white font-semibold text-sm">
-              {(user?.firstName?.[0] || user?.username?.[0] || 'A').toUpperCase()}
+            <div className="w-9 h-9 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
+              <img
+                src={avatarUrl}
+                alt={user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.username || 'Admin avatar'}
+                onError={() => setAvatarError(true)}
+                className="w-full h-full object-cover"
+              />
               </div>
             <div className="hidden md:block leading-tight text-left max-w-[180px]">
               <p className="text-sm font-medium text-gray-800 truncate">{user?.firstName || user?.username || 'Admin'} {user?.lastName || ''}</p>
