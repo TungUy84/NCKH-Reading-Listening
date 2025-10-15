@@ -59,7 +59,7 @@ const UsersPage: React.FC = () => {
   const onToggleStatus = async (u: AdminUser) => {
     try {
       setTogglingId(u._id);
-      await toggleUserStatus(u._id);
+      await toggleUserStatus(u._id, !u.isActive);
       toast.success(u.isActive ? 'Đã vô hiệu hóa người dùng' : 'Đã kích hoạt người dùng');
       fetchData();
     } catch (e: any) {

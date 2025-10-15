@@ -137,11 +137,16 @@ fe-admin/
 
 ### Admin Endpoints:
 - `POST /api/auth/login` - Admin login
-- `GET /api/placement-tests/admin` - Get all tests (paginated)
-- `GET /api/placement-tests/admin/stats` - Dashboard statistics
-- `POST /api/placement-tests/admin` - Create test
-- `PUT /api/placement-tests/admin/:id` - Update test
-- `DELETE /api/placement-tests/admin/:id` - Delete test
+- `GET /api/placement-tests?scope=admin` - Get all tests (paginated)
+- `GET /api/placement-tests/stats` - Dashboard statistics
+- `POST /api/placement-tests` - Create test
+- `PUT /api/placement-tests/:id` - Update test
+- `DELETE /api/placement-tests/:id` - Delete test
+- `PUT /api/placement-tests/:id/content` - Update test sections/questions
+- `POST /api/placement-tests/import` - Import test from file
+- `POST /api/placement-tests/media` - Upload section media
+- `POST /api/placement-tests/bulk-delete` - Bulk delete tests
+- `POST /api/placement-tests/bulk-update-status` - Bulk update status
 
 ### Headers Required:
 ```javascript

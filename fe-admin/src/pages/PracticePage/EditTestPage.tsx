@@ -4,7 +4,43 @@ import Swal from 'sweetalert2';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTestAPI } from '../../services/api';
-import { PlacementTest } from '../../types';
+import { PlacementTest, SectionMedia } from '../../types';
+
+const generateMediaId = (): string => {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch (err) {
+    // Ignore and use fallback below
+  }
+  return Math.random().toString(36).slice(2, 10);
+};
+
+const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
+  if (!Array.isArray(blocks)) return [];
+  return blocks
+    .filter(Boolean)
+    .map((block: any) => ({
+      ...block,
+      id: block?.id || block?._id || generateMediaId(),
+      type: block?.type === 'audio' ? 'audio' : 'image',
+      url: block?.url || block?.path || '',
+      caption: block?.caption || '',
+      altText: block?.altText || '',
+      originalName: block?.originalName || block?.name || '',
+      mimeType: block?.mimeType || block?.mimetype || '',
+      size: block?.size,
+    }))
+    .filter((block: SectionMedia) => !!block.id);
+};
+
+const sanitizeSectionsForSave = (sections: any[] | undefined) => {
+  return (sections || []).map((section: any) => ({
+    ...section,
+    mediaBlocks: normalizeMediaBlocks(section?.mediaBlocks),
+  }));
+};
 
 const EditTestPage: React.FC = () => {
   const { testId } = useParams();
@@ -29,6 +65,10 @@ const EditTestPage: React.FC = () => {
   const [panelHeight, setPanelHeight] = useState<number>(0);
   const [isEditingSectionTitle, setIsEditingSectionTitle] = useState(false);
   const [tempSectionTitle, setTempSectionTitle] = useState('');
+  const passageTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
 
   // Friendly labels for question types
   const TYPE_LABELS: Record<string, string> = {
@@ -113,10 +153,13 @@ const EditTestPage: React.FC = () => {
         setTitle(data.title);
         setDescription(data.description || '');
         setCategory(data.category);
-  setTimeLimit(data.timeLimit || 60);
-  setInstructions(data.instructions && data.instructions.length ? data.instructions : ['']);
-  setIsActive(typeof (data as any).isActive === 'boolean' ? !!(data as any).isActive : true);
-        setTest(data);
+        setTimeLimit(data.timeLimit || 60);
+        setInstructions(data.instructions && data.instructions.length ? data.instructions : ['']);
+        setIsActive(typeof (data as any).isActive === 'boolean' ? !!(data as any).isActive : true);
+        setTest({
+          ...data,
+          sections: sanitizeSectionsForSave(data.sections) as any,
+        });
       } catch (err: any) {
         console.error(err);
         toast.error(err.message || 'Không thể tải bài test');
@@ -155,6 +198,164 @@ const EditTestPage: React.FC = () => {
       })
       .sort((a, b) => ((a.q.questionNumber || 0) - (b.q.questionNumber || 0)));
   }, [test, currentSection, currentSectionIndex]);
+
+  const sectionMediaBlocks: SectionMedia[] = Array.isArray((currentSection as any)?.mediaBlocks)
+    ? ((currentSection as any).mediaBlocks as SectionMedia[])
+    : [];
+
+  const mutateCurrentSection = (updater: (section: any) => any) => {
+    setTest((prev) => {
+      if (!prev || !prev.sections) return prev;
+      if (currentSectionIndex < 0 || currentSectionIndex >= prev.sections.length) return prev;
+      const sections = [...prev.sections];
+      const target = { ...(sections[currentSectionIndex] || {}) } as any;
+      const nextSection = updater(target);
+      if (!nextSection) return prev;
+      sections[currentSectionIndex] = nextSection;
+      return { ...prev, sections } as PlacementTest;
+    });
+  };
+
+  const updateSectionMediaBlock = (mediaId: string, patch: Partial<SectionMedia>) => {
+    mutateCurrentSection((section) => {
+      const blocks: SectionMedia[] = Array.isArray(section.mediaBlocks)
+        ? section.mediaBlocks.map((block: SectionMedia) => ({ ...block }))
+        : [];
+      const idx = blocks.findIndex((block: SectionMedia) => block.id === mediaId);
+      if (idx === -1) return section;
+      blocks[idx] = { ...blocks[idx], ...patch };
+      return { ...section, mediaBlocks: blocks };
+    });
+  };
+
+  const removeSectionMediaBlock = async (mediaId: string) => {
+    const media = sectionMediaBlocks.find((item) => item.id === mediaId);
+    if (!media) return;
+    const result = await Swal.fire({
+      title: 'Xóa media này?',
+      text: 'Media sẽ bị loại khỏi phần này nhưng file vẫn lưu trên hệ thống.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Xóa',
+      cancelButtonText: 'Hủy',
+      reverseButtons: true,
+      focusCancel: true,
+    });
+    if (!result.isConfirmed) return;
+
+    mutateCurrentSection((section) => {
+      const blocks: SectionMedia[] = Array.isArray(section.mediaBlocks)
+        ? section.mediaBlocks.filter((block: SectionMedia) => block.id !== mediaId)
+        : [];
+      return { ...section, mediaBlocks: blocks };
+    });
+    toast.success('Đã xóa media khỏi phần');
+  };
+
+  const insertMediaPlaceholder = (mediaId: string) => {
+    const placeholder = `[[media:${mediaId}]]`;
+    const textarea = passageTextareaRef.current;
+    const currentPassage = (currentSection as any)?.passage || '';
+    const start = textarea ? textarea.selectionStart ?? currentPassage.length : currentPassage.length;
+    const end = textarea ? textarea.selectionEnd ?? start : start;
+    const nextPassage = currentPassage.slice(0, start) + placeholder + currentPassage.slice(end);
+    updateSectionField('passage', nextPassage);
+    window.requestAnimationFrame(() => {
+      if (textarea) {
+        const cursor = start + placeholder.length;
+        textarea.focus();
+        textarea.selectionStart = cursor;
+        textarea.selectionEnd = cursor;
+      }
+    });
+    toast.success('Đã chèn media vào đoạn văn');
+  };
+
+  const copyMediaPlaceholder = async (mediaId: string) => {
+    const placeholder = `[[media:${mediaId}]]`;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(placeholder);
+        toast.success('Đã copy mã media');
+        return;
+      }
+    } catch (error) {
+      // Fallback below
+    }
+    try {
+      if (typeof document !== 'undefined') {
+        const helper = document.createElement('textarea');
+        helper.value = placeholder;
+        helper.style.position = 'fixed';
+        helper.style.opacity = '0';
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand('copy');
+        document.body.removeChild(helper);
+        toast.success('Đã copy mã media');
+        return;
+      }
+    } catch (err) {
+      toast.info(`Mã media: ${placeholder}`);
+      return;
+    }
+    toast.info(`Mã media: ${placeholder}`);
+  };
+
+  const handleSectionMediaUpload = async (fileList: FileList | null) => {
+    if (!fileList || !fileList.length) return;
+    const fileArray = Array.from(fileList).slice(0, 10);
+    if (!fileArray.length) return;
+    if (!test || !Array.isArray(test.sections) || !test.sections.length) {
+      toast.error('Vui lòng tạo phần trước khi tải media');
+      return;
+    }
+    if (currentSectionIndex < 0 || currentSectionIndex >= test.sections.length) {
+      toast.error('Không tìm thấy phần đang chọn');
+      return;
+    }
+    setMediaUploadError(null);
+    setMediaUploading(true);
+    try {
+      const uploaded = await PlacementTestAPI.uploadSectionMedia(fileArray);
+      const normalizedUploads = normalizeMediaBlocks(uploaded);
+      if (!normalizedUploads.length) {
+        toast.warn('Không có media hợp lệ được tải lên');
+        return;
+      }
+      mutateCurrentSection((section) => {
+        const existing: SectionMedia[] = Array.isArray(section.mediaBlocks)
+          ? section.mediaBlocks.map((block: SectionMedia) => ({ ...block }))
+          : [];
+        const merged: SectionMedia[] = [...existing];
+        normalizedUploads.forEach((item: SectionMedia) => {
+          const idx = merged.findIndex((block: SectionMedia) => block.id === item.id);
+          if (idx >= 0) {
+            merged[idx] = { ...merged[idx], ...item };
+          } else {
+            merged.push(item);
+          }
+        });
+        return { ...section, mediaBlocks: merged };
+      });
+      setMediaUploadError(null);
+      toast.success(`Đã tải ${normalizedUploads.length} media`);
+    } catch (err: any) {
+      console.error(err);
+      const message = err?.message || err?.response?.data?.message || 'Không thể tải media';
+      setMediaUploadError(message);
+      toast.error(message);
+    } finally {
+      setMediaUploading(false);
+    }
+  };
+
+  const openMediaPicker = () => {
+    setMediaUploadError(null);
+    mediaInputRef.current?.click();
+  };
 
   const currentSectionDroppableId = currentSection?._id
     ? `section-${normalizeId((currentSection as any)._id)}`
@@ -286,6 +487,7 @@ const EditTestPage: React.FC = () => {
         audio: '',
         image: '',
         timeLimit: 0,
+        mediaBlocks: [],
       } as any;
       const next = { ...prev, sections } as PlacementTest;
       next.sections!.push(newSection);
@@ -551,13 +753,23 @@ const EditTestPage: React.FC = () => {
   useEffect(() => {
     if (!testId) return;
     // Build a minimal signature to detect changes without saving excessively
-    const sectionsSig = (test?.sections || []).map((s: any) => ({
+    const sanitizedSections = sanitizeSectionsForSave(test?.sections as any);
+    const sectionsSig = sanitizedSections.map((s: any) => ({
       _id: s?._id?.toString ? s._id.toString() : s?._id || null,
       title: s?.title || '',
       passage: s?.passage || '',
       audio: s?.audio || '',
       image: s?.image || '',
       timeLimit: s?.timeLimit || 0,
+      mediaBlocks: Array.isArray(s?.mediaBlocks)
+        ? s.mediaBlocks.map((m: any) => ({
+            id: m?.id || '',
+            type: m?.type || '',
+            url: m?.url || '',
+            caption: m?.caption || '',
+            altText: m?.altText || '',
+          }))
+        : [],
     }));
     const questionsSig = (test?.questions || []).map((q: any) => ({
       _id: q?._id?.toString ? q._id.toString() : q?._id || null,
@@ -589,7 +801,7 @@ const EditTestPage: React.FC = () => {
 
       try {
         setContentSaving(true);
-        await PlacementTestAPI.updateTestContent(testId, { sections: test?.sections || [], questions: currentQuestions });
+  await PlacementTestAPI.updateTestContent(testId, { sections: sanitizedSections, questions: currentQuestions });
         lastContentSigRef.current = sig;
         setContentSavedAt(Date.now());
         setInvalidQuestionIdxs((prev) => (prev.size ? new Set() : prev));
@@ -672,7 +884,8 @@ const EditTestPage: React.FC = () => {
     }
     try {
       setSaving(true);
-      const payload = { sections: test.sections || [], questions: test.questions || [] } as any;
+      const payloadSections = sanitizeSectionsForSave(test.sections as any);
+      const payload = { sections: payloadSections, questions: test.questions || [] } as any;
       await PlacementTestAPI.updateTestContent(testId, payload);
       toast.success('Đã lưu nội dung bài test');
       // Update signature to prevent immediate autosave
@@ -683,6 +896,15 @@ const EditTestPage: React.FC = () => {
         audio: s?.audio || '',
         image: s?.image || '',
         timeLimit: s?.timeLimit || 0,
+        mediaBlocks: Array.isArray(s?.mediaBlocks)
+          ? s.mediaBlocks.map((m: any) => ({
+              id: m?.id || '',
+              type: m?.type || '',
+              url: m?.url || '',
+              caption: m?.caption || '',
+              altText: m?.altText || '',
+            }))
+          : [],
       }));
       const questionsSig = (payload.questions || []).map((q: any) => ({
         _id: q?._id?.toString ? q._id.toString() : q?._id || null,
@@ -868,20 +1090,138 @@ const EditTestPage: React.FC = () => {
           <div className="p-3 space-y-4 flex-1 overflow-auto">
             <div className="space-y-2">
               <label className="block text-sm font-medium">Đoạn văn (passage)</label>
-              <textarea value={currentSection?.passage || ''} onChange={(e) => updateSectionField('passage', e.target.value)} rows={14} className="w-full px-3 py-2 border rounded-lg whitespace-pre-wrap" />
+              <textarea
+                ref={passageTextareaRef}
+                value={currentSection?.passage || ''}
+                onChange={(e) => updateSectionField('passage', e.target.value)}
+                rows={14}
+                className="w-full px-3 py-2 border rounded-lg whitespace-pre-wrap"
+              />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium">Audio URL</label>
-                <input value={currentSection?.audio || ''} onChange={(e) => updateSectionField('audio', e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
-                {currentSection?.audio ? (<audio controls className="w-full mt-2"><source src={currentSection.audio} /></audio>) : null}
+            <div className="border rounded-lg p-3 space-y-3 bg-slate-50/60">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <div className="text-sm font-medium text-slate-700">Media trong đoạn văn</div>
+                  <p className="text-xs text-slate-500">Tải ảnh hoặc audio, sau đó chèn mã <span className="font-mono">[[media:ID]]</span> vào đoạn văn.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={mediaInputRef}
+                    type="file"
+                    accept="image/*,audio/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      handleSectionMediaUpload(e.target.files);
+                      if (e.target) {
+                        e.target.value = '';
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={openMediaPicker}
+                    disabled={mediaUploading}
+                    className="px-3 py-1.5 text-sm rounded-lg border bg-white hover:bg-slate-100 disabled:opacity-60"
+                  >
+                    {mediaUploading ? 'Đang tải…' : 'Tải media'}
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium">Image URL</label>
-                <input value={currentSection?.image || ''} onChange={(e) => updateSectionField('image', e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
-                {currentSection?.image ? (<img src={currentSection.image} alt="Section" className="max-w-full rounded-lg mt-2" />) : null}
+              {mediaUploadError ? (
+                <div className="text-sm text-red-600">{mediaUploadError}</div>
+              ) : null}
+              <div className="space-y-3">
+                {sectionMediaBlocks.length === 0 ? (
+                  <p className="text-sm text-slate-500">Chưa có media nào cho phần này.</p>
+                ) : (
+                  sectionMediaBlocks.map((media) => (
+                    <div key={media.id} className="border rounded-lg bg-white p-3 space-y-2 shadow-sm">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="sm:w-36 w-full flex-shrink-0">
+                          {media.type === 'audio' ? (
+                            <audio
+                              controls
+                              controlsList="nodownload"
+                              preload="auto"
+                              className="w-full"
+                              onContextMenu={(event) => event.preventDefault()}
+                            >
+                              <source src={media.url} type={media.mimeType || 'audio/mpeg'} />
+                              Trình duyệt không hỗ trợ audio.
+                            </audio>
+                          ) : (
+                            <img
+                              src={media.url}
+                              alt={media.altText || media.caption || media.originalName || media.id}
+                              className="w-full rounded-md border object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-800 truncate max-w-[220px]">{media.originalName || media.id}</div>
+                              <div className="text-xs text-slate-500">
+                                {media.type === 'audio' ? 'Audio' : 'Hình ảnh'}
+                                {media.size ? ` • ${(media.size / 1024).toFixed(0)} KB` : ''}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => insertMediaPlaceholder(media.id)}
+                                className="px-2 py-1 text-xs rounded border border-blue-200 text-blue-600 hover:bg-blue-50"
+                              >
+                                Chèn vào đoạn
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => copyMediaPlaceholder(media.id)}
+                                className="px-2 py-1 text-xs rounded border hover:bg-slate-100"
+                              >
+                                Copy mã
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeSectionMediaBlock(media.id)}
+                                className="px-2 py-1 text-xs rounded border border-red-200 text-red-600 hover:bg-red-50"
+                              >
+                                Xóa
+                              </button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-600">Chú thích (caption)</label>
+                              <input
+                                value={media.caption || ''}
+                                onChange={(e) => updateSectionMediaBlock(media.id, { caption: e.target.value })}
+                                className="w-full px-2 py-1.5 text-sm border rounded-lg"
+                                placeholder="Hiển thị dưới media"
+                              />
+                            </div>
+                            {media.type === 'image' ? (
+                              <div>
+                                <label className="block text-xs font-medium text-slate-600">Alt text</label>
+                                <input
+                                  value={media.altText || ''}
+                                  onChange={(e) => updateSectionMediaBlock(media.id, { altText: e.target.value })}
+                                  className="w-full px-2 py-1.5 text-sm border rounded-lg"
+                                  placeholder="Mô tả cho người đọc màn hình"
+                                />
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className="text-xs text-slate-500">Mã: <span className="font-mono">[[media:{media.id}]]</span></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
+            {/* Legacy audio/image URL inputs removed at user request; media now managed entirely via uploads */}
           </div>
           <div className="h-12 border-t bg-slate-50 flex items-center p-3">
             <button

@@ -1,10 +1,149 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { ReactNode, useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { PlacementTest, UserAnswer } from '../types';
+import { PlacementTest, SectionMedia, TestSection, UserAnswer } from '../types';
 import { getTestForTaking, submitTest } from '../services/api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
+
+const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
+
+const normalizeId = (value: any): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return value.toString();
+  if (value.toString) return value.toString();
+  try {
+    return JSON.stringify(value);
+  } catch (err) {
+    return String(value);
+  }
+};
+
+const generateMediaId = (): string => {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch (err) {
+    // ignore and fallback
+  }
+  return Math.random().toString(36).slice(2, 10);
+};
+
+const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
+  if (!Array.isArray(blocks)) return [];
+  return blocks
+    .filter(Boolean)
+    .map((block: any) => ({
+      ...block,
+      id: block?.id || block?._id || generateMediaId(),
+      type: block?.type === 'audio' ? 'audio' : 'image',
+      url: block?.url || block?.path || '',
+      caption: block?.caption || '',
+      altText: block?.altText || '',
+      originalName: block?.originalName || block?.name || '',
+      mimeType: block?.mimeType || block?.mimetype || '',
+      size: block?.size,
+    }))
+    .filter((block: SectionMedia) => !!block.id);
+};
+
+const sanitizeSections = (sections: TestSection[] = []): TestSection[] => {
+  return sections.map((section) => ({
+    ...section,
+    mediaBlocks: normalizeMediaBlocks(section?.mediaBlocks),
+  }));
+};
+
+const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode => {
+  if (block.type === 'audio') {
+    return (
+      <div key={`media-audio-${key}`} className="my-4">
+        <audio
+          controls
+          controlsList="nodownload"
+          preload="auto"
+          className="w-full"
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <source src={block.url} type={block.mimeType || 'audio/mpeg'} />
+          Trình duyệt của bạn không hỗ trợ audio.
+        </audio>
+        {block.caption ? (
+          <p className="mt-1 text-xs text-gray-500">{block.caption}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <figure key={`media-image-${key}`} className="my-4">
+      <img
+        src={block.url}
+        alt={block.altText || block.caption || block.originalName || `Media ${block.id}`}
+        className="rounded-lg border border-gray-200 max-w-full"
+      />
+      {block.caption ? (
+        <figcaption className="mt-2 text-center text-xs text-gray-500">{block.caption}</figcaption>
+      ) : null}
+    </figure>
+  );
+};
+
+const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
+  if (!passage) return null;
+  mediaPlaceholderRegex.lastIndex = 0;
+  const nodes: ReactNode[] = [];
+  const mediaMap = new Map<string, SectionMedia>();
+  mediaBlocks.forEach((block) => {
+    if (block?.id) {
+      mediaMap.set(String(block.id), block);
+    }
+  });
+
+  let lastIndex = 0;
+  let key = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = mediaPlaceholderRegex.exec(passage)) !== null) {
+    const text = passage.slice(lastIndex, match.index);
+    if (text) {
+      nodes.push(
+        <p key={`text-${key++}`} className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+          {text}
+        </p>
+      );
+    }
+
+    const mediaId = match[1]?.trim();
+    if (mediaId) {
+      const block = mediaMap.get(mediaId);
+      if (block) {
+        nodes.push(renderMediaBlock(block, key++));
+      } else {
+        nodes.push(
+          <p key={`missing-${key++}`} className="text-xs text-amber-600">
+            [Media không tìm thấy: {mediaId}]
+          </p>
+        );
+      }
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  const tail = passage.slice(lastIndex);
+  if (tail) {
+    nodes.push(
+      <p key={`text-${key++}`} className="whitespace-pre-wrap text-gray-700 leading-relaxed">
+        {tail}
+      </p>
+    );
+  }
+
+  return nodes;
+};
 
 const TakeTestPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
@@ -24,7 +163,11 @@ const TakeTestPage: React.FC = () => {
       try {
         const response = await getTestForTaking(testId);
         if (response.test) {
-          setTest(response.test);
+          const sanitizedSections = sanitizeSections(response.test.sections);
+          setTest({
+            ...response.test,
+            sections: sanitizedSections,
+          });
           setTimeRemaining(response.test.timeLimit * 60); // Convert to seconds
           setAnswers(Array.from({ length: response.test.questions.length }, () => ({
             selectedOptions: [],
@@ -164,28 +307,29 @@ const TakeTestPage: React.FC = () => {
   }
 
   const currentQuestion = test.questions[currentQuestionIndex];
+  const currentSectionId = normalizeId(currentQuestion?.sectionId);
 
   // Compute current section & its questions
-  const currentSection = test.sections.find(s => s._id === currentQuestion.sectionId);
+  const currentSection = test.sections.find((section) => normalizeId(section?._id) === currentSectionId);
   const sectionQuestions = test.questions
     .map((q, idx) => ({ q, globalIndex: idx }))
-    .filter(item => item.q.sectionId === currentQuestion.sectionId);
+    .filter((item) => normalizeId(item.q.sectionId) === currentSectionId);
 
   const goToNextSection = () => {
-    if (!currentSection) return;
-    const currentSectionIndex = test.sections.findIndex(s => s._id === currentSection._id);
-    const nextSection = test.sections[currentSectionIndex + 1];
+    const currentSectionIndex = test.sections.findIndex(
+      (section) => normalizeId(section?._id) === currentSectionId
+    );
+    const nextSection = currentSectionIndex >= 0 ? test.sections[currentSectionIndex + 1] : undefined;
     if (nextSection) {
-      const firstQuestionIndex = test.questions.findIndex(q => q.sectionId === nextSection._id);
+      const nextId = normalizeId(nextSection._id);
+      const firstQuestionIndex = test.questions.findIndex((q) => normalizeId(q.sectionId) === nextId);
       if (firstQuestionIndex >= 0) setCurrentQuestionIndex(firstQuestionIndex);
     }
   };
-
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky header */}
-  <div className="sticky top-0 z-20 backdrop-blur border-b border-gray-200 bg-white/90">
+      <div className="sticky top-0 z-20 backdrop-blur border-b border-gray-200 bg-white/90">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div>
             <h1 className="text-base font-semibold text-gray-900 leading-tight">{test.title}</h1>
@@ -218,103 +362,116 @@ const TakeTestPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid lg:grid-cols-12 gap-6 items-start">
           {/* Left column: Passage + navigation */}
-            <div className="lg:col-span-5 space-y-6">
-              {(() => {
-                // Determine current section
-                const section = test.sections.find(s => s._id === currentQuestion.sectionId);
-                return (
-                  <Card className="sticky top-[88px] max-h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar" padding="lg">
-                    <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <h2 className="text-sm font-semibold text-gray-800">{section?.title || 'Phần hiện tại'}</h2>
-                        <p className="text-xs text-gray-500">Đoạn văn / Tư liệu dùng cho các câu thuộc phần này</p>
-                      </div>
-                      <div className="text-[10px] uppercase tracking-wide bg-gray-100 text-gray-600 px-2 py-1 rounded-md">Section</div>
+          <div className="lg:col-span-5 space-y-6">
+            {(() => {
+              const section = currentSection;
+              return (
+                <Card className="sticky top-[88px] max-h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar" padding="lg">
+                  <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                      <h2 className="text-sm font-semibold text-gray-800">{section?.title || 'Phần hiện tại'}</h2>
+                      <p className="text-xs text-gray-500">Đoạn văn / Tư liệu dùng cho các câu thuộc phần này</p>
                     </div>
-                    {section?.audio && (
-                      <div className="mb-4">
-                        <audio controls className="w-full">
-                          <source src={section.audio} type="audio/mpeg" />
-                          Trình duyệt của bạn không hỗ trợ phát audio.
-                        </audio>
-                      </div>
-                    )}
-                    {section?.image && (
-                      <div className="mb-4">
-                        <img src={section.image} alt="Section illustration" className="rounded-lg border border-gray-200 max-h-60 object-cover w-full" />
-                      </div>
-                    )}
-                    {section?.passage ? (
-                      <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
-                        {section.passage}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 italic">Không có đoạn văn cho phần này.</p>
-                    )}
-                    {/* Quick mini section navigation if more than 1 section */}
-                    {test.sections.length > 1 && (
-                      <div className="mt-6 pt-4 border-t border-gray-100">
-                        <div className="text-xs font-medium text-gray-600 mb-2">Các phần khác</div>
-                        <div className="flex flex-wrap gap-2">
-                          {test.sections.map(sec => {
-                            const firstQuestionIndex = test.questions.findIndex(q => q.sectionId === sec._id);
-                            const isActive = sec._id === section?._id;
-                            return (
-                              <button
-                                key={sec._id}
-                                onClick={() => firstQuestionIndex >= 0 && goToQuestion(firstQuestionIndex)}
-                                className={`px-3 py-1 rounded-md text-xs border transition ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
-                              >
-                                {sec.title}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </Card>
-                );
-              })()}
-
-              {/* Question navigation moved under passage on large screens */}
-              <Card padding="md">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-900 text-sm">Câu hỏi</h3>
-                  <span className="text-xs text-gray-500">Chọn để chuyển nhanh</span>
-                </div>
-                <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-2 mb-4">
-                  {test.questions.map((_, index) => {
-                    const answered = !!(
-                      answers[index]?.selectedOptions.length ||
-                      answers[index]?.userAnswer ||
-                      answers[index]?.matchingAnswers?.some(m => m.selected && m.selected.trim().length > 0)
-                    );
-                    const isCurrent = index === currentQuestionIndex;
-                    return (
-                      <button
-                        key={index}
-                        onClick={() => goToQuestion(index)}
-                        className={`h-8 w-8 rounded-md text-xs font-medium flex items-center justify-center border transition ${
-                          isCurrent
-                            ? 'bg-blue-600 text-white border-blue-600 shadow'
-                            : answered
-                            ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
-                            : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
-                        }`}
-                        aria-label={`Câu ${index + 1}${answered ? ' đã trả lời' : ''}`}
+                    <div className="text-[10px] uppercase tracking-wide bg-gray-100 text-gray-600 px-2 py-1 rounded-md">Section</div>
+                  </div>
+                  {section?.passage ? (
+                    <div className="prose prose-sm max-w-none">
+                      {renderPassageContent(section.passage || '', section.mediaBlocks || [])}
+                    </div>
+                  ) : section?.mediaBlocks && section.mediaBlocks.length ? (
+                    <div className="space-y-4">
+                      {section.mediaBlocks.map((block, index) => renderMediaBlock(block, index))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">Không có đoạn văn cho phần này.</p>
+                  )}
+                  {section?.audio ? (
+                    <div className="mt-4">
+                      <audio
+                        controls
+                        controlsList="nodownload"
+                        preload="auto"
+                        className="w-full"
+                        onContextMenu={(event) => event.preventDefault()}
                       >
-                        {index + 1}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="flex flex-wrap gap-3 mt-1">
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-blue-600 inline-block"></span>Hiện tại</div>
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-green-400 inline-block border border-green-600"></span>Đã trả lời</div>
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-gray-200 inline-block border border-gray-400"></span>Chưa trả lời</div>
-                </div>
-              </Card>
-            </div>
+                        <source src={section.audio} type="audio/mpeg" />
+                        Trình duyệt của bạn không hỗ trợ phát audio.
+                      </audio>
+                    </div>
+                  ) : null}
+                  {section?.image ? (
+                    <div className="mt-4">
+                      <img
+                        src={section.image}
+                        alt={section.title || 'Section illustration'}
+                        className="rounded-lg border border-gray-200 max-h-60 object-cover w-full"
+                      />
+                    </div>
+                  ) : null}
+                  {test.sections.length > 1 ? (
+                    <div className="mt-6 pt-4 border-t border-gray-100">
+                      <div className="text-xs font-medium text-gray-600 mb-2">Các phần khác</div>
+                      <div className="flex flex-wrap gap-2">
+                        {test.sections.map((sec, sectionIndex) => {
+                          const secId = normalizeId(sec?._id);
+                          const firstQuestionIndex = test.questions.findIndex((q) => normalizeId(q.sectionId) === secId);
+                          const isActive = secId === currentSectionId;
+                          return (
+                            <button
+                              key={secId || sec._id || `${sec.title || 'section'}-${sectionIndex}`}
+                              onClick={() => firstQuestionIndex >= 0 && goToQuestion(firstQuestionIndex)}
+                              className={`px-3 py-1 rounded-md text-xs border transition ${isActive ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                            >
+                              {sec.title}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null}
+                </Card>
+              );
+            })()}
+
+            {/* Question navigation moved under passage on large screens */}
+            <Card padding="md">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-gray-900 text-sm">Câu hỏi</h3>
+                <span className="text-xs text-gray-500">Chọn để chuyển nhanh</span>
+              </div>
+              <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-12 gap-2 mb-4">
+                {test.questions.map((_, index) => {
+                  const answered = !!(
+                    answers[index]?.selectedOptions.length ||
+                    answers[index]?.userAnswer ||
+                    answers[index]?.matchingAnswers?.some(m => m.selected && m.selected.trim().length > 0)
+                  );
+                  const isCurrent = index === currentQuestionIndex;
+                  return (
+                    <button
+                      key={index}
+                      onClick={() => goToQuestion(index)}
+                      className={`h-8 w-8 rounded-md text-xs font-medium flex items-center justify-center border transition ${
+                        isCurrent
+                          ? 'bg-blue-600 text-white border-blue-600 shadow'
+                          : answered
+                          ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
+                          : 'bg-gray-50 text-gray-600 border-gray-300 hover:bg-gray-100'
+                      }`}
+                      aria-label={`Câu ${index + 1}${answered ? ' đã trả lời' : ''}`}
+                    >
+                      {index + 1}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-3 mt-1">
+                <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-blue-600 inline-block"></span>Hiện tại</div>
+                <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-green-400 inline-block border border-green-600"></span>Đã trả lời</div>
+                <div className="flex items-center gap-1 text-[10px] text-gray-500"><span className="h-3 w-3 rounded-sm bg-gray-200 inline-block border border-gray-400"></span>Chưa trả lời</div>
+              </div>
+            </Card>
+          </div>
 
           {/* Right column: All questions for current section */}
           <div className="lg:col-span-7 space-y-6">
@@ -341,14 +498,20 @@ const TakeTestPage: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  {q.media?.audioUrl && (
+                  {q.media?.audioUrl ? (
                     <div className="mb-4">
-                      <audio controls className="w-full">
+                      <audio
+                        controls
+                        controlsList="nodownload"
+                        preload="auto"
+                        className="w-full"
+                        onContextMenu={(event) => event.preventDefault()}
+                      >
                         <source src={q.media.audioUrl} type="audio/mpeg" />
                         Trình duyệt của bạn không hỗ trợ phát audio.
                       </audio>
                     </div>
-                  )}
+                  ) : null}
                   <div className="text-gray-800 leading-relaxed mb-5">
                     {q.content}
                   </div>
@@ -477,7 +640,9 @@ const TakeTestPage: React.FC = () => {
             <div className="flex items-center justify-between pt-2">
               <div className="text-xs text-gray-500">Phần này có {sectionQuestions.length} câu.</div>
               {(() => {
-                const currentSectionIndex = currentSection ? test.sections.findIndex(s => s._id === currentSection._id) : -1;
+                const currentSectionIndex = currentSectionId
+                  ? test.sections.findIndex((section) => normalizeId(section?._id) === currentSectionId)
+                  : -1;
                 const hasNextSection = currentSectionIndex >= 0 && currentSectionIndex < test.sections.length - 1;
                 if (hasNextSection) {
                   return (

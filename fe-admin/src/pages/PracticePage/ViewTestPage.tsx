@@ -1,8 +1,135 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTestAPI } from '../../services/api';
-import { PlacementTest } from '../../types';
+import { PlacementTest, SectionMedia } from '../../types';
+
+const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
+
+const generateMediaId = (): string => {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+  } catch (err) {
+    // ignore and fall back
+  }
+  return Math.random().toString(36).slice(2, 10);
+};
+
+const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
+  if (!Array.isArray(blocks)) return [];
+  return blocks
+    .filter(Boolean)
+    .map((block: any) => ({
+      ...block,
+      id: block?.id || block?._id || generateMediaId(),
+      type: block?.type === 'audio' ? 'audio' : 'image',
+      url: block?.url || block?.path || '',
+      caption: block?.caption || '',
+      altText: block?.altText || '',
+      originalName: block?.originalName || block?.name || '',
+      mimeType: block?.mimeType || block?.mimetype || '',
+      size: block?.size,
+    }))
+    .filter((block: SectionMedia) => !!block.id);
+};
+
+const sanitizeSections = (sections: any[] | undefined) => {
+  return (sections || []).map((section: any) => ({
+    ...section,
+    mediaBlocks: normalizeMediaBlocks(section?.mediaBlocks),
+  }));
+};
+
+const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode => {
+  if (block.type === 'audio') {
+    return (
+      <div key={`media-audio-${key}`} className="my-4">
+        <audio
+          controls
+          controlsList="nodownload"
+          preload="auto"
+          className="w-full"
+          onContextMenu={(event) => event.preventDefault()}
+        >
+          <source src={block.url} type={block.mimeType || 'audio/mpeg'} />
+          Trình duyệt không hỗ trợ audio.
+        </audio>
+        {block.caption ? (
+          <p className="mt-1 text-sm text-slate-500">{block.caption}</p>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <figure key={`media-image-${key}`} className="my-4">
+      <img
+        src={block.url}
+        alt={block.altText || block.caption || block.originalName || `Media ${block.id}`}
+        className="rounded-lg border max-w-full"
+      />
+      {block.caption ? (
+        <figcaption className="mt-2 text-center text-sm text-slate-500">{block.caption}</figcaption>
+      ) : null}
+    </figure>
+  );
+};
+
+const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
+  if (!passage) return null;
+  mediaPlaceholderRegex.lastIndex = 0;
+  const nodes: ReactNode[] = [];
+  const mediaMap = new Map<string, SectionMedia>();
+  mediaBlocks.forEach((block) => {
+    if (block?.id) {
+      mediaMap.set(String(block.id), block);
+    }
+  });
+
+  let lastIndex = 0;
+  let key = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = mediaPlaceholderRegex.exec(passage)) !== null) {
+    const text = passage.slice(lastIndex, match.index);
+    if (text) {
+      nodes.push(
+        <p key={`text-${key++}`} className="whitespace-pre-wrap text-slate-800 leading-relaxed">
+          {text}
+        </p>
+      );
+    }
+
+    const mediaId = match[1]?.trim();
+    if (mediaId) {
+      const block = mediaMap.get(mediaId);
+      if (block) {
+        nodes.push(renderMediaBlock(block, key++));
+      } else {
+        nodes.push(
+          <p key={`missing-${key++}`} className="text-sm text-amber-600">
+            [Media không tìm thấy: {mediaId}]
+          </p>
+        );
+      }
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  const tail = passage.slice(lastIndex);
+  if (tail) {
+    nodes.push(
+      <p key={`text-${key++}`} className="whitespace-pre-wrap text-slate-800 leading-relaxed">
+        {tail}
+      </p>
+    );
+  }
+
+  return nodes;
+};
 
 const ViewTestPage: React.FC = () => {
   const { testId } = useParams();
@@ -30,7 +157,10 @@ const ViewTestPage: React.FC = () => {
       try {
         setLoading(true);
         const data = await PlacementTestAPI.getTestById(testId);
-        setTest(data);
+        setTest({
+          ...data,
+          sections: sanitizeSections(data.sections) as any,
+        });
       } catch (err: any) {
         console.error(err);
         toast.error(err.message || 'Không thể tải bài test');
@@ -111,18 +241,23 @@ const ViewTestPage: React.FC = () => {
             )}
           </div>
           <div className="p-3 space-y-4 flex-1 overflow-auto">
-            {currentSection?.passage && (
-              <div>
-                <div className="prose max-w-none">
-                  <div className="text-slate-800 whitespace-pre-wrap">{currentSection.passage}</div>
-                </div>
+            {currentSection?.passage ? (
+              <div className="prose max-w-none">
+                {renderPassageContent(currentSection.passage || '', (currentSection.mediaBlocks || []) as SectionMedia[])}
               </div>
-            )}
-            {currentSection?.audio && (
-              <audio controls className="w-full mt-2">
+            ) : null}
+            {currentSection?.audio ? (
+              <audio
+                controls
+                controlsList="nodownload"
+                preload="auto"
+                className="w-full mt-2"
+                onContextMenu={(event) => event.preventDefault()}
+              >
                 <source src={currentSection.audio} />
+                Trình duyệt không hỗ trợ audio.
               </audio>
-            )}
+            ) : null}
             {currentSection?.image && (
               <img src={currentSection.image} alt="Section" className="max-w-full rounded-lg mt-2" />
             )}

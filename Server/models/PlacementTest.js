@@ -1,5 +1,42 @@
 const mongoose = require('mongoose');
 
+// Schema media đính kèm trong passage
+const mediaBlockSchema = new mongoose.Schema({
+  id: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['image', 'audio'],
+    required: true
+  },
+  url: {
+    type: String,
+    required: true
+  },
+  caption: {
+    type: String,
+    default: ''
+  },
+  altText: {
+    type: String,
+    default: ''
+  },
+  originalName: {
+    type: String,
+    default: ''
+  },
+  mimeType: {
+    type: String,
+    default: ''
+  },
+  size: {
+    type: Number,
+    default: 0
+  }
+}, { _id: false });
+
 // Schema cho từng section trong bài test (như IELTS Reading có 3 passages)
 const sectionSchema = new mongoose.Schema({
   title: {
@@ -21,6 +58,10 @@ const sectionSchema = new mongoose.Schema({
   timeLimit: {
     type: Number, // Thời gian làm section này (phút)
     default: 20
+  },
+  mediaBlocks: {
+    type: [mediaBlockSchema],
+    default: []
   }
 });
 

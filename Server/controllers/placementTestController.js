@@ -3,7 +3,6 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const { PlacementTest } = require('../models/PlacementTest');
 const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/placementTestImport');
-// Không cần import PlacementResult vì không lưu kết quả vào database
 
 // Lấy danh sách các bài test theo category (Public)
 const getActivePlacementTests = async (req, res) => {
@@ -58,7 +57,12 @@ const getPlacementTestForTaking = async (req, res) => {
 // Chấm điểm bài test ngay lập tức (Public - không lưu database)
 const checkPlacementTest = async (req, res) => {
   try {
-    const { testId, answers } = req.body;
+    const { answers } = req.body || {};
+    const testId = req.params.testId || req.body?.testId;
+
+    if (!testId) {
+      return res.status(400).json({ message: 'Thiếu mã bài test để chấm điểm' });
+    }
 
     // Lấy bài test với đáp án đúng
     const test = await PlacementTest.findById(testId);
@@ -259,6 +263,11 @@ const getAllPlacementTests = async (req, res) => {
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
 
+    if (filter.isActive === undefined && typeof req.query.isActive === 'string') {
+      if (req.query.isActive === 'true') filter.isActive = true;
+      if (req.query.isActive === 'false') filter.isActive = false;
+    }
+
     if (search && typeof search === 'string') {
       const regex = new RegExp(search.trim(), 'i');
       filter.$or = [
@@ -333,7 +342,8 @@ const createPlacementTest = async (req, res) => {
           passage: section?.passage || '',
           audio: section?.audio || '',
           image: section?.image || '',
-          timeLimit: section?.timeLimit || timeLimit || 0
+          timeLimit: section?.timeLimit || timeLimit || 0,
+          mediaBlocks: Array.isArray(section?.mediaBlocks) ? section.mediaBlocks : []
         });
       });
     } else {
@@ -352,7 +362,8 @@ const createPlacementTest = async (req, res) => {
           passage: '',
           audio: '',
           image: '',
-          timeLimit: timeLimit || 0
+          timeLimit: timeLimit || 0,
+          mediaBlocks: []
         });
       } else {
         Array.from(sectionIndexes).sort((a, b) => a - b).forEach((idx, order) => {
@@ -362,7 +373,8 @@ const createPlacementTest = async (req, res) => {
             passage: '',
             audio: '',
             image: '',
-            timeLimit: timeLimit || 0
+            timeLimit: timeLimit || 0,
+            mediaBlocks: []
           });
         });
       }
@@ -489,10 +501,20 @@ const updateTestContent = async (req, res) => {
     if (Array.isArray(sections)) {
       const currentSections = test.sections || [];
       // Giữ nguyên _id của section nếu FE không gửi lên để không làm lệch liên kết sectionId của câu hỏi
-      test.sections = sections.map((s, idx) => ({
-        _id: s._id || currentSections[idx]?._id,
-        ...s,
-      }));
+      test.sections = sections.map((s, idx) => {
+        const existing = currentSections[idx] || {};
+        const sectionId = s?._id || existing._id || new mongoose.Types.ObjectId();
+        const mediaBlocks = Array.isArray(s?.mediaBlocks)
+          ? s.mediaBlocks
+          : (Array.isArray(existing.mediaBlocks) ? existing.mediaBlocks : []);
+
+        return {
+          ...existing,
+          ...s,
+          _id: sectionId,
+          mediaBlocks
+        };
+      });
     }
     if (Array.isArray(questions)) {
       // Map questionNumber nếu chưa có và cố gắng gán sectionId khi thiếu dựa trên thứ tự section
@@ -524,6 +546,35 @@ const updateTestContent = async (req, res) => {
   }
 };
 
+// Upload media (image/audio) cho section passage
+const uploadSectionMedia = async (req, res) => {
+  try {
+    const files = req.files || [];
+    if (!files.length) {
+      return res.status(400).json({ message: 'Không có file nào được tải lên' });
+    }
+
+    const uploaded = files.map((file) => ({
+      id: new mongoose.Types.ObjectId().toString(),
+      type: file.mimetype.startsWith('audio/') ? 'audio' : 'image',
+      url: `/uploads/tests/media/${path.basename(file.path)}`,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      caption: '',
+      altText: ''
+    }));
+
+    res.status(201).json({
+      message: 'Tải media thành công',
+      files: uploaded
+    });
+  } catch (error) {
+    console.error('Upload section media error:', error);
+    res.status(500).json({ message: 'Không thể tải media, vui lòng thử lại sau' });
+  }
+};
+
 // Xóa bài test (Admin only)
 const deletePlacementTest = async (req, res) => {
   try {
@@ -540,6 +591,83 @@ const deletePlacementTest = async (req, res) => {
   } catch (error) {
     console.error('Delete placement test error:', error);
     res.status(500).json({ message: 'Lỗi server khi xóa bài test' });
+  }
+};
+
+// Xóa nhiều bài test cùng lúc (Admin only)
+const bulkDeletePlacementTests = async (req, res) => {
+  try {
+    const { testIds } = req.body || {};
+
+    if (!Array.isArray(testIds) || !testIds.length) {
+      return res.status(400).json({ message: 'Cần cung cấp danh sách testId để xóa' });
+    }
+
+    const ids = testIds
+      .map((id) => {
+        try {
+          return new mongoose.Types.ObjectId(id);
+        } catch (err) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    if (!ids.length) {
+      return res.status(400).json({ message: 'Danh sách testId không hợp lệ' });
+    }
+
+    const result = await PlacementTest.deleteMany({ _id: { $in: ids } });
+
+    res.json({
+      message: `Đã xóa ${result.deletedCount} bài test`,
+      deleted: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Bulk delete placement tests error:', error);
+    res.status(500).json({ message: 'Lỗi server khi xóa nhiều bài test' });
+  }
+};
+
+// Cập nhật trạng thái hoạt động của nhiều bài test (Admin only)
+const bulkUpdatePlacementTestStatus = async (req, res) => {
+  try {
+    const { testIds, isActive } = req.body || {};
+
+    if (!Array.isArray(testIds) || !testIds.length) {
+      return res.status(400).json({ message: 'Cần cung cấp danh sách testId để cập nhật' });
+    }
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ message: 'Trạng thái isActive phải là boolean' });
+    }
+
+    const ids = testIds
+      .map((id) => {
+        try {
+          return new mongoose.Types.ObjectId(id);
+        } catch (err) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    if (!ids.length) {
+      return res.status(400).json({ message: 'Danh sách testId không hợp lệ' });
+    }
+
+    const result = await PlacementTest.updateMany(
+      { _id: { $in: ids } },
+      { $set: { isActive } }
+    );
+
+    res.json({
+      message: `Đã cập nhật trạng thái cho ${result.modifiedCount} bài test`,
+      modified: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Bulk update placement test status error:', error);
+    res.status(500).json({ message: 'Lỗi server khi cập nhật trạng thái bài test' });
   }
 };
 
@@ -626,7 +754,10 @@ module.exports = {
   createPlacementTest,
   updatePlacementTest,
   deletePlacementTest,
+  bulkDeletePlacementTests,
+  bulkUpdatePlacementTestStatus,
   getPlacementTestStats,
   importPlacementTest,
-  updateTestContent
+  updateTestContent,
+  uploadSectionMedia
 };

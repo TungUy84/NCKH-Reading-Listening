@@ -48,36 +48,36 @@ apiService.interceptors.response.use(
 // These match the backend routes exactly
 
 /**
- * Get all active placement tests
- * Backend: GET /api/placement-tests/active?category=listening
+ * Lấy danh sách bài test đang hoạt động (lọc theo category nếu cần)
+ * Backend: GET /api/placement-tests?category=listening
  */
 export const getActiveTests = async (category?: string) => {
   const params = category ? { category } : {};
-  const response = await apiService.get('/placement-tests/active', { params });
-  return response.data; // Backend returns { tests: [...] }
+  const response = await apiService.get('/placement-tests', { params });
+  return response.data;
 };
 
 /**
- * Get a specific test for taking (questions without correct answers)
- * Backend: GET /api/placement-tests/take/:testId
+ * Lấy chi tiết bài test để làm (không trả đáp án)
+ * Backend: GET /api/placement-tests/:testId
  */
 export const getTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/take/${testId}`);
-  return response.data; // Backend returns { test: {...} }
+  const response = await apiService.get(`/placement-tests/${testId}`);
+  return response.data;
 };
 
 /**
- * Get placement test for taking (IELTS format)
- * Backend: GET /api/placement-tests/take/:testId
+ * Lấy chi tiết bài test IELTS (giữ lại để tương thích component cũ)
+ * Backend: GET /api/placement-tests/:testId
  */
 export const getPlacementTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/take/${testId}`);
-  return response.data; // Backend returns { test: {...} }
+  const response = await apiService.get(`/placement-tests/${testId}`);
+  return response.data;
 };
 
 /**
- * Submit test answers and get results immediately
- * Backend: POST /api/placement-tests/check
+ * Nộp bài test và nhận kết quả ngay
+ * Backend: POST /api/placement-tests/:testId/submissions
  */
 export const submitTest = async (submission: {
   testId: string;
@@ -88,13 +88,17 @@ export const submitTest = async (submission: {
     matchingAnswers?: { prompt: string; selected: string }[];
   }>;
 }) => {
-  const response = await apiService.post('/placement-tests/check', submission);
-  return response.data; // Backend returns { result: {...} }
+  const { testId, answers } = submission;
+  const response = await apiService.post(`/placement-tests/${testId}/submissions`, {
+    testId,
+    answers
+  });
+  return response.data;
 };
 
 /**
- * Submit placement test (IELTS format)
- * Backend: POST /api/placement-tests/check
+ * Nộp bài test IELTS
+ * Backend: POST /api/placement-tests/:testId/submissions
  */
 export const submitPlacementTest = async (testId: string, answers: Array<{
   questionNumber: number;
@@ -102,11 +106,11 @@ export const submitPlacementTest = async (testId: string, answers: Array<{
   userAnswer?: string;
   matchingAnswers?: { prompt: string; selected: string }[];
 }>) => {
-  const response = await apiService.post('/placement-tests/check', {
+  const response = await apiService.post(`/placement-tests/${testId}/submissions`, {
     testId,
     answers
   });
-  return response.data; // Backend returns { result: {...} }
+  return response.data;
 };
 
 // ========== AUTH API FUNCTIONS ==========
@@ -263,7 +267,7 @@ export const getCurrentUser = () => {
  */
 export const testConnection = async () => {
   try {
-    await apiService.get('/placement-tests/active');
+    await apiService.get('/placement-tests');
     return true;
   } catch {
     return false;

@@ -89,8 +89,24 @@ npm start
 - `POST /users` - Tạo tài khoản người dùng
 - `PUT /users/:id` - Cập nhật thông tin người dùng
 - `DELETE /users/:id` - Xóa tài khoản người dùng
-- `PUT /users/:id/toggle-status` - Kích hoạt/Vô hiệu hóa tài khoản
-- `PUT /users/:id/role` - Phân quyền người dùng
+- `PUT /users/:id` (body `isActive`) - Kích hoạt/Vô hiệu hóa tài khoản
+- `PUT /users/:id` (body `role`) - Phân quyền người dùng
+
+### Placement Test Routes (`/api/placement-tests`)
+- `GET /placement-tests` - Lấy danh sách bài test đang hoạt động (public)
+- `GET /placement-tests?scope=admin` - Lấy danh sách bài test đầy đủ (admin, bao gồm filter qua query)
+- `GET /placement-tests/:testId` - Lấy chi tiết bài test để làm (ẩn đáp án)
+- `GET /placement-tests/:testId/details` - Lấy đầy đủ thông tin bài test cho admin
+- `POST /placement-tests` - Tạo bài test mới (admin)
+- `PUT /placement-tests/:testId` - Cập nhật thông tin bài test (admin)
+- `PUT /placement-tests/:testId/content` - Cập nhật sections & questions (admin)
+- `DELETE /placement-tests/:testId` - Xóa bài test (admin)
+- `POST /placement-tests/:testId/submissions` - Nộp bài và chấm điểm ngay (public)
+- `POST /placement-tests/import` - Import bài test từ file Word/PDF/Excel (admin)
+- `POST /placement-tests/media` - Upload media (ảnh/audio) dùng trong bài test (admin)
+- `POST /placement-tests/bulk-delete` - Xóa nhiều bài test (admin)
+- `POST /placement-tests/bulk-update-status` - Cập nhật trạng thái nhiều bài test (admin)
+- `GET /placement-tests/stats` - Lấy thống kê bài test (admin)
 
 ### Authentication Headers
 ```

@@ -23,6 +23,17 @@ export interface PlacementTest {
   updatedAt: string;
 }
 
+export interface SectionMedia {
+  id: string;
+  type: 'image' | 'audio';
+  url: string;
+  caption?: string;
+  altText?: string;
+  originalName?: string;
+  mimeType?: string;
+  size?: number;
+}
+
 export interface TestSection {
   _id: string;
   title: string;
@@ -30,6 +41,7 @@ export interface TestSection {
   audio?: string;
   image?: string;
   timeLimit: number;
+  mediaBlocks?: SectionMedia[];
 }
 
 export interface TestQuestion {

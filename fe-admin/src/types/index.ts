@@ -32,9 +32,10 @@ export interface TestSection {
   audioUrl?: string;
   image?: string;
   imageUrl?: string;
+  mediaBlocks?: SectionMedia[];
   questions: Question[];
 }
-
+ 
 export interface Question {
   _id?: string;
   sectionId?: string;
@@ -72,6 +73,17 @@ export interface QuestionOption {
 export interface MatchingPair {
   prompt: string;
   correctOption: string;
+}
+
+export interface SectionMedia {
+  id: string;
+  type: 'image' | 'audio';
+  url: string;
+  caption?: string;
+  altText?: string;
+  originalName?: string;
+  mimeType?: string;
+  size?: number;
 }
 
 export interface PlacementTestImportPreview {
