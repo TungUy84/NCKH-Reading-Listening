@@ -561,8 +561,6 @@ const uploadSectionMedia = async (req, res) => {
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
-      caption: '',
-      altText: ''
     }));
 
     res.status(201).json({

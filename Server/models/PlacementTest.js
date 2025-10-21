@@ -15,14 +15,6 @@ const mediaBlockSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  caption: {
-    type: String,
-    default: ''
-  },
-  altText: {
-    type: String,
-    default: ''
-  },
   originalName: {
     type: String,
     default: ''

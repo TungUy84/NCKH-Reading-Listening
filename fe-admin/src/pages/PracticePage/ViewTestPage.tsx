@@ -26,8 +26,6 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       id: block?.id || block?._id || generateMediaId(),
       type: block?.type === 'audio' ? 'audio' : 'image',
       url: block?.url || block?.path || '',
-      caption: block?.caption || '',
-      altText: block?.altText || '',
       originalName: block?.originalName || block?.name || '',
       mimeType: block?.mimeType || block?.mimetype || '',
       size: block?.size,
@@ -56,9 +54,6 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
           <source src={block.url} type={block.mimeType || 'audio/mpeg'} />
           Trình duyệt không hỗ trợ audio.
         </audio>
-        {block.caption ? (
-          <p className="mt-1 text-sm text-slate-500">{block.caption}</p>
-        ) : null}
       </div>
     );
   }
@@ -67,12 +62,9 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
     <figure key={`media-image-${key}`} className="my-4">
       <img
         src={block.url}
-        alt={block.altText || block.caption || block.originalName || `Media ${block.id}`}
+        alt={block.originalName || `Media ${block.id}`}
         className="rounded-lg border max-w-full"
       />
-      {block.caption ? (
-        <figcaption className="mt-2 text-center text-sm text-slate-500">{block.caption}</figcaption>
-      ) : null}
     </figure>
   );
 };

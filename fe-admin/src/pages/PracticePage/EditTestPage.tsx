@@ -26,8 +26,6 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       id: block?.id || block?._id || generateMediaId(),
       type: block?.type === 'audio' ? 'audio' : 'image',
       url: block?.url || block?.path || '',
-      caption: block?.caption || '',
-      altText: block?.altText || '',
       originalName: block?.originalName || block?.name || '',
       mimeType: block?.mimeType || block?.mimetype || '',
       size: block?.size,
@@ -69,6 +67,7 @@ const EditTestPage: React.FC = () => {
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
+  const [isMediaDropActive, setIsMediaDropActive] = useState(false);
 
   // Friendly labels for question types
   const TYPE_LABELS: Record<string, string> = {
@@ -216,18 +215,6 @@ const EditTestPage: React.FC = () => {
     });
   };
 
-  const updateSectionMediaBlock = (mediaId: string, patch: Partial<SectionMedia>) => {
-    mutateCurrentSection((section) => {
-      const blocks: SectionMedia[] = Array.isArray(section.mediaBlocks)
-        ? section.mediaBlocks.map((block: SectionMedia) => ({ ...block }))
-        : [];
-      const idx = blocks.findIndex((block: SectionMedia) => block.id === mediaId);
-      if (idx === -1) return section;
-      blocks[idx] = { ...blocks[idx], ...patch };
-      return { ...section, mediaBlocks: blocks };
-    });
-  };
-
   const removeSectionMediaBlock = async (mediaId: string) => {
     const media = sectionMediaBlocks.find((item) => item.id === mediaId);
     if (!media) return;
@@ -355,6 +342,31 @@ const EditTestPage: React.FC = () => {
   const openMediaPicker = () => {
     setMediaUploadError(null);
     mediaInputRef.current?.click();
+  };
+
+  const handleMediaDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    if (mediaUploading) return;
+    event.dataTransfer.dropEffect = 'copy';
+    setIsMediaDropActive(true);
+  };
+
+  const handleMediaDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const related = event.relatedTarget as Node | null;
+    if (!related || !event.currentTarget.contains(related)) {
+      setIsMediaDropActive(false);
+    }
+  };
+
+  const handleMediaDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsMediaDropActive(false);
+    if (mediaUploading) return;
+    const files = event.dataTransfer?.files;
+    if (files && files.length) {
+      handleSectionMediaUpload(files);
+    }
   };
 
   const currentSectionDroppableId = currentSection?._id
@@ -766,8 +778,6 @@ const EditTestPage: React.FC = () => {
             id: m?.id || '',
             type: m?.type || '',
             url: m?.url || '',
-            caption: m?.caption || '',
-            altText: m?.altText || '',
           }))
         : [],
     }));
@@ -901,8 +911,6 @@ const EditTestPage: React.FC = () => {
               id: m?.id || '',
               type: m?.type || '',
               url: m?.url || '',
-              caption: m?.caption || '',
-              altText: m?.altText || '',
             }))
           : [],
       }));
@@ -1099,33 +1107,42 @@ const EditTestPage: React.FC = () => {
               />
             </div>
             <div className="border rounded-lg p-3 space-y-3 bg-slate-50/60">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-col gap-3">
                 <div>
                   <div className="text-sm font-medium text-slate-700">Media trong đoạn văn</div>
-                  <p className="text-xs text-slate-500">Tải ảnh hoặc audio, sau đó chèn mã <span className="font-mono">[[media:ID]]</span> vào đoạn văn.</p>
+                  <p className="text-xs text-slate-500">Kéo thả ảnh hoặc audio vào khung dưới đây, hoặc nhấn để chọn file. Sau khi tải xong, chèn mã <span className="font-mono">[[media:ID]]</span> vào đoạn văn.</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={mediaInputRef}
-                    type="file"
-                    accept="image/*,audio/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      handleSectionMediaUpload(e.target.files);
-                      if (e.target) {
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={openMediaPicker}
-                    disabled={mediaUploading}
-                    className="px-3 py-1.5 text-sm rounded-lg border bg-white hover:bg-slate-100 disabled:opacity-60"
-                  >
-                    {mediaUploading ? 'Đang tải…' : 'Tải media'}
-                  </button>
+                <input
+                  ref={mediaInputRef}
+                  type="file"
+                  accept="image/*,audio/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    handleSectionMediaUpload(e.target.files);
+                    if (e.target) {
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <div
+                  onDragOver={handleMediaDragOver}
+                  onDragLeave={handleMediaDragLeave}
+                  onDrop={handleMediaDrop}
+                  className={`relative rounded-xl border-2 border-dashed transition-all p-5 flex flex-col items-center justify-center text-center cursor-pointer ${isMediaDropActive ? 'border-blue-400 bg-blue-50/70 text-blue-700' : 'border-slate-300 bg-white hover:border-blue-300 hover:bg-blue-50/40'}`}
+                  onClick={openMediaPicker}
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
+                        <path d="M12 4a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V5a1 1 0 0 1 1-1Z" />
+                      </svg>
+                    </span>
+                    <div className="text-sm font-medium">{mediaUploading ? 'Đang tải media…' : 'Kéo thả file vào đây hoặc bấm để chọn'}</div>
+                    <div className="text-xs text-slate-500 max-w-xs">
+                      Chấp nhận file hình (PNG/JPG) và audio (MP3, WAV). Có thể chọn tối đa 10 file mỗi lần tải.
+                    </div>
+                  </div>
                 </div>
               </div>
               {mediaUploadError ? (
@@ -1136,84 +1153,66 @@ const EditTestPage: React.FC = () => {
                   <p className="text-sm text-slate-500">Chưa có media nào cho phần này.</p>
                 ) : (
                   sectionMediaBlocks.map((media) => (
-                    <div key={media.id} className="border rounded-lg bg-white p-3 space-y-2 shadow-sm">
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <div className="sm:w-36 w-full flex-shrink-0">
+                    <div key={media.id} className="border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
+                      <div className="p-4 space-y-4">
+                        <div className="flex flex-col items-center text-center gap-3">
                           {media.type === 'audio' ? (
-                            <audio
-                              controls
-                              controlsList="nodownload"
-                              preload="auto"
-                              className="w-full"
-                              onContextMenu={(event) => event.preventDefault()}
-                            >
-                              <source src={media.url} type={media.mimeType || 'audio/mpeg'} />
-                              Trình duyệt không hỗ trợ audio.
-                            </audio>
+                            <div className="w-full sm:w-2/3 lg:w-1/2">
+                              <audio
+                                controls
+                                controlsList="nodownload"
+                                preload="auto"
+                                className="w-full"
+                                onContextMenu={(event) => event.preventDefault()}
+                              >
+                                <source src={media.url} type={media.mimeType || 'audio/mpeg'} />
+                                Trình duyệt không hỗ trợ audio.
+                              </audio>
+                            </div>
                           ) : (
-                            <img
-                              src={media.url}
-                              alt={media.altText || media.caption || media.originalName || media.id}
-                              className="w-full rounded-md border object-cover"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1 space-y-2">
-                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-                            <div>
-                              <div className="text-sm font-semibold text-slate-800 truncate max-w-[220px]">{media.originalName || media.id}</div>
-                              <div className="text-xs text-slate-500">
-                                {media.type === 'audio' ? 'Audio' : 'Hình ảnh'}
-                                {media.size ? ` • ${(media.size / 1024).toFixed(0)} KB` : ''}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => insertMediaPlaceholder(media.id)}
-                                className="px-2 py-1 text-xs rounded border border-blue-200 text-blue-600 hover:bg-blue-50"
-                              >
-                                Chèn vào đoạn
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => copyMediaPlaceholder(media.id)}
-                                className="px-2 py-1 text-xs rounded border hover:bg-slate-100"
-                              >
-                                Copy mã
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => removeSectionMediaBlock(media.id)}
-                                className="px-2 py-1 text-xs rounded border border-red-200 text-red-600 hover:bg-red-50"
-                              >
-                                Xóa
-                              </button>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs font-medium text-slate-600">Chú thích (caption)</label>
-                              <input
-                                value={media.caption || ''}
-                                onChange={(e) => updateSectionMediaBlock(media.id, { caption: e.target.value })}
-                                className="w-full px-2 py-1.5 text-sm border rounded-lg"
-                                placeholder="Hiển thị dưới media"
+                            <div className="w-full sm:w-2/3 lg:w-1/2">
+                              <img
+                                src={media.url}
+                                alt={media.originalName || media.id}
+                                className="w-full max-h-52 object-contain mx-auto"
                               />
                             </div>
-                            {media.type === 'image' ? (
-                              <div>
-                                <label className="block text-xs font-medium text-slate-600">Alt text</label>
-                                <input
-                                  value={media.altText || ''}
-                                  onChange={(e) => updateSectionMediaBlock(media.id, { altText: e.target.value })}
-                                  className="w-full px-2 py-1.5 text-sm border rounded-lg"
-                                  placeholder="Mô tả cho người đọc màn hình"
-                                />
-                              </div>
-                            ) : null}
+                          )}
+                          <div className="space-y-1">
+                            <div className="text-sm font-semibold text-slate-800 break-words">{media.originalName || media.id}</div>
+                            <div className="flex flex-wrap justify-center gap-2 text-xs text-slate-500">
+                              <span className="px-2 py-0.5 rounded-full border text-[11px] uppercase tracking-wide bg-slate-100 text-slate-600">
+                                {media.type === 'audio' ? 'Audio' : 'Hình ảnh'}
+                              </span>
+                              {media.mimeType ? <span className="px-2 py-0.5 bg-slate-100 rounded-full">{media.mimeType}</span> : null}
+                            </div>
                           </div>
-                          <div className="text-xs text-slate-500">Mã: <span className="font-mono">[[media:{media.id}]]</span></div>
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => insertMediaPlaceholder(media.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50"
+                          >
+                            Chèn vào đoạn
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => copyMediaPlaceholder(media.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border hover:bg-slate-100"
+                          >
+                            Copy mã
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeSectionMediaBlock(media.id)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                        <div className="text-xs text-slate-500 text-center">
+                          Mã chèn: <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">[[media:{media.id}]]</span>
                         </div>
                       </div>
                     </div>

@@ -79,8 +79,6 @@ export interface SectionMedia {
   id: string;
   type: 'image' | 'audio';
   url: string;
-  caption?: string;
-  altText?: string;
   originalName?: string;
   mimeType?: string;
   size?: number;
