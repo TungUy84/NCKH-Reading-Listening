@@ -58,7 +58,7 @@ const App: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route 
             path="/admin/login" 
@@ -74,7 +74,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50">
         {/* Sidebar */}
         <Sidebar 

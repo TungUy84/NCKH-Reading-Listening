@@ -17,6 +17,17 @@ const generateMediaId = (): string => {
   return Math.random().toString(36).slice(2, 10);
 };
 
+const formatDuration = (seconds?: number): string => {
+  if (!seconds || Number.isNaN(seconds) || seconds <= 0) {
+    return '00:00';
+  }
+  const totalSeconds = Math.round(seconds);
+  const minutes = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+};
+
+
 const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
   if (!Array.isArray(blocks)) return [];
   return blocks
@@ -29,6 +40,7 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       originalName: block?.originalName || block?.name || '',
       mimeType: block?.mimeType || block?.mimetype || '',
       size: block?.size,
+      transcript: block?.transcript || '',
     }))
     .filter((block: SectionMedia) => !!block.id);
 };
@@ -47,6 +59,7 @@ const EditTestPage: React.FC = () => {
   // Auto-save states
   const [infoSaving, setInfoSaving] = useState(false);
   const [contentSaving, setContentSaving] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [invalidQuestionIdxs, setInvalidQuestionIdxs] = useState<Set<number>>(new Set());
   const [infoSavedAt, setInfoSavedAt] = useState<number | null>(null);
   const [contentSavedAt, setContentSavedAt] = useState<number | null>(null);
@@ -68,6 +81,12 @@ const EditTestPage: React.FC = () => {
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaUploadError, setMediaUploadError] = useState<string | null>(null);
   const [isMediaDropActive, setIsMediaDropActive] = useState(false);
+  const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
+  const [audioMeta, setAudioMeta] = useState<Record<string, { duration: number; isPlaying: boolean }>>({});
+  const [transcriptModal, setTranscriptModal] = useState<{ open: boolean; mediaId: string | null; value: string }>(
+    { open: false, mediaId: null, value: '' }
+  );
+  const [openMediaMenuId, setOpenMediaMenuId] = useState<string | null>(null);
 
   // Friendly labels for question types
   const TYPE_LABELS: Record<string, string> = {
@@ -198,9 +217,41 @@ const EditTestPage: React.FC = () => {
       .sort((a, b) => ((a.q.questionNumber || 0) - (b.q.questionNumber || 0)));
   }, [test, currentSection, currentSectionIndex]);
 
-  const sectionMediaBlocks: SectionMedia[] = Array.isArray((currentSection as any)?.mediaBlocks)
-    ? ((currentSection as any).mediaBlocks as SectionMedia[])
-    : [];
+  const sectionMediaBlocks: SectionMedia[] = useMemo(() => {
+    if (!Array.isArray((currentSection as any)?.mediaBlocks)) {
+      return [];
+    }
+    return ((currentSection as any).mediaBlocks as SectionMedia[]) || [];
+  }, [currentSection]);
+
+  useEffect(() => {
+    const idSet = new Set(sectionMediaBlocks.map((media) => media.id));
+    setAudioMeta((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((key) => {
+        if (!idSet.has(key)) {
+          delete next[key];
+        }
+      });
+      return next;
+    });
+    Object.keys(audioRefs.current).forEach((key) => {
+      if (!idSet.has(key)) {
+        delete audioRefs.current[key];
+      }
+    });
+  }, [sectionMediaBlocks]);
+
+  useEffect(() => {
+    if (!openMediaMenuId) return;
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('[data-media-menu]')) return;
+      setOpenMediaMenuId(null);
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [openMediaMenuId]);
 
   const mutateCurrentSection = (updater: (section: any) => any) => {
     setTest((prev) => {
@@ -213,6 +264,110 @@ const EditTestPage: React.FC = () => {
       sections[currentSectionIndex] = nextSection;
       return { ...prev, sections } as PlacementTest;
     });
+  };
+
+  const updateSectionMediaBlock = (mediaId: string, patch: Partial<SectionMedia>) => {
+    mutateCurrentSection((section) => {
+      const blocks: SectionMedia[] = Array.isArray(section.mediaBlocks)
+        ? section.mediaBlocks.map((block: SectionMedia) => ({ ...block }))
+        : [];
+      const idx = blocks.findIndex((block: SectionMedia) => block.id === mediaId);
+      if (idx === -1) return section;
+      blocks[idx] = { ...blocks[idx], ...patch };
+      return { ...section, mediaBlocks: blocks };
+    });
+  };
+
+  const openTranscriptEditor = (media: SectionMedia) => {
+    setTranscriptModal({ open: true, mediaId: media.id, value: media.transcript || '' });
+  };
+
+  const closeTranscriptEditor = () => {
+    setTranscriptModal({ open: false, mediaId: null, value: '' });
+  };
+
+  const saveTranscriptFromModal = () => {
+    if (!transcriptModal.mediaId) return;
+    const trimmed = transcriptModal.value.trim();
+    updateSectionMediaBlock(transcriptModal.mediaId, { transcript: trimmed });
+    setTranscriptModal({ open: false, mediaId: null, value: '' });
+    toast.success('Đã lưu transcript cho media');
+  };
+
+  const handleAudioLoaded = (mediaId: string, duration: number) => {
+    setAudioMeta((prev) => ({
+      ...prev,
+      [mediaId]: {
+        duration,
+        isPlaying: prev[mediaId]?.isPlaying ?? false,
+      },
+    }));
+  };
+
+  const handleAudioPlay = (mediaId: string) => {
+    setAudioMeta((prev) => {
+      const next = { ...prev };
+      Object.keys(next).forEach((id) => {
+        next[id] = { ...next[id], isPlaying: id === mediaId };
+      });
+      if (!next[mediaId]) {
+        const audio = audioRefs.current[mediaId];
+        next[mediaId] = {
+          duration: audio?.duration ?? 0,
+          isPlaying: true,
+        };
+      }
+      return next;
+    });
+
+    Object.entries(audioRefs.current).forEach(([id, audio]) => {
+      if (id !== mediaId && audio && !audio.paused) {
+        audio.pause();
+      }
+    });
+  };
+
+  const handleAudioPause = (mediaId: string) => {
+    setAudioMeta((prev) => {
+      if (!prev[mediaId]) return prev;
+      return {
+        ...prev,
+        [mediaId]: {
+          ...prev[mediaId],
+          isPlaying: false,
+        },
+      };
+    });
+  };
+
+  const handleAudioEnded = (mediaId: string) => {
+    handleAudioPause(mediaId);
+    const audio = audioRefs.current[mediaId];
+    if (audio) {
+      audio.currentTime = 0;
+    }
+  };
+
+  const toggleAudioPlay = async (mediaId: string) => {
+    const audio = audioRefs.current[mediaId];
+    if (!audio) return;
+
+    Object.entries(audioRefs.current).forEach(([id, ref]) => {
+      if (id !== mediaId && ref) {
+        ref.pause();
+      }
+    });
+
+    try {
+      if (audio.paused) {
+        await audio.play();
+      } else {
+        audio.pause();
+      }
+    } catch (error) {
+      console.error('Không thể phát audio', error);
+      toast.error('Không thể phát audio. Vui lòng thử lại.');
+    }
   };
 
   const removeSectionMediaBlock = async (mediaId: string) => {
@@ -241,23 +396,20 @@ const EditTestPage: React.FC = () => {
     toast.success('Đã xóa media khỏi phần');
   };
 
-  const insertMediaPlaceholder = (mediaId: string) => {
+  const insertMediaAtBeginning = (mediaId: string) => {
     const placeholder = `[[media:${mediaId}]]`;
-    const textarea = passageTextareaRef.current;
     const currentPassage = (currentSection as any)?.passage || '';
-    const start = textarea ? textarea.selectionStart ?? currentPassage.length : currentPassage.length;
-    const end = textarea ? textarea.selectionEnd ?? start : start;
-    const nextPassage = currentPassage.slice(0, start) + placeholder + currentPassage.slice(end);
-    updateSectionField('passage', nextPassage);
-    window.requestAnimationFrame(() => {
-      if (textarea) {
-        const cursor = start + placeholder.length;
-        textarea.focus();
-        textarea.selectionStart = cursor;
-        textarea.selectionEnd = cursor;
-      }
-    });
-    toast.success('Đã chèn media vào đoạn văn');
+    const delimiter = currentPassage ? '\n\n' : '';
+    updateSectionField('passage', `${placeholder}${delimiter}${currentPassage}`);
+    toast.success('Đã chèn media vào đầu đoạn văn');
+  };
+
+  const insertMediaAtEnd = (mediaId: string) => {
+    const placeholder = `[[media:${mediaId}]]`;
+    const currentPassage = (currentSection as any)?.passage || '';
+    const delimiter = currentPassage ? '\n\n' : '';
+    updateSectionField('passage', currentPassage ? `${currentPassage}${delimiter}${placeholder}` : placeholder);
+    toast.success('Đã chèn media vào cuối đoạn văn');
   };
 
   const copyMediaPlaceholder = async (mediaId: string) => {
@@ -742,8 +894,9 @@ const EditTestPage: React.FC = () => {
       lastInfoSigRef.current = sig;
       return;
     }
-    if (lastInfoSigRef.current === sig) return;
-    if (infoDebounceRef.current) window.clearTimeout(infoDebounceRef.current);
+  if (!autoSaveEnabled) return;
+  if (lastInfoSigRef.current === sig) return;
+  if (infoDebounceRef.current) window.clearTimeout(infoDebounceRef.current);
     infoDebounceRef.current = window.setTimeout(async () => {
       try {
         setInfoSaving(true);
@@ -759,7 +912,7 @@ const EditTestPage: React.FC = () => {
     return () => {
       if (infoDebounceRef.current) window.clearTimeout(infoDebounceRef.current);
     };
-  }, [testId, title, description, category, timeLimit, instructions, isActive]);
+  }, [testId, title, description, category, timeLimit, instructions, isActive, autoSaveEnabled]);
 
   // --- Auto-save: Content (sections & questions) ---
   useEffect(() => {
@@ -775,10 +928,11 @@ const EditTestPage: React.FC = () => {
       timeLimit: s?.timeLimit || 0,
       mediaBlocks: Array.isArray(s?.mediaBlocks)
         ? s.mediaBlocks.map((m: any) => ({
-            id: m?.id || '',
-            type: m?.type || '',
-            url: m?.url || '',
-          }))
+          id: m?.id || '',
+          type: m?.type || '',
+          url: m?.url || '',
+          transcript: m?.transcript || '',
+        }))
         : [],
     }));
     const questionsSig = (test?.questions || []).map((q: any) => ({
@@ -798,6 +952,7 @@ const EditTestPage: React.FC = () => {
       lastContentSigRef.current = sig;
       return;
     }
+    if (!autoSaveEnabled) return;
     if (lastContentSigRef.current === sig) return;
     if (contentDebounceRef.current) window.clearTimeout(contentDebounceRef.current);
     contentDebounceRef.current = window.setTimeout(async () => {
@@ -811,7 +966,7 @@ const EditTestPage: React.FC = () => {
 
       try {
         setContentSaving(true);
-  await PlacementTestAPI.updateTestContent(testId, { sections: sanitizedSections, questions: currentQuestions });
+        await PlacementTestAPI.updateTestContent(testId, { sections: sanitizedSections, questions: currentQuestions });
         lastContentSigRef.current = sig;
         setContentSavedAt(Date.now());
         setInvalidQuestionIdxs((prev) => (prev.size ? new Set() : prev));
@@ -824,7 +979,7 @@ const EditTestPage: React.FC = () => {
     return () => {
       if (contentDebounceRef.current) window.clearTimeout(contentDebounceRef.current);
     };
-  }, [testId, test?.sections, test?.questions]);
+  }, [testId, test?.sections, test?.questions, autoSaveEnabled]);
 
   // Option-based types and defaults
   const optionTypeSet = new Set(['multi_choice', 'dropdown']);
@@ -908,10 +1063,11 @@ const EditTestPage: React.FC = () => {
         timeLimit: s?.timeLimit || 0,
         mediaBlocks: Array.isArray(s?.mediaBlocks)
           ? s.mediaBlocks.map((m: any) => ({
-              id: m?.id || '',
-              type: m?.type || '',
-              url: m?.url || '',
-            }))
+            id: m?.id || '',
+            type: m?.type || '',
+            url: m?.url || '',
+            transcript: m?.transcript || '',
+          }))
           : [],
       }));
       const questionsSig = (payload.questions || []).map((q: any) => ({
@@ -959,158 +1115,235 @@ const EditTestPage: React.FC = () => {
   if (loading) return <div className="p-6">Đang tải...</div>;
 
   return (
-    <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-800">Chỉnh sửa bài test</h1>
-        <div className="flex items-center gap-3">
-          {(infoSaving || contentSaving) ? (
-            <span className="inline-flex items-center text-slate-500 text-sm" title="Đang tự động lưu">
-              <svg className="animate-spin -ml-0.5 mr-1 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-              </svg>
-            </span>
-          ) : ((infoSavedAt || contentSavedAt) ? (
-            <span className="inline-flex items-center text-green-600" title="Đã lưu gần đây">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
-              </svg>
-            </span>
-          ) : null)}
-          <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Xem</Link>
-          <Link to="/admin/placement-tests" className="px-4 py-2 rounded-lg bg-slate-800 text-white">Danh sách</Link>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border overflow-hidden">
-        <button
-          type="button"
-          className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50"
-          onClick={() => setShowBasicInfo((v) => !v)}
-          aria-expanded={showBasicInfo}
-        >
-          <div className="flex items-center gap-3">
-            {/* Hamburger icon */}
-            <span className="inline-block w-5">
-              <span className="block h-[2px] bg-slate-700 mb-1"></span>
-              <span className="block h-[2px] bg-slate-700 mb-1"></span>
-              <span className="block h-[2px] bg-slate-700"></span>
-            </span>
-            <span className="font-medium text-slate-800">Thông tin bài test</span>
+    <>
+      {transcriptModal.open ? (
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-900/60 p-4">
+          <div
+            className="absolute inset-0"
+            onClick={closeTranscriptEditor}
+            aria-hidden="true"
+          />
+          <div className="relative z-10 w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-slate-800">Transcript cho audio</h3>
+            <p className="mt-1 text-sm text-slate-500">Nhập nội dung transcript thủ công. Bạn có thể chỉnh sửa bất cứ lúc nào.</p>
+            <textarea
+              className="mt-4 h-48 w-full resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              value={transcriptModal.value}
+              onChange={(event) => setTranscriptModal((prev) => ({ ...prev, value: event.target.value }))}
+              placeholder="Nhập transcript cho đoạn audio này..."
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={closeTranscriptEditor}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={saveTranscriptFromModal}
+                className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700"
+              >
+                Lưu transcript
+              </button>
+            </div>
           </div>
-          <span className="text-slate-500 text-sm">{showBasicInfo ? 'Ẩn' : 'Hiện'}</span>
-        </button>
-        {showBasicInfo && (
-          <form onSubmit={onSubmit} className="p-4 space-y-4 border-t">
-            <div>
-              <label className="block text-sm mb-1">Tiêu đề</label>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div>
-              <label className="block text-sm mb-1">Mô tả</label>
-              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-3 py-2 border rounded-lg" />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm mb-1">Loại bài test</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-3 py-2 border rounded-lg">
-                  <option value="reading">Reading</option>
-                  <option value="listening">Listening</option>
-                  <option value="general">General</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Thời gian (phút)</label>
-                <input type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(parseInt(e.target.value || '0', 10))} className="w-full px-3 py-2 border rounded-lg" />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Trạng thái</label>
-                <div className="w-full h-[42px] px-3 border rounded-lg flex items-center gap-2">
-                  <button type="button" onClick={() => setIsActive((v) => !v)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-slate-300'}`}>
-                    <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
-                  </button>
-                  <span className={`text-sm ${isActive ? 'text-green-700' : 'text-slate-600'}`}>{isActive ? 'Hoạt động' : 'Tạm ẩn'}</span>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm mb-2">Hướng dẫn</label>
-              <div className="space-y-2">
-                {instructions.map((inst, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <input value={inst} onChange={(e) => updateInstruction(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />
-                    <button type="button" onClick={() => removeInstruction(idx)} className="px-3 py-2 rounded-lg border">Xóa</button>
-                  </div>
-                ))}
-                <button type="button" onClick={addInstruction} className="px-4 py-2 rounded-lg border">+ Thêm hướng dẫn</button>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu ngay</button>
-              {infoSaving ? (
-                <span className="text-sm text-slate-500">Đang lưu…</span>
-              ) : (infoSavedAt ? <span className="text-sm text-green-600">Đã lưu</span> : null)}
-              <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Hủy</Link>
-            </div>
-          </form>
-        )}
-      </div>
+        </div>
+      ) : null}
 
-      {/* Split View: fixed height with editing */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-0" ref={gridRef}>
-        {/* Left: Section content */}
-        <div className="bg-white lg:rounded-l-xl rounded-t-xl lg:rounded-tr-none border overflow-hidden lg:border-r-0 flex flex-col" style={{ height: panelHeight }}>
-          <div className="h-12 px-4 border-b flex items-center justify-between ">
-            <div className="min-w-0 flex-1">
-              {isEditingSectionTitle ? (
-                <input
-                  autoFocus
-                  value={tempSectionTitle}
-                  onChange={(e) => setTempSectionTitle(e.target.value)}
-                  onBlur={() => { setIsEditingSectionTitle(false); updateSectionField('title', tempSectionTitle.trim()); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
-                    if (e.key === 'Escape') { setIsEditingSectionTitle(false); }
-                  }}
-                  placeholder="Nhập tiêu đề phần..."
-                  className="w-full bg-transparent border-b border-slate-300 focus:border-blue-500 outline-none text-base font-semibold text-slate-800"
-                />
+      <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-slate-800">Chỉnh sửa bài test</h1>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-slate-500">Tự động lưu</span>
+              <button
+                type="button"
+                onClick={() => setAutoSaveEnabled((v) => !v)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoSaveEnabled ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                aria-pressed={autoSaveEnabled}
+              >
+                <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${autoSaveEnabled ? 'translate-x-5' : 'translate-x-1'}`} />
+              </button>
+              {autoSaveEnabled ? (
+                (infoSaving || contentSaving) ? (
+                  <span className="inline-flex items-center text-slate-500" title="Đang tự động lưu">
+                    <svg className="animate-spin -ml-0.5 mr-1 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                    </svg>
+                  </span>
+                ) : ((infoSavedAt || contentSavedAt) ? (
+                  <span className="inline-flex items-center text-emerald-600" title="Đã lưu gần đây">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                ) : null)
               ) : (
-                <button
-                  type="button"
-                  onClick={() => { setTempSectionTitle(currentSection?.title || ''); setIsEditingSectionTitle(true); }}
-                  title="Nhấn để chỉnh sửa tiêu đề phần"
-                  className="text-left w-full truncate"
-                >
-                  <span className="text-base font-semibold text-slate-800">{currentSection?.title || '—'}</span>
-                </button>
+                <span className="inline-flex items-center text-slate-400" title="Tự động lưu đang tắt">Tắt</span>
               )}
             </div>
-            {test?.sections && (
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-sm text-slate-500">{currentSectionIndex + 1} / {test.sections.length}</span>
-                <span className="mx-1 text-slate-300">|</span>
-                <button type="button" onClick={addSection} className="px-2 py-1 rounded-lg border hover:bg-slate-50">+ Thêm phần</button>
-                <button type="button" onClick={deleteCurrentSection} className="px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Xóa phần</button>
-              </div>
-            )}
+            <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Xem</Link>
+            <Link to="/admin/placement-tests" className="px-4 py-2 rounded-lg bg-slate-800 text-white">Danh sách</Link>
           </div>
-          <div className="p-3 space-y-4 flex-1 overflow-auto">
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">Đoạn văn (passage)</label>
-              <textarea
-                ref={passageTextareaRef}
-                value={currentSection?.passage || ''}
-                onChange={(e) => updateSectionField('passage', e.target.value)}
-                rows={14}
-                className="w-full px-3 py-2 border rounded-lg whitespace-pre-wrap"
-              />
+        </div>
+
+        <div className="bg-white rounded-xl border overflow-hidden">
+          <button
+            type="button"
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-slate-50"
+            onClick={() => setShowBasicInfo((v) => !v)}
+            aria-expanded={showBasicInfo}
+          >
+            <div className="flex items-center gap-3">
+              {/* Hamburger icon */}
+              <span className="inline-block w-5">
+                <span className="block h-[2px] bg-slate-700 mb-1"></span>
+                <span className="block h-[2px] bg-slate-700 mb-1"></span>
+                <span className="block h-[2px] bg-slate-700"></span>
+              </span>
+              <span className="font-medium text-slate-800">Thông tin bài test</span>
             </div>
-            <div className="border rounded-lg p-3 space-y-3 bg-slate-50/60">
-              <div className="flex flex-col gap-3">
+            <span className="text-slate-500 text-sm">{showBasicInfo ? 'Ẩn' : 'Hiện'}</span>
+          </button>
+          {showBasicInfo && (
+            <form onSubmit={onSubmit} className="p-4 space-y-4 border-t">
+              <div>
+                <label className="block text-sm mb-1">Tiêu đề</label>
+                <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">Mô tả</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-3 py-2 border rounded-lg" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <div className="text-sm font-medium text-slate-700">Media trong đoạn văn</div>
-                  <p className="text-xs text-slate-500">Kéo thả ảnh hoặc audio vào khung dưới đây, hoặc nhấn để chọn file. Sau khi tải xong, chèn mã <span className="font-mono">[[media:ID]]</span> vào đoạn văn.</p>
+                  <label className="block text-sm mb-1">Loại bài test</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value as any)} className="w-full px-3 py-2 border rounded-lg">
+                    <option value="reading">Reading</option>
+                    <option value="listening">Listening</option>
+                    <option value="general">General</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Thời gian (phút)</label>
+                  <input type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(parseInt(e.target.value || '0', 10))} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Trạng thái</label>
+                  <div className="w-full h-[42px] px-3 border rounded-lg flex items-center gap-2">
+                    <button type="button" onClick={() => setIsActive((v) => !v)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-slate-300'}`}>
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
+                    </button>
+                    <span className={`text-sm ${isActive ? 'text-green-700' : 'text-slate-600'}`}>{isActive ? 'Hoạt động' : 'Tạm ẩn'}</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm mb-2">Hướng dẫn</label>
+                <div className="space-y-2">
+                  {instructions.map((inst, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <input value={inst} onChange={(e) => updateInstruction(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />
+                      <button type="button" onClick={() => removeInstruction(idx)} className="px-3 py-2 rounded-lg border">Xóa</button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addInstruction} className="px-4 py-2 rounded-lg border">+ Thêm hướng dẫn</button>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu ngay</button>
+                {infoSaving ? (
+                  <span className="text-sm text-slate-500">Đang lưu…</span>
+                ) : (infoSavedAt ? <span className="text-sm text-green-600">Đã lưu</span> : null)}
+                <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Hủy</Link>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Split View: fixed height with editing */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-0" ref={gridRef}>
+          {/* Left: Section content */}
+          <div className="bg-white lg:rounded-l-xl rounded-t-xl lg:rounded-tr-none border overflow-hidden lg:border-r-0 flex flex-col" style={{ height: panelHeight }}>
+            <div className="h-12 px-4 border-b flex items-center justify-between ">
+              <div className="min-w-0 flex-1">
+                {isEditingSectionTitle ? (
+                  <input
+                    autoFocus
+                    value={tempSectionTitle}
+                    onChange={(e) => setTempSectionTitle(e.target.value)}
+                    onBlur={() => { setIsEditingSectionTitle(false); updateSectionField('title', tempSectionTitle.trim()); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { (e.target as HTMLInputElement).blur(); }
+                      if (e.key === 'Escape') { setIsEditingSectionTitle(false); }
+                    }}
+                    placeholder="Nhập tiêu đề phần..."
+                    className="w-full bg-transparent border-b border-slate-300 focus:border-blue-500 outline-none text-base font-semibold text-slate-800"
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setTempSectionTitle(currentSection?.title || ''); setIsEditingSectionTitle(true); }}
+                    title="Nhấn để chỉnh sửa tiêu đề phần"
+                    className="text-left w-full truncate"
+                  >
+                    <span className="text-base font-semibold text-slate-800">{currentSection?.title || '—'}</span>
+                  </button>
+                )}
+              </div>
+              {test?.sections && (
+                <div className="flex items-center gap-2 whitespace-nowrap">
+                  <span className="text-sm text-slate-500">{currentSectionIndex + 1} / {test.sections.length}</span>
+                  <span className="mx-1 text-slate-300">|</span>
+                  <button type="button" onClick={addSection} className="px-2 py-1 rounded-lg border hover:bg-slate-50">+ Thêm phần</button>
+                  <button type="button" onClick={deleteCurrentSection} className="px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Xóa phần</button>
+                </div>
+              )}
+            </div>
+            <div className="p-3 space-y-4 flex-1 overflow-auto">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Đoạn văn (passage)</label>
+                <textarea
+                  ref={passageTextareaRef}
+                  value={currentSection?.passage || ''}
+                  onChange={(e) => updateSectionField('passage', e.target.value)}
+                  rows={14}
+                  className="w-full px-3 py-2 border rounded-lg whitespace-pre-wrap"
+                />
+              </div>
+              <div className="border rounded-xl bg-white">
+                <div className="flex items-center justify-between border-b px-4 py-3" onDragOver={handleMediaDragOver} onDragLeave={handleMediaDragLeave} onDrop={handleMediaDrop}>
+                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+                    <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
+                      </svg>
+                    </span>
+                    Media trong đoạn văn
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500">
+                    <button
+                      type="button"
+                      onClick={openMediaPicker}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
+                      </svg>
+                      Thêm media
+                    </button>
+                    {isMediaDropActive ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5-5m0 0l5 5m-5-5v12" />
+                        </svg>
+                        Thả để tải lên
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
                 <input
                   ref={mediaInputRef}
@@ -1125,297 +1358,386 @@ const EditTestPage: React.FC = () => {
                     }
                   }}
                 />
+                {mediaUploadError ? (
+                  <div className="px-4 py-3 text-sm text-red-600">{mediaUploadError}</div>
+                ) : null}
                 <div
+                  className="p-4"
                   onDragOver={handleMediaDragOver}
                   onDragLeave={handleMediaDragLeave}
                   onDrop={handleMediaDrop}
-                  className={`relative rounded-xl border-2 border-dashed transition-all p-5 flex flex-col items-center justify-center text-center cursor-pointer ${isMediaDropActive ? 'border-blue-400 bg-blue-50/70 text-blue-700' : 'border-slate-300 bg-white hover:border-blue-300 hover:bg-blue-50/40'}`}
-                  onClick={openMediaPicker}
                 >
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-6 w-6">
-                        <path d="M12 4a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H6a1 1 0 1 1 0-2h5V5a1 1 0 0 1 1-1Z" />
-                      </svg>
-                    </span>
-                    <div className="text-sm font-medium">{mediaUploading ? 'Đang tải media…' : 'Kéo thả file vào đây hoặc bấm để chọn'}</div>
-                    <div className="text-xs text-slate-500 max-w-xs">
-                      Chấp nhận file hình (PNG/JPG) và audio (MP3, WAV). Có thể chọn tối đa 10 file mỗi lần tải.
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {mediaUploadError ? (
-                <div className="text-sm text-red-600">{mediaUploadError}</div>
-              ) : null}
-              <div className="space-y-3">
-                {sectionMediaBlocks.length === 0 ? (
-                  <p className="text-sm text-slate-500">Chưa có media nào cho phần này.</p>
-                ) : (
-                  sectionMediaBlocks.map((media) => (
-                    <div key={media.id} className="border border-slate-200 rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow">
-                      <div className="p-4 space-y-4">
-                        <div className="flex flex-col items-center text-center gap-3">
-                          {media.type === 'audio' ? (
-                            <div className="w-full sm:w-2/3 lg:w-1/2">
-                              <audio
-                                controls
-                                controlsList="nodownload"
-                                preload="auto"
-                                className="w-full"
-                                onContextMenu={(event) => event.preventDefault()}
-                              >
-                                <source src={media.url} type={media.mimeType || 'audio/mpeg'} />
-                                Trình duyệt không hỗ trợ audio.
-                              </audio>
-                            </div>
-                          ) : (
-                            <div className="w-full sm:w-2/3 lg:w-1/2">
-                              <img
-                                src={media.url}
-                                alt={media.originalName || media.id}
-                                className="w-full max-h-52 object-contain mx-auto"
-                              />
-                            </div>
-                          )}
-                          <div className="space-y-1">
-                            <div className="text-sm font-semibold text-slate-800 break-words">{media.originalName || media.id}</div>
-                            <div className="flex flex-wrap justify-center gap-2 text-xs text-slate-500">
-                              <span className="px-2 py-0.5 rounded-full border text-[11px] uppercase tracking-wide bg-slate-100 text-slate-600">
-                                {media.type === 'audio' ? 'Audio' : 'Hình ảnh'}
-                              </span>
-                              {media.mimeType ? <span className="px-2 py-0.5 bg-slate-100 rounded-full">{media.mimeType}</span> : null}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap justify-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => insertMediaPlaceholder(media.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50"
-                          >
-                            Chèn vào đoạn
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => copyMediaPlaceholder(media.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border hover:bg-slate-100"
-                          >
-                            Copy mã
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeSectionMediaBlock(media.id)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs rounded-lg border border-red-200 text-red-600 hover:bg-red-50"
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                        <div className="text-xs text-slate-500 text-center">
-                          Mã chèn: <span className="font-mono bg-slate-100 px-1.5 py-0.5 rounded">[[media:{media.id}]]</span>
-                        </div>
+                  {sectionMediaBlocks.length === 0 ? (
+                    isMediaDropActive ? (
+                      <div
+                        className="rounded-lg border border-dashed border-blue-300 bg-blue-50/60 p-6 text-center text-sm font-medium text-blue-600"
+                      >
+                        Thả vào đây để tải media lên
                       </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-            {/* Legacy audio/image URL inputs removed at user request; media now managed entirely via uploads */}
-          </div>
-          <div className="h-12 border-t bg-slate-50 flex items-center p-3">
-            <button
-              onClick={prevSection}
-              disabled={currentSectionIndex === 0}
-              className="px-3 py-2 rounded-lg border disabled:opacity-50"
-            >
-              ◀ Trước
-            </button>
-          </div>
-        </div>
-
-        {/* Right: Questions of current section */}
-  <div className="bg-white lg:rounded-r-xl rounded-b-xl lg:rounded-bl-none border overflow-hidden lg:border-l-0 flex flex-col" style={{ height: panelHeight }}>
-          <div className="h-12 px-4 border-b flex items-center justify-between gap-2">
-            <h2 className="font-semibold">Câu hỏi trong phần này</h2>
-            <div className="flex items-center gap-3">
-              <button onClick={addQuestionToCurrentSection} className="px-2 py-1 rounded-lg border">+ Thêm câu hỏi</button>
-              <button onClick={saveContent} disabled={saving} className="px-2 py-1 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu nội dung</button>
-            </div>
-          </div>
-          <div className="p-4 flex-1 overflow-auto">
-            {sectionQuestionPairs.length === 0 ? (
-              <div className="text-slate-500 text-sm">Chưa có câu hỏi cho phần này.</div>
-            ) : (
-              <DragDropContext onDragEnd={handleQuestionDragEnd}>
-                <Droppable droppableId={currentSectionDroppableId}>
-                  {(dropProvided, dropSnapshot) => (
-                    <div
-                      ref={dropProvided.innerRef}
-                      {...dropProvided.droppableProps}
-                      className={`space-y-4 transition-colors ${dropSnapshot.isDraggingOver ? 'bg-blue-50/40 rounded-lg p-2' : ''}`}
-                    >
-                      {sectionQuestionPairs.map(({ q, idx }, i) => {
-                        const hasOptions = optionTypeSet.has(q.type) && Array.isArray(q.options) && q.options.length > 0;
-                        const answersFromOptions = hasOptions ? (q.options || []).filter((op: any) => op.isCorrect).map((op: any) => op.text) : [];
-                        let finalAnswers: string[];
-                        if (q.type === 'matching' && Array.isArray(q.matchingPairs)) {
-                          finalAnswers = q.matchingPairs.map((pair: any) => `${pair.prompt || '—'} → ${pair.correctOption || '—'}`);
-                        } else if (hasOptions) {
-                          finalAnswers = answersFromOptions;
-                        } else {
-                          finalAnswers = (q.correctAnswers || []);
-                        }
-                        const draggableId = `question-${normalizeId((q as any)?._id) || idx}`;
+                    ) : (
+                      <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-6 text-center text-sm text-slate-500">
+                        Chưa có media nào. Bấm “Thêm media” để tải lên.
+                      </div>
+                    )
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                      {sectionMediaBlocks.map((media) => {
+                        const audioInfo = audioMeta[media.id] || { duration: 0, isPlaying: false };
+                        const isMenuOpen = openMediaMenuId === media.id;
                         return (
-                          <Draggable key={draggableId} draggableId={draggableId} index={i}>
-                            {(dragProvided, dragSnapshot) => (
-                              <div
-                                ref={dragProvided.innerRef}
-                                {...dragProvided.draggableProps}
-                                className={`border rounded-lg transition-colors ${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} ${invalidQuestionIdxs.has(idx) ? 'border-red-400 bg-red-50/40' : ''} ${dragSnapshot.isDragging ? 'shadow-lg ring-2 ring-blue-200' : ''}`}
+                          <div
+                            key={media.id}
+                            className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow focus-within:ring-2 focus-within:ring-blue-200"
+                            tabIndex={0}
+                          >
+                            <div className="absolute right-3 top-3 z-10" data-media-menu>
+                              <button
+                                type="button"
+                                data-media-menu
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setOpenMediaMenuId((prev) => (prev === media.id ? null : media.id));
+                                }}
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-slate-600 shadow ring-1 ring-slate-200 transition hover:text-blue-600"
+                                aria-haspopup="menu"
+                                aria-expanded={isMenuOpen}
                               >
-                                <div className="flex items-stretch">
-                                  <span
-                                    {...dragProvided.dragHandleProps}
-                                    className={`px-2 py-3 flex items-center text-slate-400 ${dragSnapshot.isDragging ? 'cursor-grabbing' : 'cursor-grab'} select-none border-r border-slate-200 ${openQuestionIdx === idx ? 'bg-blue-50' : invalidQuestionIdxs.has(idx) ? 'bg-red-50/40' : 'bg-white'} rounded-l-lg`}
-                                    aria-label="Giữ để di chuyển câu hỏi"
-                                  >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                      <path d="M7 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM11 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM7 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM11 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM7 14a1 1 0 112 0v1a1 1 0 11-2 0v-1zM11 14a1 1 0 112 0v1a1 1 0 11-2 0v-1z" />
-                                    </svg>
-                                  </span>
+                                <span className="sr-only">Mở menu media</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                                  <path d="M5.25 12a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm5.25 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6.75-1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
+                                </svg>
+                              </button>
+                              {isMenuOpen ? (
+                                <div
+                                  data-media-menu
+                                  className="absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-sm shadow-xl"
+                                >
                                   <button
                                     type="button"
-                                    onClick={() => setOpenQuestionIdx(openQuestionIdx === idx ? null : idx)}
-                                    className={`${openQuestionIdx === idx ? 'bg-blue-50' : ''} flex-1 text-left p-3 flex items-start justify-between gap-3 rounded-tr-lg`}
+                                    className="flex w-full items-center justify-between px-3 py-2 text-left text-blue-600 hover:bg-blue-50"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      insertMediaAtBeginning(media.id);
+                                      setOpenMediaMenuId(null);
+                                    }}
                                   >
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm text-slate-500">Câu {q.questionNumber ?? i + 1}</div>
-                                      <div className={`font-medium whitespace-pre-wrap break-words ${invalidQuestionIdxs.has(idx) ? 'text-red-600' : 'text-slate-800'}`}>{q.content || '—'}</div>
-                                      <div className="mt-1 text-xs text-slate-600"><span className="font-medium">Đáp án:</span> {finalAnswers.length ? finalAnswers.join(', ') : '—'}</div>
-                                    </div>
-                                    <div className={`text-xs px-2 py-1 rounded h-min whitespace-nowrap flex-shrink-0 leading-none ${openQuestionIdx === idx ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{typeLabel(q.type)}</div>
+                                    Chèn vào đầu
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center justify-between px-3 py-2 text-left text-blue-600 hover:bg-blue-50"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      insertMediaAtEnd(media.id);
+                                      setOpenMediaMenuId(null);
+                                    }}
+                                  >
+                                    Chèn vào cuối
+                                  </button>
+                                  {media.type === 'audio' ? (
+                                    <button
+                                      type="button"
+                                      className="flex w-full items-center justify-between px-3 py-2 text-left text-indigo-600 hover:bg-indigo-50"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        openTranscriptEditor(media);
+                                        setOpenMediaMenuId(null);
+                                      }}
+                                    >
+                                      Transcript
+                                    </button>
+                                  ) : null}
+                                  <button
+                                    type="button"
+                                    className="flex w-full items-center justify-between px-3 py-2 text-left text-red-600 hover:bg-red-50"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setOpenMediaMenuId(null);
+                                      removeSectionMediaBlock(media.id);
+                                    }}
+                                  >
+                                    Xóa media
                                   </button>
                                 </div>
-                                {openQuestionIdx === idx && (
-                                  <div className="border-t p-3 space-y-3">
-                                    <div className="flex justify-end"><button type="button" onClick={() => deleteQuestion(idx)} className="px-2 py-1 text-red-600 border border-red-200 rounded">Xóa câu</button></div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                      <div>
-                                        <label className="block text-sm font-medium">Loại câu hỏi</label>
-                                        <select value={q.type} onChange={(e) => onTypeChange(idx, e.target.value)} className="w-full px-3 py-2 border rounded-lg">
-                                          <option value="multi_choice">Multiple choice</option>
-                                          <option value="short_answer">Short answer</option>
-                                          <option value="matching">Matching</option>
-                                          <option value="dropdown">Dropdown</option>
-                                        </select>
-                                        {q.type === 'multi_choice' && (
-                                          <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600">
-                                            <input
-                                              type="checkbox"
-                                              checked={!!q.allowMultiple}
-                                              onChange={(e) => updateQuestion(idx, (qq) => {
-                                                const next = { ...qq, allowMultiple: e.target.checked };
-                                                if (!e.target.checked) {
-                                                  const firstCorrectIdx = (next.options || []).findIndex((op: any) => op.isCorrect);
-                                                  next.options = (next.options || []).map((op: any, opIdx: number) => ({
-                                                    ...op,
-                                                    isCorrect: opIdx === Math.max(firstCorrectIdx, 0)
-                                                  }));
-                                                }
-                                                return next;
-                                              })}
-                                            />
-                                            Cho phép chọn nhiều đáp án đúng
-                                          </label>
-                                        )}
-                                      </div>
-                                      <div className="w-full md:w-40">
-                                        <label className="block text-sm font-medium">Điểm</label>
-                                        <input type="number" min={0} value={q.points ?? 1} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, points: Number(e.target.value || 0) }))} className="w-full px-3 py-2 border rounded-lg" />
-                                      </div>
-                                    </div>
-                                    <label className="block text-sm font-medium">Nội dung</label>
-                                    <textarea value={q.content || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, content: e.target.value }))} rows={3} className="w-full px-3 py-2 border rounded-lg" />
-                                    {optionTypeSet.has(q.type) ? (
-                                      <div className="space-y-2">
-                                        <div className="text-sm font-medium">Phương án</div>
-                                        {(q.options || []).map((op: any, opIdx: number) => (
-                                          <div key={opIdx} className="flex items-center gap-2">
-                                            <input type="checkbox" checked={!!op.isCorrect} onChange={(e) => updateOption(idx, opIdx, { isCorrect: e.target.checked })} />
-                                            <input value={op.text || ''} onChange={(e) => updateOption(idx, opIdx, { text: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg" />
-                                            <button type="button" onClick={() => removeOption(idx, opIdx)} className="px-2 py-2 border rounded">Xóa</button>
-                                          </div>
-                                        ))}
-                                        <button type="button" onClick={() => addOption(idx)} className="px-3 py-2 border rounded">+ Thêm phương án</button>
-                                      </div>
-                                    ) : q.type === 'matching' ? (
-                                      <div className="space-y-2">
-                                        <div className="text-sm font-medium">Ghép cặp</div>
-                                        {(q.matchingPairs || []).map((pair: any, pairIdx: number) => (
-                                          <div key={pairIdx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            <input
-                                              value={pair.prompt || ''}
-                                              onChange={(e) => updateMatchingPair(idx, pairIdx, { prompt: e.target.value })}
-                                              className="px-3 py-2 border rounded-lg"
-                                              placeholder={`Câu hỏi ${pairIdx + 1}`}
-                                            />
-                                            <div className="flex gap-2">
-                                              <input
-                                                value={pair.correctOption || ''}
-                                                onChange={(e) => updateMatchingPair(idx, pairIdx, { correctOption: e.target.value })}
-                                                className="flex-1 px-3 py-2 border rounded-lg"
-                                                placeholder="Đáp án đúng"
-                                              />
-                                              <button type="button" onClick={() => removeMatchingPair(idx, pairIdx)} className="px-2 py-2 border rounded">Xóa</button>
-                                            </div>
-                                          </div>
-                                        ))}
-                                        <button type="button" onClick={() => addMatchingPair(idx)} className="px-3 py-2 border rounded">+ Thêm ghép cặp</button>
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-2">
-                                        <div className="text-sm font-medium">Đáp án đúng</div>
-                                        {(q.correctAnswers || []).map((ans: string, ansIdx: number) => (
-                                          <div key={ansIdx} className="flex items-center gap-2">
-                                            <input value={ans} onChange={(e) => updateCorrectAnswer(idx, ansIdx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />
-                                            <button type="button" onClick={() => removeCorrectAnswer(idx, ansIdx)} className="px-2 py-2 border rounded">Xóa</button>
-                                          </div>
-                                        ))}
-                                        <button type="button" onClick={() => addCorrectAnswer(idx)} className="px-3 py-2 border rounded">+ Thêm đáp án</button>
-                                      </div>
-                                    )}
-                                    <div>
-                                      <label className="block text-sm font-medium mb-1">Giải thích</label>
-                                      <textarea value={q.explanation || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, explanation: e.target.value }))} rows={2} className="w-full px-3 py-2 border rounded-lg" />
-                                    </div>
+                              ) : null}
+                            </div>
+
+                            <div className="relative h-52 w-full overflow-hidden bg-white">
+                              {media.type === 'audio' ? (
+                                <>
+                                  <span aria-hidden className="absolute inset-0 bg-gradient-to-b from-blue-50 via-blue-50 to-white" />
+                                  <div className="relative flex h-full w-full items-center justify-center">
+                                    <button
+                                      type="button"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        toggleAudioPlay(media.id);
+                                      }}
+                                      className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg transition hover:bg-blue-700"
+                                      aria-label={audioInfo.isPlaying ? 'Tạm dừng audio' : 'Phát audio'}
+                                    >
+                                      {audioInfo.isPlaying ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
+                                          <path d="M8.25 5.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V5.25Zm5.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H14.25a.75.75 0 0 1-.75-.75V5.25Z" />
+                                        </svg>
+                                      ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
+                                          <path d="M6.75 5.428c0-1.355 1.449-2.217 2.635-1.525l8.39 4.822c1.291.742 1.291 2.61 0 3.352l-8.39 4.821c-1.186.682-2.635-.17-2.635-1.525V5.428Z" />
+                                        </svg>
+                                      )}
+                                    </button>
+                                    <span className="absolute bottom-3 right-3 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">
+                                      {formatDuration(audioInfo.duration)}
+                                    </span>
                                   </div>
-                                )}
+                                  <audio
+                                    ref={(element) => {
+                                      audioRefs.current[media.id] = element;
+                                    }}
+                                    src={media.url}
+                                    className="hidden"
+                                    preload="auto"
+                                    onLoadedMetadata={(event) => handleAudioLoaded(media.id, event.currentTarget.duration || 0)}
+                                    onPlay={() => handleAudioPlay(media.id)}
+                                    onPause={() => handleAudioPause(media.id)}
+                                    onEnded={() => handleAudioEnded(media.id)}
+                                  />
+                                </>
+                              ) : (
+                                <img
+                                  src={media.url}
+                                  alt={media.originalName || media.id}
+                                  className="block h-full w-full object-cover"
+                                />
+                              )}
+                            </div>
+
+                            <div className="border-t border-slate-100 bg-white px-3 py-3 text-center">
+                              <div className="truncate text-sm font-semibold text-slate-800" title={media.originalName || media.id}>
+                                {media.originalName || media.id}
                               </div>
-                            )}
-                          </Draggable>
+                              {media.transcript ? (
+                                <div className="mt-1 text-[11px] font-medium uppercase tracking-wide text-emerald-600">
+                                  Đã có transcript
+                                </div>
+                              ) : null}
+                              <div className="mt-3 flex justify-center">
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-100"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    copyMediaPlaceholder(media.id);
+                                  }}
+                                >
+                                  Copy mã
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         );
                       })}
-                      {dropProvided.placeholder}
                     </div>
                   )}
-                </Droppable>
-              </DragDropContext>
-            )}
+                </div>
+                {/* Legacy audio/image URL inputs removed at user request; media now managed entirely via uploads */}
+              </div>
+            </div>
+            <div className="h-12 border-t bg-slate-50 flex items-center p-3">
+              <button
+                onClick={prevSection}
+                disabled={currentSectionIndex === 0}
+                className="px-3 py-2 rounded-lg border disabled:opacity-50"
+              >
+                ◀ Trước
+              </button>
+            </div>
           </div>
-          {/* Spacer footer to match left footer height for perfect alignment */}
-          <div className="h-12 border-t bg-slate-50 flex items-center justify-end p-3">
-            <button
-              onClick={nextSection}
-              disabled={!!test?.sections && currentSectionIndex >= (test.sections?.length || 0) - 1}
-              className="px-3 py-2 rounded-lg border disabled:opacity-50"
-            >
-              Sau ▶
-            </button>
+
+          {/* Right: Questions of current section */}
+          <div className="bg-white lg:rounded-r-xl rounded-b-xl lg:rounded-bl-none border overflow-hidden lg:border-l-0 flex flex-col" style={{ height: panelHeight }}>
+            <div className="h-12 px-4 border-b flex items-center justify-between gap-2">
+              <h2 className="font-semibold">Câu hỏi trong phần này</h2>
+              <div className="flex items-center gap-3">
+                <button onClick={addQuestionToCurrentSection} className="px-2 py-1 rounded-lg border">+ Thêm câu hỏi</button>
+                <button onClick={saveContent} disabled={saving} className="px-2 py-1 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu nội dung</button>
+              </div>
+            </div>
+            <div className="p-4 flex-1 overflow-auto">
+              {sectionQuestionPairs.length === 0 ? (
+                <div className="text-slate-500 text-sm">Chưa có câu hỏi cho phần này.</div>
+              ) : (
+                <DragDropContext onDragEnd={handleQuestionDragEnd}>
+                  <Droppable droppableId={currentSectionDroppableId}>
+                    {(dropProvided, dropSnapshot) => (
+                      <div
+                        ref={dropProvided.innerRef}
+                        {...dropProvided.droppableProps}
+                        className={`space-y-4 transition-colors ${dropSnapshot.isDraggingOver ? 'bg-blue-50/40 rounded-lg p-2' : ''}`}
+                      >
+                        {sectionQuestionPairs.map(({ q, idx }, i) => {
+                          const hasOptions = optionTypeSet.has(q.type) && Array.isArray(q.options) && q.options.length > 0;
+                          const answersFromOptions = hasOptions ? (q.options || []).filter((op: any) => op.isCorrect).map((op: any) => op.text) : [];
+                          let finalAnswers: string[];
+                          if (q.type === 'matching' && Array.isArray(q.matchingPairs)) {
+                            finalAnswers = q.matchingPairs.map((pair: any) => `${pair.prompt || '—'} → ${pair.correctOption || '—'}`);
+                          } else if (hasOptions) {
+                            finalAnswers = answersFromOptions;
+                          } else {
+                            finalAnswers = (q.correctAnswers || []);
+                          }
+                          const draggableId = `question-${normalizeId((q as any)?._id) || idx}`;
+                          return (
+                            <Draggable key={draggableId} draggableId={draggableId} index={i}>
+                              {(dragProvided, dragSnapshot) => (
+                                <div
+                                  ref={dragProvided.innerRef}
+                                  {...dragProvided.draggableProps}
+                                  className={`border rounded-lg transition-colors ${openQuestionIdx === idx ? 'border-blue-500 ring-1 ring-blue-400/30 bg-blue-50' : ''} ${invalidQuestionIdxs.has(idx) ? 'border-red-400 bg-red-50/40' : ''} ${dragSnapshot.isDragging ? 'shadow-lg ring-2 ring-blue-200' : ''}`}
+                                >
+                                  <div className="flex items-stretch">
+                                    <span
+                                      {...dragProvided.dragHandleProps}
+                                      className={`px-2 py-3 flex items-center text-slate-400 ${dragSnapshot.isDragging ? 'cursor-grabbing' : 'cursor-grab'} select-none border-r border-slate-200 ${openQuestionIdx === idx ? 'bg-blue-50' : invalidQuestionIdxs.has(idx) ? 'bg-red-50/40' : 'bg-white'} rounded-l-lg`}
+                                      aria-label="Giữ để di chuyển câu hỏi"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M7 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM11 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM7 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM11 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM7 14a1 1 0 112 0v1a1 1 0 11-2 0v-1zM11 14a1 1 0 112 0v1a1 1 0 11-2 0v-1z" />
+                                      </svg>
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenQuestionIdx(openQuestionIdx === idx ? null : idx)}
+                                      className={`${openQuestionIdx === idx ? 'bg-blue-50' : ''} flex-1 text-left p-3 flex items-start justify-between gap-3 rounded-tr-lg`}
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm text-slate-500">Câu {q.questionNumber ?? i + 1}</div>
+                                        <div className={`font-medium whitespace-pre-wrap break-words ${invalidQuestionIdxs.has(idx) ? 'text-red-600' : 'text-slate-800'}`}>{q.content || '—'}</div>
+                                        <div className="mt-1 text-xs text-slate-600"><span className="font-medium">Đáp án:</span> {finalAnswers.length ? finalAnswers.join(', ') : '—'}</div>
+                                      </div>
+                                      <div className={`text-xs px-2 py-1 rounded h-min whitespace-nowrap flex-shrink-0 leading-none ${openQuestionIdx === idx ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>{typeLabel(q.type)}</div>
+                                    </button>
+                                  </div>
+                                  {openQuestionIdx === idx && (
+                                    <div className="border-t p-3 space-y-3">
+                                      <div className="flex justify-end"><button type="button" onClick={() => deleteQuestion(idx)} className="px-2 py-1 text-red-600 border border-red-200 rounded">Xóa câu</button></div>
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <label className="block text-sm font-medium">Loại câu hỏi</label>
+                                          <select value={q.type} onChange={(e) => onTypeChange(idx, e.target.value)} className="w-full px-3 py-2 border rounded-lg">
+                                            <option value="multi_choice">Multiple choice</option>
+                                            <option value="short_answer">Short answer</option>
+                                            <option value="matching">Matching</option>
+                                            <option value="dropdown">Dropdown</option>
+                                          </select>
+                                          {q.type === 'multi_choice' && (
+                                            <label className="mt-2 inline-flex items-center gap-2 text-sm text-slate-600">
+                                              <input
+                                                type="checkbox"
+                                                checked={!!q.allowMultiple}
+                                                onChange={(e) => updateQuestion(idx, (qq) => {
+                                                  const next = { ...qq, allowMultiple: e.target.checked };
+                                                  if (!e.target.checked) {
+                                                    const firstCorrectIdx = (next.options || []).findIndex((op: any) => op.isCorrect);
+                                                    next.options = (next.options || []).map((op: any, opIdx: number) => ({
+                                                      ...op,
+                                                      isCorrect: opIdx === Math.max(firstCorrectIdx, 0)
+                                                    }));
+                                                  }
+                                                  return next;
+                                                })}
+                                              />
+                                              Cho phép chọn nhiều đáp án đúng
+                                            </label>
+                                          )}
+                                        </div>
+                                        <div className="w-full md:w-40">
+                                          <label className="block text-sm font-medium">Điểm</label>
+                                          <input type="number" min={0} value={q.points ?? 1} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, points: Number(e.target.value || 0) }))} className="w-full px-3 py-2 border rounded-lg" />
+                                        </div>
+                                      </div>
+                                      <label className="block text-sm font-medium">Nội dung</label>
+                                      <textarea value={q.content || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, content: e.target.value }))} rows={3} className="w-full px-3 py-2 border rounded-lg" />
+                                      {optionTypeSet.has(q.type) ? (
+                                        <div className="space-y-2">
+                                          <div className="text-sm font-medium">Phương án</div>
+                                          {(q.options || []).map((op: any, opIdx: number) => (
+                                            <div key={opIdx} className="flex items-center gap-2">
+                                              <input type="checkbox" checked={!!op.isCorrect} onChange={(e) => updateOption(idx, opIdx, { isCorrect: e.target.checked })} />
+                                              <input value={op.text || ''} onChange={(e) => updateOption(idx, opIdx, { text: e.target.value })} className="flex-1 px-3 py-2 border rounded-lg" />
+                                              <button type="button" onClick={() => removeOption(idx, opIdx)} className="px-2 py-2 border rounded">Xóa</button>
+                                            </div>
+                                          ))}
+                                          <button type="button" onClick={() => addOption(idx)} className="px-3 py-2 border rounded">+ Thêm phương án</button>
+                                        </div>
+                                      ) : q.type === 'matching' ? (
+                                        <div className="space-y-2">
+                                          <div className="text-sm font-medium">Ghép cặp</div>
+                                          {(q.matchingPairs || []).map((pair: any, pairIdx: number) => (
+                                            <div key={pairIdx} className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                              <input
+                                                value={pair.prompt || ''}
+                                                onChange={(e) => updateMatchingPair(idx, pairIdx, { prompt: e.target.value })}
+                                                className="px-3 py-2 border rounded-lg"
+                                                placeholder={`Câu hỏi ${pairIdx + 1}`}
+                                              />
+                                              <div className="flex gap-2">
+                                                <input
+                                                  value={pair.correctOption || ''}
+                                                  onChange={(e) => updateMatchingPair(idx, pairIdx, { correctOption: e.target.value })}
+                                                  className="flex-1 px-3 py-2 border rounded-lg"
+                                                  placeholder="Đáp án đúng"
+                                                />
+                                                <button type="button" onClick={() => removeMatchingPair(idx, pairIdx)} className="px-2 py-2 border rounded">Xóa</button>
+                                              </div>
+                                            </div>
+                                          ))}
+                                          <button type="button" onClick={() => addMatchingPair(idx)} className="px-3 py-2 border rounded">+ Thêm ghép cặp</button>
+                                        </div>
+                                      ) : (
+                                        <div className="space-y-2">
+                                          <div className="text-sm font-medium">Đáp án đúng</div>
+                                          {(q.correctAnswers || []).map((ans: string, ansIdx: number) => (
+                                            <div key={ansIdx} className="flex items-center gap-2">
+                                              <input value={ans} onChange={(e) => updateCorrectAnswer(idx, ansIdx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />
+                                              <button type="button" onClick={() => removeCorrectAnswer(idx, ansIdx)} className="px-2 py-2 border rounded">Xóa</button>
+                                            </div>
+                                          ))}
+                                          <button type="button" onClick={() => addCorrectAnswer(idx)} className="px-3 py-2 border rounded">+ Thêm đáp án</button>
+                                        </div>
+                                      )}
+                                      <div>
+                                        <label className="block text-sm font-medium mb-1">Giải thích</label>
+                                        <textarea value={q.explanation || ''} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, explanation: e.target.value }))} rows={2} className="w-full px-3 py-2 border rounded-lg" />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </Draggable>
+                          );
+                        })}
+                        {dropProvided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              )}
+            </div>
+            {/* Spacer footer to match left footer height for perfect alignment */}
+            <div className="h-12 border-t bg-slate-50 flex items-center justify-end p-3">
+              <button
+                onClick={nextSection}
+                disabled={!!test?.sections && currentSectionIndex >= (test.sections?.length || 0) - 1}
+                className="px-3 py-2 rounded-lg border disabled:opacity-50"
+              >
+                Sau ▶
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

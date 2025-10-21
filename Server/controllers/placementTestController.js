@@ -4,6 +4,31 @@ const mongoose = require('mongoose');
 const { PlacementTest } = require('../models/PlacementTest');
 const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/placementTestImport');
 
+const deleteMediaFiles = async (blocks = []) => {
+  if (!Array.isArray(blocks) || !blocks.length) return;
+
+  const targets = [];
+  const seen = new Set();
+
+  blocks.forEach((block) => {
+    if (!block || !block.url) return;
+    const fileName = path.basename(block.url);
+    if (!fileName || seen.has(fileName)) return;
+    seen.add(fileName);
+    targets.push(path.join(__dirname, '..', 'uploads', 'tests', 'media', fileName));
+  });
+
+  await Promise.all(targets.map(async (filePath) => {
+    try {
+      await fs.promises.unlink(filePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        console.error('Không thể xóa file media:', filePath, error);
+      }
+    }
+  }));
+};
+
 // Lấy danh sách các bài test theo category (Public)
 const getActivePlacementTests = async (req, res) => {
   try {
@@ -497,11 +522,22 @@ const updateTestContent = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy bài test' });
     }
 
+    let removedMediaBlocks = [];
+
     // Cập nhật sections và questions nếu được gửi lên
     if (Array.isArray(sections)) {
       const currentSections = test.sections || [];
+      const existingMediaMap = new Map();
+      currentSections.forEach((section) => {
+        (section?.mediaBlocks || []).forEach((block) => {
+          if (block?.id) {
+            existingMediaMap.set(String(block.id), block);
+          }
+        });
+      });
+
       // Giữ nguyên _id của section nếu FE không gửi lên để không làm lệch liên kết sectionId của câu hỏi
-      test.sections = sections.map((s, idx) => {
+      const nextSections = sections.map((s, idx) => {
         const existing = currentSections[idx] || {};
         const sectionId = s?._id || existing._id || new mongoose.Types.ObjectId();
         const mediaBlocks = Array.isArray(s?.mediaBlocks)
@@ -515,6 +551,21 @@ const updateTestContent = async (req, res) => {
           mediaBlocks
         };
       });
+
+      test.sections = nextSections;
+
+      const newMediaIds = new Set();
+      nextSections.forEach((section) => {
+        (section?.mediaBlocks || []).forEach((block) => {
+          if (block?.id) {
+            newMediaIds.add(String(block.id));
+          }
+        });
+      });
+
+      removedMediaBlocks = Array.from(existingMediaMap.entries())
+        .filter(([id]) => !newMediaIds.has(id))
+        .map(([, block]) => block);
     }
     if (Array.isArray(questions)) {
       // Map questionNumber nếu chưa có và cố gắng gán sectionId khi thiếu dựa trên thứ tự section
@@ -535,6 +586,10 @@ const updateTestContent = async (req, res) => {
     test.totalPoints = (test.questions || []).reduce((sum, q) => sum + (q.points || 1), 0);
 
     await test.save();
+
+    if (removedMediaBlocks.length) {
+      await deleteMediaFiles(removedMediaBlocks);
+    }
 
     res.json({
       message: 'Cập nhật nội dung bài test thành công',
@@ -561,6 +616,7 @@ const uploadSectionMedia = async (req, res) => {
       originalName: file.originalname,
       mimeType: file.mimetype,
       size: file.size,
+      transcript: ''
     }));
 
     res.status(201).json({
@@ -583,7 +639,16 @@ const deletePlacementTest = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy bài test' });
     }
 
+    const mediaBlocks = [];
+    (test.sections || []).forEach((section) => {
+      (section?.mediaBlocks || []).forEach((block) => mediaBlocks.push(block));
+    });
+
     await PlacementTest.findByIdAndDelete(testId);
+
+    if (mediaBlocks.length) {
+      await deleteMediaFiles(mediaBlocks);
+    }
 
     res.json({ message: 'Xóa bài test thành công' });
   } catch (error) {
@@ -615,7 +680,19 @@ const bulkDeletePlacementTests = async (req, res) => {
       return res.status(400).json({ message: 'Danh sách testId không hợp lệ' });
     }
 
+    const testsToDelete = await PlacementTest.find({ _id: { $in: ids } }, { sections: 1 }).lean();
+    const mediaBlocks = [];
+    testsToDelete.forEach((test) => {
+      (test?.sections || []).forEach((section) => {
+        (section?.mediaBlocks || []).forEach((block) => mediaBlocks.push(block));
+      });
+    });
+
     const result = await PlacementTest.deleteMany({ _id: { $in: ids } });
+
+    if (mediaBlocks.length) {
+      await deleteMediaFiles(mediaBlocks);
+    }
 
     res.json({
       message: `Đã xóa ${result.deletedCount} bài test`,

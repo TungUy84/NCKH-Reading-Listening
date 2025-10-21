@@ -82,6 +82,7 @@ export interface SectionMedia {
   originalName?: string;
   mimeType?: string;
   size?: number;
+  transcript?: string;
 }
 
 export interface PlacementTestImportPreview {

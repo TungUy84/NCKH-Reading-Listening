@@ -26,6 +26,10 @@ const mediaBlockSchema = new mongoose.Schema({
   size: {
     type: Number,
     default: 0
+  },
+  transcript: {
+    type: String,
+    default: ''
   }
 }, { _id: false });
 

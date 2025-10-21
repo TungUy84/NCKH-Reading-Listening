@@ -43,6 +43,7 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       originalName: block?.originalName || block?.name || '',
       mimeType: block?.mimeType || block?.mimetype || '',
       size: block?.size,
+      transcript: block?.transcript || '',
     }))
     .filter((block: SectionMedia) => !!block.id);
 };
