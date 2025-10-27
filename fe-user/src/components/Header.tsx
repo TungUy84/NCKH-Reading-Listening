@@ -11,7 +11,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarColor, getUserInitials, getUserDisplayName } from '../utils/avatarUtils';
-import Button from './ui/Button';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -41,7 +40,7 @@ const Header: React.FC = () => {
   const navigationItems = [
     { label: 'Trang chủ', href: '/', icon: HomeIcon },
     { label: 'Kiểm tra đầu vào', href: '/tests', icon: ClipboardDocumentCheckIcon },
-  { label: 'Lộ trình học', href: '/roadmap', icon: MapIcon },
+    { label: 'Lộ trình học', href: '/roadmap', icon: MapIcon },
     { label: 'Ôn luyện', href: '/practice', icon: AcademicCapIcon },
     { label: 'Thi thử', href: '/mock-test', icon: CheckBadgeIcon },
     { label: 'Bài học', href: '/lessons', icon: BookOpenIcon },
@@ -61,7 +60,7 @@ const Header: React.FC = () => {
   };
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 h-16">
           {/* Logo thương hiệu */}
           <Link to="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors">
@@ -78,7 +77,7 @@ const Header: React.FC = () => {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active
                       ? 'bg-blue-50 text-blue-600 shadow-sm'
                       : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
                     }`}
@@ -119,11 +118,6 @@ const Header: React.FC = () => {
                     fill="currentColor"
                     viewBox="0 0 20 20"
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.186l3.71-3.955a.75.75 0 111.08 1.04l-4.24 4.52a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z"
-                      clipRule="evenodd"
-                    />
                   </svg>
                 </button>
                 {isUserMenuOpen && (
@@ -159,19 +153,12 @@ const Header: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <Link
-                  to="/login"
-                  className="inline-flex items-center rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
-                >
-                  Đăng nhập
-                </Link>
-                <Link to="/register">
-                  <Button size="sm" className="shadow-sm">
-                    🚀 Đăng ký
-                  </Button>
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                className="inline-flex items-center rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
+              >
+                Đăng nhập
+              </Link>
             )}
           </div>
 
@@ -273,18 +260,13 @@ const Header: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-3 px-1">
-                  <Link
-                    to="/login"
-                    onClick={() => setIsMenuOpen(false)}
-                    className="flex-1 inline-flex items-center justify-center rounded-lg border border-blue-600 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
-                  >
-                    Đăng nhập
-                  </Link>
-                  <Link to="/register" onClick={() => setIsMenuOpen(false)} className="flex-1">
-                    <Button size="sm" className="w-full">Đăng ký</Button>
-                  </Link>
-                </div>
+                <Link
+                  to="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-blue-600 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
+                >
+                  Đăng nhập
+                </Link>
               )}
             </div>
           </div>

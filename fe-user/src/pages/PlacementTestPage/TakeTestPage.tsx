@@ -1,13 +1,7 @@
-import React, {
-  ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState, } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, UserAnswer } from '../../types';
 import { getTestForTaking, submitTest } from '../../services/api';
 import { Button } from '../../components/ui/Button';
@@ -264,7 +258,7 @@ const SectionPanel: React.FC<SectionPanelProps> = ({
             Phần trước
           </Button>
           <Button variant="primary" size="sm" onClick={onNextSection} disabled={!hasNextSection}>
-            Phần tiếp
+            Phần sau
           </Button>
         </div>
       </div>
@@ -313,10 +307,10 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
               key={index}
               onClick={() => onSelect(index)}
               className={`flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold transition shadow-sm ${isCurrent
-                  ? 'bg-blue-600 text-white border-blue-600 shadow'
-                  : answered
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                ? 'bg-blue-600 text-white border-blue-600 shadow'
+                : answered
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                 }`}
               aria-label={`Câu ${index + 1}${answered ? ' đã trả lời' : ''}`}
             >
@@ -383,14 +377,14 @@ const OverviewPanel: React.FC<OverviewPanelProps> = ({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-slate-900">Câu hỏi trong phần này</div>
-          <p className="mt-1 text-xs text-slate-500">
+          {/* <p className="mt-1 text-xs text-slate-500">
             Hiển thị {sectionQuestionCount} câu • Phần {totalSections > 0 && currentSectionIndex >= 0 ? currentSectionIndex + 1 : 0}/
             {totalSections || 0}
-          </p>
+          </p> */}
         </div>
-        <span className="inline-flex items-center rounded-xl bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600 shadow-inner">
+        {/* <span className="inline-flex items-center rounded-xl bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600 shadow-inner">
           Câu {currentQuestionIndex + 1} / {totalQuestions || 0}
-        </span>
+        </span> */}
       </div>
 
       <div className="flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
@@ -438,13 +432,10 @@ interface QuestionPanelProps {
   currentSectionIndex: number;
   totalSections: number;
   answeredCount: number;
-  isSubmitting: boolean;
   onGoToQuestion: (index: number) => void;
   onFocusQuestion: (index: number) => void;
   onPrevQuestion: () => void;
   onNextQuestion: () => void;
-  onSubmit: () => void;
-  typeLabel: (type: string) => string;
   onAnswerChange: (index: number, partial: Partial<UserAnswer>) => void;
 }
 
@@ -458,13 +449,10 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
   currentSectionIndex,
   totalSections,
   answeredCount,
-  isSubmitting,
   onGoToQuestion,
   onFocusQuestion,
   onPrevQuestion,
   onNextQuestion,
-  onSubmit,
-  typeLabel,
   onAnswerChange,
 }) => {
   const panelStyle = { minHeight: 420, height: panelHeight > 0 ? panelHeight : 'auto' };
@@ -479,13 +467,13 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-sm font-semibold text-slate-900">Câu hỏi trong phần này</div>
-            <p className="mt-1 text-xs text-slate-500">
+            {/* <p className="mt-1 text-xs text-slate-500">
               Hiển thị {sectionQuestions.length} câu • Phần {currentSectionIndex >= 0 ? currentSectionIndex + 1 : '-'} /{' '}
               {totalSections || 0}
             </p>
           </div>
           <div className="inline-flex items-center rounded-md bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 shadow-inner">
-            Câu {currentQuestionIndex + 1} / {totalQuestions}
+            Câu {currentQuestionIndex + 1} / {totalQuestions} */}
           </div>
         </div>
         <QuestionNavigator
@@ -517,18 +505,10 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                   }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-blue-100/70 bg-blue-50/60 px-5 py-4">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-wide text-blue-600 font-semibold">
-                      {typeLabel(question.type)}
-                    </div>
-                    <div className="mt-1 text-base font-medium text-gray-900">
-                      Câu {question.questionNumber ?? globalIndex + 1}
-                    </div>
+                  <div className="mt-1 text-base font-medium text-gray-900">
+                    Câu {question.questionNumber ?? globalIndex + 1}
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className="inline-flex items-center rounded-md border border-blue-200 bg-white px-2 py-1 text-xs font-medium text-blue-700 shadow-sm">
-                      {question.points} điểm
-                    </span>
                     {selectedCount > 0 ? (
                       <span className="text-[11px] font-medium text-green-600">Đã chọn {selectedCount}</span>
                     ) : null}
@@ -578,8 +558,8 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                               onFocusQuestion(globalIndex);
                             }}
                             className={`relative flex items-start gap-3 w-full text-left px-4 py-3 rounded-lg border transition shadow-sm text-sm font-medium ${selected
-                                ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                                : 'bg-white border-slate-200 hover:border-blue-200/70 hover:bg-blue-50/40 text-slate-700'
+                              ? 'bg-blue-600 border-blue-600 text-white shadow-md'
+                              : 'bg-white border-slate-200 hover:border-blue-200/70 hover:bg-blue-50/40 text-slate-700'
                               }`}
                           >
                             <span
@@ -595,7 +575,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                           </button>
                         );
                       })}
-                      {!allowMultiple ? <p className="text-xs text-slate-500">Chỉ chọn một đáp án.</p> : null}
+                      {allowMultiple ? <p className="text-xs text-slate-500">Có thể chọn nhiều đáp án.</p> : null}
                     </div>
                   ) : null}
 
@@ -625,7 +605,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
 
                   {question.type === 'short_answer' ? (
                     <div>
-                      <textarea
+                      <input
                         value={answer.userAnswer || ''}
                         onChange={(event) => {
                           onAnswerChange(globalIndex, {
@@ -636,10 +616,9 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                           onFocusQuestion(globalIndex);
                         }}
                         placeholder="Nhập câu trả lời của bạn..."
-                        className="w-full rounded-lg border border-slate-300 bg-white p-4 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
-                        rows={4}
+                        className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
+                        type="text"
                       />
-                      <p className="mt-2 text-xs text-slate-500">Trả lời bằng tiếng Anh, kiểm tra lỗi chính tả trước khi nộp.</p>
                     </div>
                   ) : null}
 
@@ -668,7 +647,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                                 });
                                 onFocusQuestion(globalIndex);
                               }}
-                              placeholder="Nhập câu trả lời ghép cặp"
+                              // placeholder="Nhập câu trả lời ghép cặp"
                               className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
                             />
                           </div>
@@ -684,18 +663,18 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 bg-slate-50/80 px-6 py-4">
-        <div className="text-xs text-slate-500">Đã trả lời {answeredCount}/{totalQuestions} câu</div>
-        <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={onPrevQuestion} disabled={currentQuestionIndex === 0}>
-            Câu trước
-          </Button>
-          <Button variant="outline" size="sm" onClick={onNextQuestion} disabled={currentQuestionIndex >= totalQuestions - 1}>
-            Câu tiếp
-          </Button>
-          <Button variant="danger" size="sm" onClick={onSubmit} disabled={isSubmitting} loading={isSubmitting}>
-            {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
-          </Button>
-        </div>
+        {/* <div className="text-xs text-slate-500">Đã trả lời {answeredCount}/{totalQuestions} câu</div> */}
+        <Button variant="outline" size="sm" onClick={onPrevQuestion} disabled={currentQuestionIndex === 0}>
+          Câu trước
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
+          onClick={onNextQuestion}
+          disabled={currentQuestionIndex >= totalQuestions - 1}
+        >
+          Câu sau
+        </Button>
       </div>
     </div>
   );
@@ -956,7 +935,7 @@ const TakeTestPage: React.FC = () => {
   );
 
   const nextQuestion = useCallback(() => {
-    // Chuyển tới câu kế tiếp trong giới hạn tổng số câu
+    // Chuyển tới câu kế sau trong giới hạn tổng số câu
     if (!test) {
       return;
     }
@@ -979,21 +958,6 @@ const TakeTestPage: React.FC = () => {
     }
 
     return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }, []);
-
-  const typeLabel = useCallback((type: string) => {
-    switch (type) {
-      case 'multi_choice':
-        return 'Trắc nghiệm';
-      case 'dropdown':
-        return 'Chọn đáp án';
-      case 'short_answer':
-        return 'Tự luận ngắn';
-      case 'matching':
-        return 'Ghép cặp';
-      default:
-        return 'Câu hỏi';
-    }
   }, []);
 
   useEffect(() => {
@@ -1069,7 +1033,29 @@ const TakeTestPage: React.FC = () => {
     }
   }, [currentSectionIndex, goToQuestion, questions, sections]);
 
-  const handleManualSubmit = useCallback(() => handleSubmit(false), [handleSubmit]);
+  const handleManualSubmit = useCallback(async () => {
+    if (!test || isSubmitting) {
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Bạn chắc chắn muốn nộp bài?',
+      text: 'Sau khi nộp sẽ không thể chỉnh sửa câu trả lời.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Nộp bài',
+      cancelButtonText: 'Hủy',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#d33',
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) {
+      return;
+    }
+
+    handleSubmit(false);
+  }, [handleSubmit, isSubmitting, test]);
 
   if (isLoading) {
     return (
@@ -1164,13 +1150,10 @@ const TakeTestPage: React.FC = () => {
               currentSectionIndex={currentSectionIndex}
               totalSections={totalSections}
               answeredCount={answeredCount}
-              isSubmitting={isSubmitting}
               onGoToQuestion={goToQuestion}
               onFocusQuestion={setCurrentQuestionIndex}
               onPrevQuestion={prevQuestion}
               onNextQuestion={nextQuestion}
-              onSubmit={handleManualSubmit}
-              typeLabel={typeLabel}
               onAnswerChange={handleAnswerChange}
             />
 

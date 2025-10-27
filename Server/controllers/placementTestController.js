@@ -108,11 +108,41 @@ const checkPlacementTest = async (req, res) => {
       answerByNumber.set(idx + 1, ans);
     });
 
+    const sectionById = new Map();
+    const sectionByIndex = new Map();
+    (test.sections || []).forEach((section, idx) => {
+      if (!section) return;
+      const asObject = typeof section.toObject === 'function' ? section.toObject() : section;
+      sectionByIndex.set(idx, asObject);
+      if (section._id) {
+        sectionById.set(String(section._id), asObject);
+      }
+    });
+
     test.questions.forEach((question, index) => {
       const qId = question._id ? String(question._id) : undefined;
       const userAnswer = (qId && answerById.get(qId))
         || answerByNumber.get(question.questionNumber)
         || answers?.[index];
+      const sectionId = question.sectionId ? String(question.sectionId) : undefined;
+      const section = (() => {
+        if (sectionId && sectionById.has(sectionId)) return sectionById.get(sectionId);
+        if (typeof question.sectionIndex === 'number' && sectionByIndex.has(question.sectionIndex)) {
+          return sectionByIndex.get(question.sectionIndex);
+        }
+        return undefined;
+      })();
+      const resolvedPassage = (() => {
+        const questionPassage = question.passage;
+        if (typeof questionPassage === 'string' && questionPassage.trim().length) {
+          return questionPassage;
+        }
+        const sectionPassage = section?.passage;
+        if (typeof sectionPassage === 'string' && sectionPassage.trim().length) {
+          return sectionPassage;
+        }
+        return '';
+      })();
       let isCorrect = false;
       let pointsEarned = 0;
 
@@ -175,7 +205,9 @@ const checkPlacementTest = async (req, res) => {
         question: {
           type: question.type,
           content: question.content,
-          passage: question.passage,
+          passage: resolvedPassage,
+          sectionId,
+          sectionTitle: section?.title,
           media: question.media,
           options: question.options,
           allowMultiple: question.allowMultiple,
