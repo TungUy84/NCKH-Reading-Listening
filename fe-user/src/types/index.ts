@@ -131,6 +131,8 @@ export interface DetailedResult {
     passage?: string;
     media?: any;
     options?: any[];
+    sectionId?: string;
+    sectionTitle?: string;
   };
   userAnswer: {
     selectedOptions: string[];

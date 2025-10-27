@@ -89,8 +89,8 @@ const TestsPage: React.FC = () => {
       return;
     }
 
-  // Nếu tab hiện tại không có đề, chọn danh mục đầu tiên còn dữ liệu
-  const fallbackCategory = CATEGORY_ORDER.find(category => tests.some(test => test.category === category));
+    // Nếu tab hiện tại không có đề, chọn danh mục đầu tiên còn dữ liệu
+    const fallbackCategory = CATEGORY_ORDER.find(category => tests.some(test => test.category === category));
 
     if (fallbackCategory && fallbackCategory !== activeTab) {
       setActiveTab(fallbackCategory);
@@ -145,8 +145,8 @@ const TestsPage: React.FC = () => {
         return;
       }
 
-  // Dùng cache trong phiên để giảm số lần gọi API cho cùng một đề
-  const cached = detailCache.current.get(previewTest._id);
+      // Dùng cache trong phiên để giảm số lần gọi API cho cùng một đề
+      const cached = detailCache.current.get(previewTest._id);
       if (cached) {
         setPreviewDetail(cached);
         setIsDetailLoading(false);
@@ -253,16 +253,7 @@ const TestsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Kiểm tra đầu vào
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Xác định trình độ tiếng Anh hiện tại của bạn để tạo lộ trình học tập phù hợp.
-          </p>
-        </div>
-
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-xl shadow-lg p-2 mb-8 max-w-md mx-auto">
           <div className="flex">
             {CATEGORY_ORDER.map((tab) => {
@@ -273,8 +264,8 @@ const TestsPage: React.FC = () => {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === tab
-                      ? meta.activeTabClass
-                      : 'text-gray-600 hover:text-gray-900'
+                    ? meta.activeTabClass
+                    : 'text-gray-600 hover:text-gray-900'
                     }`}
                 >
                   <Icon className="w-5 h-5" />
