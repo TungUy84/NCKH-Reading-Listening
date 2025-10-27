@@ -1,15 +1,41 @@
-const { PlacementTest } = require('../models/PlacementTest');
-const mammoth = require('mammoth');
+const path = require('path');
 const fs = require('fs');
-// Không cần import PlacementResult vì không lưu kết quả vào database
+const mongoose = require('mongoose');
+const { PlacementTest } = require('../models/PlacementTest');
+const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/placementTestImport');
+
+const deleteMediaFiles = async (blocks = []) => {
+  if (!Array.isArray(blocks) || !blocks.length) return;
+
+  const targets = [];
+  const seen = new Set();
+
+  blocks.forEach((block) => {
+    if (!block || !block.url) return;
+    const fileName = path.basename(block.url);
+    if (!fileName || seen.has(fileName)) return;
+    seen.add(fileName);
+    targets.push(path.join(__dirname, '..', 'uploads', 'tests', 'media', fileName));
+  });
+
+  await Promise.all(targets.map(async (filePath) => {
+    try {
+      await fs.promises.unlink(filePath);
+    } catch (error) {
+      if (error?.code !== 'ENOENT') {
+        console.error('Không thể xóa file media:', filePath, error);
+      }
+    }
+  }));
+};
 
 // Lấy danh sách các bài test theo category (Public)
 const getActivePlacementTests = async (req, res) => {
   try {
-    const { category } = req.query; // listening, reading, general
-    
+    const { category } = req.query; // listening hoặc reading
+
     const filter = { isActive: true };
-    if (category && ['listening', 'reading', 'general'].includes(category)) {
+    if (category && ['listening', 'reading'].includes(category)) {
       filter.category = category;
     }
 
@@ -56,7 +82,12 @@ const getPlacementTestForTaking = async (req, res) => {
 // Chấm điểm bài test ngay lập tức (Public - không lưu database)
 const checkPlacementTest = async (req, res) => {
   try {
-    const { testId, answers } = req.body;
+    const { answers } = req.body || {};
+    const testId = req.params.testId || req.body?.testId;
+
+    if (!testId) {
+      return res.status(400).json({ message: 'Thiếu mã bài test để chấm điểm' });
+    }
 
     // Lấy bài test với đáp án đúng
     const test = await PlacementTest.findById(testId);
@@ -68,27 +99,69 @@ const checkPlacementTest = async (req, res) => {
     let earnedPoints = 0;
     const detailedResults = [];
 
+    const answerById = new Map();
+    const answerByNumber = new Map();
+    (answers || []).forEach((ans, idx) => {
+      if (!ans) return;
+      if (ans.questionId) answerById.set(String(ans.questionId), ans);
+      if (typeof ans.questionNumber === 'number') answerByNumber.set(ans.questionNumber, ans);
+      answerByNumber.set(idx + 1, ans);
+    });
+
     test.questions.forEach((question, index) => {
-      const userAnswer = answers[index];
+      const qId = question._id ? String(question._id) : undefined;
+      const userAnswer = (qId && answerById.get(qId))
+        || answerByNumber.get(question.questionNumber)
+        || answers?.[index];
       let isCorrect = false;
       let pointsEarned = 0;
 
       if (userAnswer) {
-        if (question.type === 'single_choice') {
-          isCorrect = question.options.some(option => 
-            option.text === userAnswer.selectedOptions[0] && option.isCorrect
-          );
-        } else if (question.type === 'multiple_choice') {
-          const correctOptions = question.options
-            .filter(option => option.isCorrect)
-            .map(option => option.text);
-          
-          isCorrect = correctOptions.length === userAnswer.selectedOptions.length &&
-            correctOptions.every(option => userAnswer.selectedOptions.includes(option));
-        } else if (question.type === 'fill_blank') {
-          isCorrect = question.correctAnswers.some(correct => 
-            correct.toLowerCase().trim() === userAnswer.userAnswer.toLowerCase().trim()
-          );
+        const selectedOptions = Array.isArray(userAnswer.selectedOptions) ? userAnswer.selectedOptions : [];
+        const normalizedSelected = selectedOptions.map((opt) => String(opt || '').trim());
+
+        switch (question.type) {
+          case 'multi_choice': {
+            const correctOptions = (question.options || [])
+              .filter((option) => option.isCorrect)
+              .map((option) => String(option.text || '').trim());
+            if (question.allowMultiple) {
+              const uniqueSelected = Array.from(new Set(normalizedSelected));
+              isCorrect = correctOptions.length > 0 &&
+                correctOptions.length === uniqueSelected.length &&
+                correctOptions.every((opt) => uniqueSelected.includes(opt));
+            } else {
+              const singleAnswer = normalizedSelected[0] || '';
+              isCorrect = correctOptions.length === 1 && correctOptions[0] === singleAnswer;
+            }
+            break;
+          }
+          case 'dropdown': {
+            const correctOption = (question.options || []).find((option) => option.isCorrect);
+            const answer = normalizedSelected[0] || '';
+            isCorrect = !!correctOption && String(correctOption.text || '').trim() === answer;
+            break;
+          }
+          case 'short_answer': {
+            const answer = (userAnswer.userAnswer || '').trim().toLowerCase();
+            isCorrect = !!answer && (question.correctAnswers || []).some((correct) =>
+              String(correct || '').trim().toLowerCase() === answer
+            );
+            break;
+          }
+          case 'matching': {
+            const expectedPairs = question.matchingPairs || [];
+            const submittedPairs = Array.isArray(userAnswer.matchingAnswers) ? userAnswer.matchingAnswers : [];
+            if (expectedPairs.length && expectedPairs.length === submittedPairs.length) {
+              isCorrect = expectedPairs.every((pair) => {
+                const actual = submittedPairs.find((ans) => String(ans.prompt || '') === String(pair.prompt || ''));
+                return actual && String(actual.selected || '') === String(pair.correctOption || '');
+              });
+            }
+            break;
+          }
+          default:
+            isCorrect = false;
         }
 
         if (isCorrect) {
@@ -104,13 +177,24 @@ const checkPlacementTest = async (req, res) => {
           content: question.content,
           passage: question.passage,
           media: question.media,
-          options: question.options
+          options: question.options,
+          allowMultiple: question.allowMultiple,
+          matchingPairs: question.matchingPairs
         },
         userAnswer: {
           selectedOptions: userAnswer?.selectedOptions || [],
-          userAnswer: userAnswer?.userAnswer || ''
+          userAnswer: userAnswer?.userAnswer || '',
+          matchingAnswers: userAnswer?.matchingAnswers || []
         },
-        correctAnswers: question.correctAnswers,
+        correctAnswers: (() => {
+          if (question.type === 'matching') {
+            return (question.matchingPairs || []).map((pair) => `${pair.prompt} → ${pair.correctOption}`);
+          }
+          if (question.type === 'multi_choice' || question.type === 'dropdown') {
+            return (question.options || []).filter((option) => option.isCorrect).map((option) => option.text);
+          }
+          return question.correctAnswers;
+        })(),
         isCorrect,
         pointsEarned,
         explanation: question.explanation
@@ -197,12 +281,17 @@ const getAllPlacementTests = async (req, res) => {
     const { search, category, status } = req.query;
     const filter = {};
 
-    if (category && ['listening', 'reading', 'general'].includes(category)) {
+    if (category && ['listening', 'reading'].includes(category)) {
       filter.category = category;
     }
 
     if (status === 'active') filter.isActive = true;
     if (status === 'inactive') filter.isActive = false;
+
+    if (filter.isActive === undefined && typeof req.query.isActive === 'string') {
+      if (req.query.isActive === 'true') filter.isActive = true;
+      if (req.query.isActive === 'false') filter.isActive = false;
+    }
 
     if (search && typeof search === 'string') {
       const regex = new RegExp(search.trim(), 'i');
@@ -265,14 +354,106 @@ const createPlacementTest = async (req, res) => {
   try {
     const { title, description, instructions, timeLimit, questions = [], sections = [], category, isActive = true } = req.body;
 
+    // Chuẩn hoá sections: nếu không có, tạo 1 section mặc định
+    const sectionObjects = [];
+    const explicitSections = Array.isArray(sections) ? sections : [];
+
+    if (explicitSections.length) {
+      explicitSections.forEach((section, idx) => {
+        const objectId = section?._id ? section._id : new mongoose.Types.ObjectId();
+        sectionObjects.push({
+          _id: objectId,
+          title: section?.title || `Section ${idx + 1}`,
+          passage: section?.passage || '',
+          audio: section?.audio || '',
+          image: section?.image || '',
+          mediaBlocks: Array.isArray(section?.mediaBlocks) ? section.mediaBlocks : []
+        });
+      });
+    } else {
+      // Nếu không có sections từ FE, tạo dựa trên sectionIndex của câu hỏi
+      const sectionIndexes = new Set();
+      questions.forEach((q) => {
+        if (typeof q?.sectionIndex === 'number' && q.sectionIndex >= 0) {
+          sectionIndexes.add(q.sectionIndex);
+        }
+      });
+
+      if (sectionIndexes.size === 0) {
+        sectionObjects.push({
+          _id: new mongoose.Types.ObjectId(),
+          title: title ? `${title} - Section 1` : 'Section 1',
+          passage: '',
+          audio: '',
+          image: '',
+          mediaBlocks: []
+        });
+      } else {
+        Array.from(sectionIndexes).sort((a, b) => a - b).forEach((idx, order) => {
+          sectionObjects.push({
+            _id: new mongoose.Types.ObjectId(),
+            title: `Section ${order + 1}`,
+            passage: '',
+            audio: '',
+            image: '',
+            mediaBlocks: []
+          });
+        });
+      }
+    }
+
+    /** @type {Map<number, mongoose.Types.ObjectId>} */
+    const sectionIdByIndex = new Map();
+    sectionObjects.forEach((section, idx) => {
+      sectionIdByIndex.set(idx, section._id);
+    });
+
+    const normalizedQuestions = Array.isArray(questions)
+      ? questions.map((rawQuestion, idx) => {
+        const question = { ...rawQuestion };
+        const sectionIndex = typeof question.sectionIndex === 'number' && sectionIdByIndex.has(question.sectionIndex)
+          ? question.sectionIndex
+          : 0;
+        const sectionId = question.sectionId || sectionIdByIndex.get(sectionIndex) || sectionObjects[0]._id;
+
+        return {
+          questionNumber: typeof question.questionNumber === 'number' ? question.questionNumber : idx + 1,
+          type: question.type || 'multi_choice',
+          allowMultiple: !!question.allowMultiple,
+          content: question.content || question.text || '',
+          instructions: question.instructions || '',
+          options: Array.isArray(question.options)
+            ? question.options.map((op) => ({
+              text: op?.text || '',
+              isCorrect: !!op?.isCorrect
+            })).filter((op) => op.text)
+            : [],
+          matchingPairs: Array.isArray(question.matchingPairs)
+            ? question.matchingPairs.map((pair) => ({
+              prompt: pair?.prompt || '',
+              correctOption: pair?.correctOption || ''
+            })).filter((pair) => pair.prompt && pair.correctOption)
+            : [],
+          wordBank: Array.isArray(question.wordBank) ? question.wordBank.filter(Boolean) : [],
+          correctAnswers: Array.isArray(question.correctAnswers)
+            ? question.correctAnswers.map((ans) => String(ans || '').trim()).filter(Boolean)
+            : [],
+          explanation: question.explanation || '',
+          points: typeof question.points === 'number' && question.points > 0 ? question.points : 1,
+          sectionId,
+          sectionIndex,
+        };
+      })
+      : [];
+
     const test = new PlacementTest({
       title,
       description: description || '',
       instructions: Array.isArray(instructions) ? instructions : [],
       category, // BẮT BUỘC theo schema
       timeLimit,
-      sections,
-      questions,
+      sections: sectionObjects,
+      questions: normalizedQuestions,
       isActive,
       createdBy: req.user._id
     });
@@ -310,7 +491,15 @@ const updatePlacementTest = async (req, res) => {
     if (description !== undefined) test.description = description;
     if (Array.isArray(instructions)) test.instructions = instructions;
     if (timeLimit !== undefined) test.timeLimit = timeLimit;
-    if (Array.isArray(questions)) test.questions = questions;
+    if (Array.isArray(questions)) {
+      test.questions = questions.map((question) => {
+        if (question && typeof question === 'object' && 'skill' in question) {
+          const { skill, ...rest } = question;
+          return rest;
+        }
+        return question;
+      });
+    }
     if (typeof isActive === 'boolean') test.isActive = isActive;
     if (category) test.category = category;
 
@@ -326,7 +515,7 @@ const updatePlacementTest = async (req, res) => {
   }
 };
 
-  // Cập nhật nội dung bài test: sections + questions (Admin only)
+// Cập nhật nội dung bài test: sections + questions (Admin only)
 const updateTestContent = async (req, res) => {
   try {
     const { testId } = req.params;
@@ -337,14 +526,56 @@ const updateTestContent = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy bài test' });
     }
 
+    let removedMediaBlocks = [];
+
     // Cập nhật sections và questions nếu được gửi lên
     if (Array.isArray(sections)) {
       const currentSections = test.sections || [];
+      const existingMediaMap = new Map();
+      currentSections.forEach((section) => {
+        (section?.mediaBlocks || []).forEach((block) => {
+          if (block?.id) {
+            existingMediaMap.set(String(block.id), block);
+          }
+        });
+      });
+
       // Giữ nguyên _id của section nếu FE không gửi lên để không làm lệch liên kết sectionId của câu hỏi
-      test.sections = sections.map((s, idx) => ({
-        _id: s._id || currentSections[idx]?._id,
-        ...s,
-      }));
+      const nextSections = sections.map((s, idx) => {
+        const existing = currentSections[idx] || {};
+        const sectionId = s?._id || existing._id || new mongoose.Types.ObjectId();
+        const mediaBlocks = Array.isArray(s?.mediaBlocks)
+          ? s.mediaBlocks
+          : (Array.isArray(existing.mediaBlocks) ? existing.mediaBlocks : []);
+
+        const merged = {
+          ...existing,
+          ...s,
+          _id: sectionId,
+          mediaBlocks
+        };
+
+        if ('timeLimit' in merged) {
+          delete merged.timeLimit;
+        }
+
+        return merged;
+      });
+
+      test.sections = nextSections;
+
+      const newMediaIds = new Set();
+      nextSections.forEach((section) => {
+        (section?.mediaBlocks || []).forEach((block) => {
+          if (block?.id) {
+            newMediaIds.add(String(block.id));
+          }
+        });
+      });
+
+      removedMediaBlocks = Array.from(existingMediaMap.entries())
+        .filter(([id]) => !newMediaIds.has(id))
+        .map(([, block]) => block);
     }
     if (Array.isArray(questions)) {
       // Map questionNumber nếu chưa có và cố gắng gán sectionId khi thiếu dựa trên thứ tự section
@@ -354,6 +585,9 @@ const updateTestContent = async (req, res) => {
         if (!qq.questionNumber) qq.questionNumber = idx + 1;
         if (!qq.sectionId && typeof qq.sectionIndex === 'number' && currentSections[qq.sectionIndex]?._id) {
           qq.sectionId = currentSections[qq.sectionIndex]._id;
+        }
+        if (qq.skill !== undefined) {
+          delete qq.skill;
         }
         return qq;
       });
@@ -366,13 +600,45 @@ const updateTestContent = async (req, res) => {
 
     await test.save();
 
+    if (removedMediaBlocks.length) {
+      await deleteMediaFiles(removedMediaBlocks);
+    }
+
     res.json({
       message: 'Cập nhật nội dung bài test thành công',
       test
     });
   } catch (error) {
-    console.error('Update test content error:', error);
+    // console.error('Update test content error:', error);
     res.status(500).json({ message: 'Lỗi server khi cập nhật nội dung bài test' });
+  }
+};
+
+// Upload media (image/audio) cho section passage
+const uploadSectionMedia = async (req, res) => {
+  try {
+    const files = req.files || [];
+    if (!files.length) {
+      return res.status(400).json({ message: 'Không có file nào được tải lên' });
+    }
+
+    const uploaded = files.map((file) => ({
+      id: new mongoose.Types.ObjectId().toString(),
+      type: file.mimetype.startsWith('audio/') ? 'audio' : 'image',
+      url: `/uploads/tests/media/${path.basename(file.path)}`,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      transcript: ''
+    }));
+
+    res.status(201).json({
+      message: 'Tải media thành công',
+      files: uploaded
+    });
+  } catch (error) {
+    console.error('Upload section media error:', error);
+    res.status(500).json({ message: 'Không thể tải media, vui lòng thử lại sau' });
   }
 };
 
@@ -386,12 +652,110 @@ const deletePlacementTest = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy bài test' });
     }
 
+    const mediaBlocks = [];
+    (test.sections || []).forEach((section) => {
+      (section?.mediaBlocks || []).forEach((block) => mediaBlocks.push(block));
+    });
+
     await PlacementTest.findByIdAndDelete(testId);
+
+    if (mediaBlocks.length) {
+      await deleteMediaFiles(mediaBlocks);
+    }
 
     res.json({ message: 'Xóa bài test thành công' });
   } catch (error) {
     console.error('Delete placement test error:', error);
     res.status(500).json({ message: 'Lỗi server khi xóa bài test' });
+  }
+};
+
+// Xóa nhiều bài test cùng lúc (Admin only)
+const bulkDeletePlacementTests = async (req, res) => {
+  try {
+    const { testIds } = req.body || {};
+
+    if (!Array.isArray(testIds) || !testIds.length) {
+      return res.status(400).json({ message: 'Cần cung cấp danh sách testId để xóa' });
+    }
+
+    const ids = testIds
+      .map((id) => {
+        try {
+          return new mongoose.Types.ObjectId(id);
+        } catch (err) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    if (!ids.length) {
+      return res.status(400).json({ message: 'Danh sách testId không hợp lệ' });
+    }
+
+    const testsToDelete = await PlacementTest.find({ _id: { $in: ids } }, { sections: 1 }).lean();
+    const mediaBlocks = [];
+    testsToDelete.forEach((test) => {
+      (test?.sections || []).forEach((section) => {
+        (section?.mediaBlocks || []).forEach((block) => mediaBlocks.push(block));
+      });
+    });
+
+    const result = await PlacementTest.deleteMany({ _id: { $in: ids } });
+
+    if (mediaBlocks.length) {
+      await deleteMediaFiles(mediaBlocks);
+    }
+
+    res.json({
+      message: `Đã xóa ${result.deletedCount} bài test`,
+      deleted: result.deletedCount
+    });
+  } catch (error) {
+    console.error('Bulk delete placement tests error:', error);
+    res.status(500).json({ message: 'Lỗi server khi xóa nhiều bài test' });
+  }
+};
+
+// Cập nhật trạng thái hoạt động của nhiều bài test (Admin only)
+const bulkUpdatePlacementTestStatus = async (req, res) => {
+  try {
+    const { testIds, isActive } = req.body || {};
+
+    if (!Array.isArray(testIds) || !testIds.length) {
+      return res.status(400).json({ message: 'Cần cung cấp danh sách testId để cập nhật' });
+    }
+
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({ message: 'Trạng thái isActive phải là boolean' });
+    }
+
+    const ids = testIds
+      .map((id) => {
+        try {
+          return new mongoose.Types.ObjectId(id);
+        } catch (err) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+
+    if (!ids.length) {
+      return res.status(400).json({ message: 'Danh sách testId không hợp lệ' });
+    }
+
+    const result = await PlacementTest.updateMany(
+      { _id: { $in: ids } },
+      { $set: { isActive } }
+    );
+
+    res.json({
+      message: `Đã cập nhật trạng thái cho ${result.modifiedCount} bài test`,
+      modified: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Bulk update placement test status error:', error);
+    res.status(500).json({ message: 'Lỗi server khi cập nhật trạng thái bài test' });
   }
 };
 
@@ -402,13 +766,11 @@ const getPlacementTestStats = async (req, res) => {
     const activeTests = await PlacementTest.countDocuments({ isActive: true });
     const listeningTests = await PlacementTest.countDocuments({ category: 'listening', isActive: true });
     const readingTests = await PlacementTest.countDocuments({ category: 'reading', isActive: true });
-    const generalTests = await PlacementTest.countDocuments({ category: 'general', isActive: true });
 
     // Thống kê theo category
     const categoryStats = [
       { category: 'listening', count: listeningTests },
-      { category: 'reading', count: readingTests },
-      { category: 'general', count: generalTests }
+      { category: 'reading', count: readingTests }
     ];
 
     res.json({
@@ -426,7 +788,7 @@ const getPlacementTestStats = async (req, res) => {
   }
 };
 
-// Import bài test từ file Word (Admin)
+// Import bài test từ file Word/PDF/Excel (Admin)
 const importPlacementTest = async (req, res) => {
   try {
     if (!req.file) {
@@ -434,144 +796,36 @@ const importPlacementTest = async (req, res) => {
     }
 
     const filePath = req.file.path;
-    
+    const extension = path.extname(req.file.originalname || filePath).toLowerCase();
+    let previewTest;
+
     try {
-      // Đọc file Word
-      const result = await mammoth.extractRawText({ path: filePath });
-      const content = result.value;
-      
-      // Parse nội dung file
-      const previewTest = parseWordContent(content);
-      
-      // Xóa file tạm
-      fs.unlinkSync(filePath);
-      
+      if (extension === '.docx') {
+        previewTest = await parseDocxFile(filePath);
+      } else if (extension === '.pdf') {
+        const buffer = fs.readFileSync(filePath);
+        previewTest = await parsePdfBuffer(buffer);
+      } else if (extension === '.xlsx') {
+        const buffer = fs.readFileSync(filePath);
+        previewTest = parseExcelBuffer(buffer);
+      } else {
+        throw new Error('Định dạng file không được hỗ trợ. Vui lòng sử dụng DOCX, PDF hoặc XLSX');
+      }
+
       res.json({
         message: 'Phân tích file thành công',
-        previewTest
+        previewTest,
+        source: extension.replace('.', '')
       });
-    } catch (parseError) {
-      // Xóa file tạm nếu có lỗi
+    } finally {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-      throw parseError;
     }
   } catch (error) {
     console.error('Import placement test error:', error);
-    res.status(500).json({ message: 'Lỗi khi xử lý file Word: ' + error.message });
+    res.status(500).json({ message: 'Lỗi khi xử lý file: ' + error.message });
   }
-};
-
-// Helper function để parse nội dung Word
-const parseWordContent = (content) => {
-  const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
-  
-  if (lines.length < 6) {
-    throw new Error('File không đúng format. Cần ít nhất: tiêu đề, mô tả, loại, thời gian, hướng dẫn và dấu phân cách ---');
-  }
-
-  let currentLine = 0;
-  
-  // Parse thông tin cơ bản
-  const title = lines[currentLine++];
-  const description = lines[currentLine++];
-  const category = lines[currentLine++].toLowerCase();
-  const timeLimit = parseInt(lines[currentLine++]);
-  
-  // Validate category
-  if (!['listening', 'reading', 'general'].includes(category)) {
-    throw new Error('Loại bài test phải là: listening, reading, hoặc general');
-  }
-  
-  if (isNaN(timeLimit) || timeLimit <= 0) {
-    throw new Error('Thời gian phải là số nguyên dương');
-  }
-
-  // Parse hướng dẫn
-  const instructions = [];
-  while (currentLine < lines.length && lines[currentLine] !== '---') {
-    instructions.push(lines[currentLine++]);
-  }
-  
-  if (currentLine >= lines.length || lines[currentLine] !== '---') {
-    throw new Error('Không tìm thấy dấu phân cách --- giữa hướng dẫn và câu hỏi');
-  }
-  
-  currentLine++; // Skip '---'
-
-  // Parse câu hỏi
-  const questions = [];
-  let currentQuestion = null;
-  
-  while (currentLine < lines.length) {
-    const line = lines[currentLine++];
-    
-    // Kiểm tra nếu là câu hỏi mới (bắt đầu bằng Q[số]:)
-    const questionMatch = line.match(/^Q(\d+):\s*(.+?)\s*\(Level:\s*(AV[1-7]),\s*Skill:\s*(listening|reading|grammar|vocabulary),\s*Points:\s*(\d+)\)$/i);
-    
-    if (questionMatch) {
-      // Lưu câu hỏi trước đó nếu có
-      if (currentQuestion) {
-        questions.push(currentQuestion);
-      }
-      
-      // Tạo câu hỏi mới
-      currentQuestion = {
-        type: 'single_choice', // Mặc định
-        content: questionMatch[2].trim(),
-        level: questionMatch[3].toUpperCase(),
-        skill: questionMatch[4].toLowerCase(),
-        points: parseInt(questionMatch[5]),
-        options: [],
-        correctAnswers: []
-      };
-    }
-    // Kiểm tra nếu là đáp án (A), B), C), D))
-    else if (currentQuestion && line.match(/^[A-D]\)/)) {
-      const isCorrect = line.endsWith('*');
-      const optionText = line.replace(/^[A-D]\)\s*/, '').replace(/\s*\*$/, '').trim();
-      
-      currentQuestion.options.push(optionText);
-      
-      if (isCorrect) {
-        currentQuestion.correctAnswers.push(optionText);
-      }
-    }
-    // Kiểm tra nếu là đoạn văn (Passage:)
-    else if (currentQuestion && line.toLowerCase().startsWith('passage:')) {
-      currentQuestion.passage = line.substring(8).trim();
-    }
-  }
-  
-  // Lưu câu hỏi cuối cùng
-  if (currentQuestion) {
-    questions.push(currentQuestion);
-  }
-  
-  if (questions.length === 0) {
-    throw new Error('Không tìm thấy câu hỏi nào trong file');
-  }
-
-  // Xác định loại câu hỏi dựa trên số đáp án đúng
-  questions.forEach(question => {
-    if (question.correctAnswers.length > 1) {
-      question.type = 'multiple_choice';
-    } else if (question.options.length === 0) {
-      question.type = 'fill_blank';
-    } else {
-      question.type = 'single_choice';
-    }
-  });
-
-  return {
-    title,
-    description,
-    category,
-    timeLimit,
-    instructions,
-    questions
-  };
 };
 
 module.exports = {
@@ -579,14 +833,17 @@ module.exports = {
   getActivePlacementTests,
   getPlacementTestForTaking,
   checkPlacementTest, // Thay thế submitPlacementTest
-  
+
   // Admin APIs
   getAllPlacementTests,
   getPlacementTestById,
   createPlacementTest,
   updatePlacementTest,
   deletePlacementTest,
+  bulkDeletePlacementTests,
+  bulkUpdatePlacementTestStatus,
   getPlacementTestStats,
   importPlacementTest,
-  updateTestContent
+  updateTestContent,
+  uploadSectionMedia
 };

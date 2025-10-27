@@ -2,7 +2,9 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Card from './ui/Card';
 
+// Section mô tả quy trình học 4 bước
 const ProcessSection: React.FC = () => {
+  // Danh sách các bước được hiển thị theo thứ tự
   const steps = [
     {
       number: '1',

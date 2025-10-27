@@ -1,5 +1,38 @@
 const mongoose = require('mongoose');
 
+// Schema media đính kèm trong passage
+const mediaBlockSchema = new mongoose.Schema({
+  id: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['image', 'audio'],
+    required: true
+  },
+  url: {
+    type: String,
+    required: true
+  },
+  originalName: {
+    type: String,
+    default: ''
+  },
+  mimeType: {
+    type: String,
+    default: ''
+  },
+  size: {
+    type: Number,
+    default: 0
+  },
+  transcript: {
+    type: String,
+    default: ''
+  }
+}, { _id: false });
+
 // Schema cho từng section trong bài test (như IELTS Reading có 3 passages)
 const sectionSchema = new mongoose.Schema({
   title: {
@@ -18,9 +51,9 @@ const sectionSchema = new mongoose.Schema({
     type: String, // URL hình ảnh nếu có
     default: ''
   },
-  timeLimit: {
-    type: Number, // Thời gian làm section này (phút)
-    default: 20
+  mediaBlocks: {
+    type: [mediaBlockSchema],
+    default: []
   }
 });
 
@@ -37,26 +70,20 @@ const questionSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: [
-      'fill_blank',           // Fill in the blank (IELTS style)
-      'true_false_not_given', // True/False/Not Given
-      'yes_no_not_given',     // Yes/No/Not Given
-      'multiple_choice',      // Multiple choice A, B, C, D
-      'single_choice',        // Single choice A, B, C, D
-      'matching',             // Matching exercises
-      'summary_completion',   // Complete summary with word bank
-      'sentence_completion',  // Complete sentences
-      'essay'                 // Essay questions
+      'multi_choice',   // Có thể chọn 1 hoặc nhiều đáp án
+      'short_answer',   // Trả lời ngắn
+      'matching',       // Ghép cặp
+      'dropdown'        // Chọn đáp án từ menu thả xuống
     ],
     required: [true, 'Loại câu hỏi là bắt buộc']
+  },
+  allowMultiple: {
+    type: Boolean,
+    default: false
   },
   content: {
     type: String,
     required: [true, 'Nội dung câu hỏi là bắt buộc']
-  },
-  skill: {
-    type: String,
-    enum: ['listening', 'reading'],
-    default: 'reading'
   },
   instructions: {
     type: String, // Hướng dẫn làm bài cho nhóm câu hỏi
@@ -70,6 +97,16 @@ const questionSchema = new mongoose.Schema({
     isCorrect: {
       type: Boolean,
       default: false
+    }
+  }],
+  matchingPairs: [{
+    prompt: {
+      type: String,
+      required: true
+    },
+    correctOption: {
+      type: String,
+      required: true
     }
   }],
   wordBank: [String], // Danh sách từ cho loại summary completion
@@ -101,7 +138,7 @@ const placementTestSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['listening', 'reading', 'general'],
+    enum: ['listening', 'reading'],
     required: [true, 'Loại bài test là bắt buộc']
   },
   timeLimit: {
@@ -168,6 +205,10 @@ const placementResultSchema = new mongoose.Schema({
     },
     selectedOptions: [String], // Các đáp án đã chọn
     userAnswer: String, // Câu trả lời tự luận
+    matchingAnswers: [{
+      prompt: String,
+      selected: String
+    }],
     isCorrect: Boolean,
     pointsEarned: Number
   }],

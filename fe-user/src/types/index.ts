@@ -1,4 +1,4 @@
-// API Response Types
+// Kiểu dữ liệu phản hồi từ API
 export interface ApiResponse<T> {
   success: boolean;
   data?: T;
@@ -6,12 +6,12 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
-// Test Related Types
+// Bộ kiểu dữ liệu liên quan tới bài kiểm tra
 export interface PlacementTest {
   _id: string;
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   instructions: string[];
   timeLimit: number;
   sections: TestSection[];
@@ -23,20 +23,30 @@ export interface PlacementTest {
   updatedAt: string;
 }
 
+export interface SectionMedia {
+  id: string;
+  type: 'image' | 'audio';
+  url: string;
+  originalName?: string;
+  mimeType?: string;
+  size?: number;
+  transcript?: string;
+}
+
 export interface TestSection {
   _id: string;
   title: string;
   passage?: string;
   audio?: string;
   image?: string;
-  timeLimit: number;
+  mediaBlocks?: SectionMedia[];
 }
 
 export interface TestQuestion {
   _id?: string;
   sectionId: string;
   questionNumber: number;
-  type: 'fill_blank' | 'true_false_not_given' | 'yes_no_not_given' | 'multiple_choice' | 'matching' | 'summary_completion' | 'sentence_completion';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
   instructions?: string;
   options?: Option[];
@@ -45,19 +55,20 @@ export interface TestQuestion {
   explanation?: string;
   points: number;
   level?: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
-  passage?: string; // added for reading context
+  passage?: string; // dùng cho bối cảnh đọc hiểu
   media?: {
     audioUrl?: string;
     imageUrl?: string;
-  }; // added for listening / images
+  }; // dùng cho bài nghe hoặc câu hỏi có hình
+  allowMultiple?: boolean;
+  matchingPairs?: MatchingPair[];
 }
 
 export interface Question {
   _id?: string;
-  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
   level: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
-  skill: 'listening' | 'reading' | 'speaking' | 'writing';
   passage?: string;
   media?: {
     audioUrl?: string;
@@ -65,6 +76,8 @@ export interface Question {
   };
   options?: Option[];
   correctAnswers?: string[]; // Only visible to admin
+  allowMultiple?: boolean;
+  matchingPairs?: MatchingPair[];
   points: number;
   explanation?: string; // Only visible after submission
 }
@@ -74,18 +87,28 @@ export interface Option {
   isCorrect?: boolean; // Hidden in take test, visible in admin
 }
 
-// User Answer Types
+export interface MatchingPair {
+  prompt: string;
+  correctOption: string;
+}
+
+// Kiểu dữ liệu câu trả lời của học viên
 export interface UserAnswer {
   selectedOptions: string[];
   userAnswer: string;
+  matchingAnswers?: { prompt: string; selected: string }[];
+}
+
+export interface SubmittedAnswer extends UserAnswer {
+  questionId: string;
 }
 
 export interface TestSubmission {
   testId: string;
-  answers: UserAnswer[];
+  answers: SubmittedAnswer[];
 }
 
-// Test Result Types (matching backend response)
+// Kết quả bài thi (khớp với backend)
 export interface TestResult {
   testTitle: string;
   category: string;
@@ -112,6 +135,7 @@ export interface DetailedResult {
   userAnswer: {
     selectedOptions: string[];
     userAnswer: string;
+    matchingAnswers?: { prompt: string; selected: string }[];
   };
   correctAnswers: string[];
   isCorrect: boolean;
@@ -119,7 +143,7 @@ export interface DetailedResult {
   explanation: string;
 }
 
-// UI State Types
+// Trạng thái UI trong quá trình làm bài
 export interface TestState {
   currentTest: PlacementTest | null;
   currentQuestionIndex: number;
@@ -130,7 +154,7 @@ export interface TestState {
   isCompleted: boolean;
 }
 
-// Component Props
+// Props cho các component tái sử dụng
 export interface TestCardProps {
   test: PlacementTest;
   onStart: (testId: string) => void;
@@ -156,27 +180,27 @@ export interface ProgressBarProps {
   total: number;
 }
 
-// Navigation Types
+// Kiểu dữ liệu cho mục điều hướng
 export interface NavigationItem {
   label: string;
   href: string;
   isActive?: boolean;
 }
 
-// Loading and Error States
+// Trạng thái loading và lỗi
 export interface LoadingState {
   isLoading: boolean;
   error: string | null;
 }
 
-// Filter Types for Test Selection
+// Bộ lọc dành cho danh sách bài test
 export interface TestFilters {
   category?: 'listening' | 'reading' | 'all';
   level?: string;
   search?: string;
 }
 
-// Audio Player Types (for listening tests)
+// Props cho trình phát audio ở bài nghe
 export interface AudioPlayerProps {
   audioUrl: string;
   isPlaying: boolean;
@@ -186,7 +210,7 @@ export interface AudioPlayerProps {
   onSeek: (time: number) => void;
 }
 
-// Result Display Types
+// Props hiển thị kết quả
 export interface ResultSummaryProps {
   result: TestResult;
   onRetakeTest?: () => void;
@@ -200,7 +224,7 @@ export interface ScoreDisplayProps {
   levelDescription: string;
 }
 
-// Form Types
+// Dữ liệu form liên hệ/feedback
 export interface ContactFormData {
   name: string;
   email: string;
@@ -213,7 +237,7 @@ export interface FeedbackFormData {
   testId?: string;
 }
 
-// Error Boundary Types
+// Kiểu dữ liệu cho error boundary
 export interface ErrorInfo {
   componentStack: string;
   errorBoundary?: string;

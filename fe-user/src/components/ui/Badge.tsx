@@ -8,6 +8,7 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   pill?: boolean;
 }
 
+// Bảng màu cho từng trạng thái badge
 const variantStyles: Record<BadgeVariant, string> = {
   default: 'bg-gray-100 text-gray-700',
   success: 'bg-green-100 text-green-700',
@@ -17,6 +18,7 @@ const variantStyles: Record<BadgeVariant, string> = {
   outline: 'border border-gray-300 text-gray-600'
 };
 
+// Badge hiển thị nhãn nhỏ với nhiều biến thể màu sắc
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', pill, className, ...rest }) => {
   return (
     <span

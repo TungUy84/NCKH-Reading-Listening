@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
+// Footer hiển thị thông tin liên hệ và liên kết nhanh cuối trang
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
 
+  // Chia các liên kết theo nhóm để render linh hoạt
   const footerLinks = {
     'Liên kết nhanh': [
       { label: 'Trang chủ', href: '/' },
@@ -24,7 +26,7 @@ const Footer: React.FC = () => {
       <div className="absolute inset-0 pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black,transparent)] bg-gradient-to-br from-blue-50 via-transparent to-purple-50" />
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-          {/* Brand */}
+          {/* Khối thông tin thương hiệu */}
           <div className="md:col-span-2">
             <Link to="/" className="flex items-center gap-2 mb-5 group">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-sm ring-1 ring-white/20 group-hover:shadow group-hover:scale-105 transition-all">
@@ -61,7 +63,7 @@ const Footer: React.FC = () => {
             </div>
           </div>
 
-          {/* Link groups */}
+          {/* Nhóm liên kết phụ trợ */}
           {Object.entries(footerLinks).map(([title, links]) => (
             <div key={title}>
               <h3 className="text-sm font-semibold tracking-wide text-gray-900 mb-4">{title}</h3>

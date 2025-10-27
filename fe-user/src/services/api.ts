@@ -1,15 +1,15 @@
 import axios from 'axios';
 
-// Create axios instance with base configuration
+// Khởi tạo axios với cấu hình mặc định
 const apiService = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: process.env.REACT_APP_API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Request interceptor to add auth token
+// Tự động gắn token đăng nhập vào mọi request
 apiService.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -23,7 +23,7 @@ apiService.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Bắt lỗi response và xử lý các tình huống đặc biệt (vd: hết phiên)
 apiService.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -44,40 +44,40 @@ apiService.interceptors.response.use(
   }
 );
 
-// ========== PLACEMENT TEST API FUNCTIONS ==========
-// These match the backend routes exactly
+// ========== NHÓM API CHO PLACEMENT TEST ==========
+// Giữ nguyên đường dẫn giống backend
 
 /**
- * Get all active placement tests
- * Backend: GET /api/placement-tests/active?category=listening
+ * Lấy danh sách bài test đang hoạt động (lọc theo category nếu cần)
+ * Backend: GET /api/placement-tests?category=listening
  */
 export const getActiveTests = async (category?: string) => {
   const params = category ? { category } : {};
-  const response = await apiService.get('/placement-tests/active', { params });
-  return response.data; // Backend returns { tests: [...] }
+  const response = await apiService.get('/placement-tests', { params });
+  return response.data;
 };
 
 /**
- * Get a specific test for taking (questions without correct answers)
- * Backend: GET /api/placement-tests/take/:testId
+ * Lấy chi tiết bài test để làm (không trả đáp án)
+ * Backend: GET /api/placement-tests/:testId
  */
 export const getTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/take/${testId}`);
-  return response.data; // Backend returns { test: {...} }
+  const response = await apiService.get(`/placement-tests/${testId}`);
+  return response.data;
 };
 
 /**
- * Get placement test for taking (IELTS format)
- * Backend: GET /api/placement-tests/take/:testId
+ * Lấy chi tiết bài test IELTS (giữ lại để tương thích component cũ)
+ * Backend: GET /api/placement-tests/:testId
  */
 export const getPlacementTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/take/${testId}`);
-  return response.data; // Backend returns { test: {...} }
+  const response = await apiService.get(`/placement-tests/${testId}`);
+  return response.data;
 };
 
 /**
- * Submit test answers and get results immediately
- * Backend: POST /api/placement-tests/check
+ * Nộp bài test và nhận kết quả ngay
+ * Backend: POST /api/placement-tests/:testId/submissions
  */
 export const submitTest = async (submission: {
   testId: string;
@@ -85,33 +85,39 @@ export const submitTest = async (submission: {
     questionId: string;
     selectedOptions?: string[];
     userAnswer?: string;
+    matchingAnswers?: { prompt: string; selected: string }[];
   }>;
 }) => {
-  const response = await apiService.post('/placement-tests/check', submission);
-  return response.data; // Backend returns { result: {...} }
+  const { testId, answers } = submission;
+  const response = await apiService.post(`/placement-tests/${testId}/submissions`, {
+    testId,
+    answers
+  });
+  return response.data;
 };
 
 /**
- * Submit placement test (IELTS format)
- * Backend: POST /api/placement-tests/check
+ * Nộp bài test IELTS
+ * Backend: POST /api/placement-tests/:testId/submissions
  */
 export const submitPlacementTest = async (testId: string, answers: Array<{
   questionNumber: number;
   selectedOptions?: string[];
   userAnswer?: string;
+  matchingAnswers?: { prompt: string; selected: string }[];
 }>) => {
-  const response = await apiService.post('/placement-tests/check', {
+  const response = await apiService.post(`/placement-tests/${testId}/submissions`, {
     testId,
     answers
   });
-  return response.data; // Backend returns { result: {...} }
+  return response.data;
 };
 
-// ========== AUTH API FUNCTIONS ==========
-// These match the backend auth routes exactly
+// ========== NHÓM API AUTH ==========
+// Đồng bộ với các route đăng nhập trên backend
 
 /**
- * Register a new user
+ * Đăng ký người dùng mới
  * Backend: POST /api/auth/register
  */
 export const register = async (userData: {
@@ -129,8 +135,8 @@ export const register = async (userData: {
 };
 
 /**
- * Login user
- * Backend: POST /api/auth/login (accepts email and password)
+ * Đăng nhập (nhập email và mật khẩu)
+ * Backend: POST /api/auth/login
  */
 export const login = async (credentials: {
   email: string;
@@ -141,7 +147,7 @@ export const login = async (credentials: {
 };
 
 /**
- * Logout user
+ * Đăng xuất khỏi hệ thống
  * Backend: POST /api/auth/logout
  */
 export const logout = async () => {
@@ -150,7 +156,7 @@ export const logout = async () => {
 };
 
 /**
- * Get user profile
+ * Lấy thông tin hồ sơ người dùng
  * Backend: GET /api/auth/profile
  */
 export const getProfile = async () => {
@@ -159,7 +165,7 @@ export const getProfile = async () => {
 };
 
 /**
- * Update user profile
+ * Cập nhật hồ sơ cá nhân
  * Backend: PUT /api/auth/profile
  */
 export const updateProfile = async (profileData: {
@@ -176,7 +182,7 @@ export const updateProfile = async (profileData: {
 };
 
 /**
- * Upload user avatar
+ * Tải lên ảnh đại diện
  * Backend: POST /api/auth/avatar
  */
 export const uploadAvatar = async (file: File) => {
@@ -192,7 +198,7 @@ export const uploadAvatar = async (file: File) => {
 };
 
 /**
- * Change password
+ * Đổi mật khẩu
  * Backend: PUT /api/auth/change-password
  */
 export const changePassword = async (passwordData: {
@@ -204,7 +210,7 @@ export const changePassword = async (passwordData: {
 };
 
 /**
- * Request password reset
+ * Gửi yêu cầu đặt lại mật khẩu qua email
  * Backend: POST /api/auth/forgot-password
  */
 export const forgotPassword = async (email: string) => {
@@ -213,7 +219,7 @@ export const forgotPassword = async (email: string) => {
 };
 
 /**
- * Reset password with token
+ * Đặt lại mật khẩu bằng token
  * Backend: PUT /api/auth/reset-password/:resetToken
  */
 export const resetPassword = async (resetToken: string, newPassword: string) => {
@@ -223,10 +229,10 @@ export const resetPassword = async (resetToken: string, newPassword: string) => 
   return response.data;
 };
 
-// ========== HELPER FUNCTIONS ==========
+// ========== HÀM TIỆN ÍCH ==========
 
 /**
- * Check if user is authenticated
+ * Kiểm tra token hiện tại còn hiệu lực hay không
  */
 export const isAuthenticated = () => {
   const token = localStorage.getItem('token');
@@ -242,7 +248,7 @@ export const isAuthenticated = () => {
 };
 
 /**
- * Get current user from token
+ * Lấy payload người dùng từ token JWT
  */
 export const getCurrentUser = () => {
   const token = localStorage.getItem('token');
@@ -257,11 +263,11 @@ export const getCurrentUser = () => {
 };
 
 /**
- * Test API connection
+ * Kiểm tra nhanh kết nối API
  */
 export const testConnection = async () => {
   try {
-    await apiService.get('/placement-tests/active');
+    await apiService.get('/placement-tests');
     return true;
   } catch {
     return false;

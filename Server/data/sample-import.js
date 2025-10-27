@@ -29,7 +29,6 @@ An Egyptian narrative of about 1080 BC, the Story of Wen-Amen, provides an insig
 The most prosperous period for Phoenicia was the 10th century BC, when the surrounding region was stable. Hiram, the king of the Phoenician city of Tyre, was an ally and business partner of Solomon, King of Israel. For Solomon's temple in Jerusalem, Hiram provided craftsmen with particular skills that were needed for this major construction project. He also supplied materials – particularly timber, including cedar from the forests of Lebanon. And the two kings went into trade in partnership. They sent out Phoenician vessels on long expeditions (of up to three years for the return trip) to bring back gold, sandalwood, ivory, monkeys and peacocks from Ophir. This is an unidentified place, probably on the east coast of Africa or the west coast of India.
 
 Phoenicia was famous for its luxury goods. The cedar wood was not only exported as top-quality timber for architecture and shipbuilding. It was also carved by the Phoenicians into expensive furniture. Their most famous export was a purple dye, extracted from murex shells found on the Phoenician coast. This luxury item was in great demand in royal and religious circles throughout the ancient world (the Christian bishop's purple vestments and the purple of Byzantine emperors both derive from this source).`,
-      timeLimit: 20
     },
     {
       title: "PASSAGE 2: The Impact of Social Media on Modern Communication",
@@ -40,7 +39,6 @@ One of the most significant impacts of social media is the speed at which inform
 The rise of social media has also changed the nature of personal relationships. People can now maintain connections with friends and family across great distances, and can easily reconnect with old acquaintances. Social media platforms have become virtual meeting places where communities can form around shared interests, causes, or experiences. However, critics argue that these online relationships may lack the depth and authenticity of face-to-face interactions.
 
 Furthermore, social media has created new economic opportunities. The rise of influencer marketing has created entirely new career paths, while businesses have found innovative ways to reach customers through targeted advertising and direct engagement. The gig economy has been facilitated by social media platforms that connect service providers with customers.`,
-      timeLimit: 20
     },
     {
       title: "PASSAGE 3: The New Way to Be a Fifth-Grader",
@@ -51,7 +49,6 @@ Last November, his teacher, Kami Thordarson, began using Khan Academy in her cla
 But Khan Academy represents a new form of teaching that is beginning to be taken seriously by educators. The process is known as "flipping the classroom." Instead of a teacher presenting a lesson to a class of 20 or 30 students, then assigning homework based on the day's lesson, students watch Khan's videos at home – or, in Thordarson's class, on laptops during school time – and the classroom becomes a place where the homework problems are worked through with the teacher's help.
 
 Thordarson believes this system lets her focus more closely on students who need help, rather than having to get the material across to everyone at the same time. Students like Carpenter advance through the curriculum at their own pace. On Khan Academy, concepts are broken down into digestible pieces. Students can replay videos they don't understand and receive immediate feedback on their problem-solving.`,
-      timeLimit: 20
     }
   ],
   questions: [

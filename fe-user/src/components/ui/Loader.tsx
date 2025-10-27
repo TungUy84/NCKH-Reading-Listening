@@ -6,13 +6,16 @@ export interface LoaderProps {
   variant?: 'default' | 'primary' | 'inverse';
 }
 
+// Mapping kích thước spinner
 const sizeMap = { sm: 'h-4 w-4', md: 'h-6 w-6', lg: 'h-10 w-10' };
+// Màu sắc phù hợp với từng nền
 const variantMap = {
   default: 'text-gray-400',
   primary: 'text-blue-600',
   inverse: 'text-white'
 };
 
+// Spinner hiển thị trạng thái loading
 export const Loader: React.FC<LoaderProps> = ({ size = 'md', variant = 'default' }) => {
   return (
     <span

@@ -66,8 +66,8 @@ const getUserStats = async (req, res) => {
     // Users đăng ký trong 30 ngày qua
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const newUsers = await User.countDocuments({ 
-      createdAt: { $gte: thirtyDaysAgo } 
+    const newUsers = await User.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo }
     });
 
     res.json({
@@ -107,14 +107,14 @@ const getUserById = async (req, res) => {
 // Tạo user mới (Chỉ admin)
 const createUser = async (req, res) => {
   try {
-    const { 
-      username, 
-      email, 
-      password, 
-      firstName, 
-      lastName, 
-      phoneNumber, 
-      studentId, 
+    const {
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+      phoneNumber,
+      studentId,
       dateOfBirth,
       role = 'user'
     } = req.body;
@@ -174,15 +174,15 @@ const createUser = async (req, res) => {
 // Cập nhật user (Chỉ admin)
 const updateUser = async (req, res) => {
   try {
-    const { 
-      firstName, 
-      lastName, 
-      phoneNumber, 
-      studentId, 
-      dateOfBirth, 
+    const {
+      firstName,
+      lastName,
+      phoneNumber,
+      studentId,
+      dateOfBirth,
       avatar,
       role,
-      isActive 
+      isActive
     } = req.body;
 
     const user = await User.findById(req.params.id);
@@ -271,70 +271,6 @@ const deleteUser = async (req, res) => {
   }
 };
 
-// Chuyển đổi trạng thái user (Chỉ admin)
-const toggleUserStatus = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy user' });
-    }
-
-    // Ngăn admin thay đổi trạng thái chính mình
-    if (req.user.id === user._id.toString()) {
-      return res.status(400).json({ message: 'Bạn không thể thay đổi trạng thái tài khoản của chính mình' });
-    }
-
-    user.isActive = !user.isActive;
-    await user.save();
-
-    res.json({
-      message: `${user.isActive ? 'Kích hoạt' : 'Vô hiệu hóa'} user thành công`,
-      user
-    });
-  } catch (error) {
-    if (error.name === 'CastError') {
-      return res.status(400).json({ message: 'ID user không hợp lệ' });
-    }
-    res.status(500).json({ message: 'Lỗi server khi thay đổi trạng thái' });
-  }
-};
-
-// Cập nhật role user (Chỉ admin)
-const updateUserRole = async (req, res) => {
-  try {
-    const { role } = req.body;
-
-    if (!role || !['user', 'admin'].includes(role)) {
-      return res.status(400).json({ message: 'Role hợp lệ (user hoặc admin) là bắt buộc' });
-    }
-
-    const user = await User.findById(req.params.id);
-
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy user' });
-    }
-
-    // Ngăn admin thay đổi role của chính mình thành user
-    if (req.user.id === user._id.toString() && role === 'user') {
-      return res.status(400).json({ message: 'Bạn không thể thay đổi role của chính mình' });
-    }
-
-    user.role = role;
-    await user.save();
-
-    res.json({
-      message: `Cập nhật role thành ${role} thành công`,
-      user
-    });
-  } catch (error) {
-    if (error.name === 'CastError') {
-      return res.status(400).json({ message: 'ID user không hợp lệ' });
-    }
-    res.status(500).json({ message: 'Lỗi server khi cập nhật role' });
-  }
-};
-
 module.exports = {
   getAllUsers,
   getUserStats,
@@ -342,6 +278,4 @@ module.exports = {
   createUser,
   updateUser,
   deleteUser,
-  toggleUserStatus,
-  updateUserRole
 };

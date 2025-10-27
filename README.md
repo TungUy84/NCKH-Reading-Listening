@@ -148,4 +148,3 @@ npm run dev
 Internal project (chưa công bố license).
 
 ---
-Nếu cần thêm phần: Docker, deploy hướng dẫn, hay CI/CD — cứ tạo issue hoặc báo cho mình nhé.

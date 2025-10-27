@@ -67,11 +67,11 @@ fe-user/
 ## 🔌 **API Integration**
 
 ### Endpoints sử dụng:
-- `GET /api/placement-tests/active` - Lấy danh sách tests
-- `GET /api/placement-tests/active?category=listening` - Filter listening
-- `GET /api/placement-tests/active?category=reading` - Filter reading
-- `GET /api/placement-tests/take/:testId` - Lấy chi tiết test
-- `POST /api/placement-tests/check` - Nộp bài và chấm điểm
+- `GET /api/placement-tests` - Lấy danh sách tests đang hoạt động
+- `GET /api/placement-tests?category=listening` - Filter listening
+- `GET /api/placement-tests?category=reading` - Filter reading
+- `GET /api/placement-tests/:testId` - Lấy chi tiết test
+- `POST /api/placement-tests/:testId/submissions` - Nộp bài và chấm điểm
 
 ### Environment Variables:
 ```

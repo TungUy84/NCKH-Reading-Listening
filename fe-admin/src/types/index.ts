@@ -10,7 +10,7 @@ export interface PlacementTest {
   _id: string;
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   instructions: string[];
   timeLimit: number;
   questions: Question[];
@@ -32,18 +32,21 @@ export interface TestSection {
   audioUrl?: string;
   image?: string;
   imageUrl?: string;
+  mediaBlocks?: SectionMedia[];
   questions: Question[];
 }
-
+ 
 export interface Question {
   _id?: string;
   sectionId?: string;
   questionId?: number;
   questionNumber?: number;
-  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay' | 'true_false_not_given' | 'yes_no_not_given' | 'summary_completion';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
+  allowMultiple?: boolean;
+  sectionIndex?: number;
+  matchingPairs?: MatchingPair[];
   content?: string;
   text?: string;
-  skill?: 'listening' | 'reading';
   passage?: string;
   media?: {
     image?: string;
@@ -51,6 +54,7 @@ export interface Question {
   };
   options?: QuestionOption[];
   correctAnswers: string[];
+  wordBank?: string[];
   points: number;
   explanation?: string;
 }
@@ -63,6 +67,40 @@ export interface Option {
 export interface QuestionOption {
   text: string;
   isCorrect: boolean;
+}
+
+export interface MatchingPair {
+  prompt: string;
+  correctOption: string;
+}
+
+export interface SectionMedia {
+  id: string;
+  type: 'image' | 'audio';
+  url: string;
+  originalName?: string;
+  mimeType?: string;
+  size?: number;
+  transcript?: string;
+}
+
+export interface PlacementTestImportPreview {
+  title: string;
+  description: string;
+  category: 'listening' | 'reading';
+  timeLimit: number;
+  instructions: string[];
+  sections?: TestSection[];
+  questions: Question[];
+  totalPoints?: number;
+  totalQuestions?: number;
+  source?: string;
+}
+
+export interface PlacementTestImportResponse {
+  message: string;
+  previewTest: PlacementTestImportPreview;
+  source?: string;
 }
 
 // Admin-specific types
@@ -166,17 +204,18 @@ export interface DashboardStats {
 export interface TestFormData {
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   instructions: string[];
   timeLimit: number;
   isActive: boolean;
+  sections?: TestSection[];
   questions: QuestionFormData[];
 }
 
 export interface TestUpdateData {
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   instructions: string[];
   timeLimit: number;
   isActive: boolean;
@@ -185,15 +224,18 @@ export interface TestUpdateData {
 }
 
 export interface QuestionFormData {
-  type: 'single_choice' | 'multiple_choice' | 'fill_blank' | 'essay';
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
-  skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
+  sectionIndex?: number;
   passage?: string;
   media?: {
     image?: string;
     audio?: string;
   };
   options?: OptionFormData[];
+  allowMultiple?: boolean;
+  matchingPairs?: MatchingPair[];
+  wordBank?: string[];
   correctAnswers: string[];
   points: number;
   explanation?: string;

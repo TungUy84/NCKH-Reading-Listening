@@ -215,15 +215,15 @@ const forgotPassword = async (req, res) => {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save();
-      
-      res.status(500).json({ 
+
+      res.status(500).json({
         message: 'Không thể gửi email reset mật khẩu',
         error: emailResult.message
       });
     }
   } catch (error) {
     console.error('Forgot password error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Lỗi server khi reset mật khẩu',
       error: error.message
     });
@@ -281,10 +281,10 @@ const uploadAvatar = async (req, res) => {
 
     // Get user from token
     const userId = req.user.id;
-    
+
     // Create avatar URL
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-    
+
     // Update user avatar in database
     const user = await User.findByIdAndUpdate(
       userId,
@@ -305,9 +305,9 @@ const uploadAvatar = async (req, res) => {
 
   } catch (error) {
     console.error('Upload avatar error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Lỗi server khi upload avatar',
-      error: error.message 
+      error: error.message
     });
   }
 };

@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import {
+  HomeIcon,
+  ClipboardDocumentCheckIcon,
+  MapIcon,
+  AcademicCapIcon,
+  CheckBadgeIcon,
+  BookOpenIcon,
+  NewspaperIcon,
+} from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarColor, getUserInitials, getUserDisplayName } from '../utils/avatarUtils';
 import Button from './ui/Button';
@@ -7,26 +16,17 @@ import Button from './ui/Button';
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
 
-  // Handle scroll effect
-  // Scroll shadow / compact mode
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Close dropdowns on route change
+  // Đóng mọi menu khi chuyển route để tránh trạng thái treo
   useEffect(() => {
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
   }, [location.pathname]);
 
-  // Click outside to close user dropdown
+  // Bấm ra ngoài để đóng menu người dùng
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
@@ -37,84 +37,66 @@ const Header: React.FC = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, [isUserMenuOpen]);
 
+  // Danh sách route hiển thị trên thanh header
   const navigationItems = [
-    { label: 'Trang chủ', href: '/' },
-    { label: 'Kiểm tra đầu vào', href: '/tests' },
-    { label: 'Về chúng tôi', href: '/about' },
-    { label: 'Liên hệ', href: '/contact' },
-    { label: 'Blog', href: '/blog' },
+    { label: 'Trang chủ', href: '/', icon: HomeIcon },
+    { label: 'Kiểm tra đầu vào', href: '/tests', icon: ClipboardDocumentCheckIcon },
+  { label: 'Lộ trình học', href: '/roadmap', icon: MapIcon },
+    { label: 'Ôn luyện', href: '/practice', icon: AcademicCapIcon },
+    { label: 'Thi thử', href: '/mock-test', icon: CheckBadgeIcon },
+    { label: 'Bài học', href: '/lessons', icon: BookOpenIcon },
+    { label: 'Blog', href: '/blog', icon: NewspaperIcon },
   ];
 
   const isActiveRoute = (href: string) => {
     if (href === '/') {
       return location.pathname === '/';
     }
-    return location.pathname.startsWith(href);
+    return location.pathname === href || location.pathname.startsWith(`${href}/`);
   };
-  
+
   const handleLogout = () => {
     logout();
     setIsUserMenuOpen(false);
   };
   return (
-    <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? 'bg-white/90 backdrop-blur-md shadow-lg border-b border-gray-200'
-          : 'bg-white/95 backdrop-blur-sm border-b border-transparent'
-      }`}
-    >
+    <header className="fixed inset-x-0 top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div
-          className={`flex items-center justify-between gap-4 transition-all duration-300 ${
-            isScrolled ? 'h-14' : 'h-16'
-          }`}
-        >
-          {/* Brand */}
-            <Link to="/" className="flex items-center gap-2 group">
-              <div
-                className={`rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold tracking-wide shadow-sm ring-1 ring-inset ring-white/10 transition-all group-hover:shadow-md ${
-                  isScrolled ? 'w-7 h-7 text-xs' : 'w-8 h-8 text-sm'
-                }`}
-              >
-                ET
-              </div>
-              <span
-                className={`font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent transition-colors ${
-                  isScrolled ? 'text-lg' : 'text-xl'
-                }`}
-              >
-                EnglishTest
-              </span>
-            </Link>
+        <div className="flex items-center justify-between gap-4 h-16">
+          {/* Logo thương hiệu */}
+          <Link to="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors">
+            <AcademicCapIcon className="h-8 w-8" />
+            <span className="text-2xl font-bold">EnglishMaster</span>
+          </Link>
 
-          {/* Desktop navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          {/* Điều hướng trên desktop */}
+          <nav className="hidden md:flex items-center gap-2">
             {navigationItems.map(item => {
               const active = isActiveRoute(item.href);
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   to={item.href}
-                  className={`relative text-sm font-medium transition-colors after:absolute after:left-0 after:-bottom-1 after:h-0.5 after:rounded-full after:bg-gradient-to-r after:from-blue-600 after:to-purple-600 after:transition-all ${
-                    active
-                      ? 'text-blue-600 after:w-full'
-                      : 'text-gray-600 hover:text-blue-600 after:w-0 hover:after:w-full'
-                  }`}
+                  className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${active
+                      ? 'bg-blue-50 text-blue-600 shadow-sm'
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                    }`}
                 >
-                  {item.label}
+                  <Icon className="h-4 w-4" />
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Auth (desktop) */}
+          {/* Khu vực đăng nhập/đăng ký trên desktop */}
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(o => !o)}
-                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-blue-600 focus:outline-none"
                   aria-haspopup="menu"
                   aria-expanded={isUserMenuOpen}
                 >
@@ -180,12 +162,12 @@ const Header: React.FC = () => {
               <div className="flex items-center gap-3">
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
+                  className="inline-flex items-center rounded-lg border border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
                 >
                   Đăng nhập
                 </Link>
                 <Link to="/register">
-                  <Button size="sm" className="shadow focus-visible:ring-2 focus-visible:ring-blue-600/50">
+                  <Button size="sm" className="shadow-sm">
                     🚀 Đăng ký
                   </Button>
                 </Link>
@@ -193,7 +175,7 @@ const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile menu button */}
+          {/* Nút mở menu trên mobile */}
           <div className="md:hidden flex items-center">
             <button
               onClick={() => setIsMenuOpen(o => !o)}
@@ -220,24 +202,25 @@ const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile panel */}
+  {/* Menu thả xuống cho mobile */}
         {isMenuOpen && (
           <div className="md:hidden pb-6 border-t border-gray-100 animate-[fade-in_0.15s_ease-out]">
             <nav className="flex flex-col gap-1 pt-4">
               {navigationItems.map(item => {
                 const active = isActiveRoute(item.href);
+                const Icon = item.icon;
                 return (
                   <Link
                     key={item.href}
                     to={item.href}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`px-2 py-2 rounded-md text-sm font-medium transition-colors ${
-                      active
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${active
                         ? 'text-blue-600 bg-blue-50'
-                        : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50'
-                    }`}
+                        : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                      }`}
                   >
-                    {item.label}
+                    <Icon className="h-4 w-4" />
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}
@@ -294,7 +277,7 @@ const Header: React.FC = () => {
                   <Link
                     to="/login"
                     onClick={() => setIsMenuOpen(false)}
-                    className="flex-1 inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    className="flex-1 inline-flex items-center justify-center rounded-lg border border-blue-600 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"
                   >
                     Đăng nhập
                   </Link>

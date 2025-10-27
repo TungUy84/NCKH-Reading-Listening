@@ -106,6 +106,19 @@ fe-admin/
 - Media upload support
 - Bulk operations
 
+## 📥 Import bài test
+
+- Upload trực tiếp đề thi từ các định dạng **Word (.docx), PDF (.pdf) và Excel (.xlsx)**.
+- Công cụ nằm trong mục **Kiểm tra đầu vào → Import** với bản xem trước câu hỏi trước khi lưu.
+- Có thể tinh chỉnh tiêu đề, mô tả, thời gian, hướng dẫn và trạng thái kích hoạt trước khi tạo test.
+- Các file mẫu được đặt tại `fe-admin/public/import-samples/` và có thể tải ngay trong giao diện Import:
+  - `sample-placement-test.docx`
+  - `sample-placement-test.xlsx`
+- Khi tự chuẩn bị file:
+  - Word/PDF: khai báo metadata theo key-value, dùng `---` để phân cách phần câu hỏi; đánh dấu đáp án đúng bằng dấu `*` hoặc `[x]`.
+  - Excel: Sheet `Metadata` chứa cột `Field`/`Value`; sheet `Questions` gồm các cột `QuestionNumber`, `Type`, `Content`, `Level`, `Points`, `Options`, `CorrectAnswers`, `MatchingPairs`, ... (ngăn cách nhiều giá trị bằng `|`).
+
+
 ## 🎨 **Design System**
 
 ### Colors:
@@ -124,11 +137,16 @@ fe-admin/
 
 ### Admin Endpoints:
 - `POST /api/auth/login` - Admin login
-- `GET /api/placement-tests/admin` - Get all tests (paginated)
-- `GET /api/placement-tests/admin/stats` - Dashboard statistics
-- `POST /api/placement-tests/admin` - Create test
-- `PUT /api/placement-tests/admin/:id` - Update test
-- `DELETE /api/placement-tests/admin/:id` - Delete test
+- `GET /api/placement-tests?scope=admin` - Get all tests (paginated)
+- `GET /api/placement-tests/stats` - Dashboard statistics
+- `POST /api/placement-tests` - Create test
+- `PUT /api/placement-tests/:id` - Update test
+- `DELETE /api/placement-tests/:id` - Delete test
+- `PUT /api/placement-tests/:id/content` - Update test sections/questions
+- `POST /api/placement-tests/import` - Import test from file
+- `POST /api/placement-tests/media` - Upload section media
+- `POST /api/placement-tests/bulk-delete` - Bulk delete tests
+- `POST /api/placement-tests/bulk-update-status` - Bulk update status
 
 ### Headers Required:
 ```javascript

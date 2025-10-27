@@ -22,10 +22,4 @@ router.put('/:id', protect, authorize(['admin']), userController.updateUser);
 // Xóa user
 router.delete('/:id', protect, authorize(['admin']), userController.deleteUser);
 
-// Chuyển đổi trạng thái user (active/inactive)
-router.put('/:id/toggle-status', protect, authorize(['admin']), userController.toggleUserStatus);
-
-// Cập nhật role user
-router.put('/:id/role', protect, authorize(['admin']), userController.updateUserRole);
-
 module.exports = router;

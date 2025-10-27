@@ -9,6 +9,7 @@ interface ContactFormData {
   message: string;
 }
 
+// Trang liên hệ với form và thông tin hỗ trợ
 const ContactPage: React.FC = () => {
   const [formData, setFormData] = useState<ContactFormData>({
     name: '',
@@ -32,7 +33,7 @@ const ContactPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
+  // Giả lập gọi API gửi form
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast.success('🎉 Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi trong vòng 24 giờ.');
@@ -52,7 +53,7 @@ const ContactPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section */}
+  {/* Khối hero giới thiệu */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white py-20" data-aos="fade-down">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -70,7 +71,7 @@ const ContactPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          {/* Contact Information */}
+          {/* Thông tin liên hệ chi tiết */}
           <div data-aos="fade-right">
             <div className="text-center mb-8">
               <div className="text-4xl mb-4">📋</div>
@@ -146,7 +147,7 @@ const ContactPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Social Media */}
+            {/* Liên kết mạng xã hội */}
             <div className="mt-12">
               <div className="text-center mb-6">
                 <div className="text-3xl mb-2">🌐</div>
@@ -173,7 +174,7 @@ const ContactPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Contact Form */}
+          {/* Form gửi tin nhắn */}
           <div data-aos="fade-left">
             <div className="bg-white rounded-3xl shadow-2xl p-10 border border-gray-100">
               <div className="text-center mb-8">
@@ -298,7 +299,7 @@ const ContactPage: React.FC = () => {
                 </div>
               </form>
 
-              {/* Help Text */}
+              {/* Hộp gợi ý hỗ trợ nhanh */}
               <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-100">
                 <div className="text-center">
                   <div className="text-3xl mb-2">💡</div>
@@ -314,7 +315,7 @@ const ContactPage: React.FC = () => {
           </div>
         </div>
 
-        {/* FAQ Section */}
+  {/* Mục câu hỏi thường gặp */}
         <div className="mt-20" data-aos="fade-up">
           <div className="text-center mb-16">
             <div className="text-6xl mb-4">❓</div>

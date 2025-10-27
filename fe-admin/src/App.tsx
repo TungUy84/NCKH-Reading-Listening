@@ -7,10 +7,11 @@ import AdminHeader from './components/AdminHeader';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import './index.css';
-import PlacementTestsPage from './pages/PracticePage/PlacementTestsPage';
-import ViewTestPage from './pages/PracticePage/ViewTestPage';
-import EditTestPage from './pages/PracticePage/EditTestPage';
-import CreateTestPage from './pages/PracticePage/CreateTestPage';
+import PlacementTestsPage from './pages/PlacementTestPage/ListTestsPage';
+import ViewTestPage from './pages/PlacementTestPage/ViewTestPage';
+import EditTestPage from './pages/PlacementTestPage/EditTestPage';
+import CreateTestPage from './pages/PlacementTestPage/CreateTestPage';
+import ImportTestPage from './pages/PlacementTestPage/ImportTestPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
 import PracticePage from './pages/PracticePage/PracticePage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
@@ -57,7 +58,7 @@ const App: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <Router>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route 
             path="/admin/login" 
@@ -73,7 +74,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50">
         {/* Sidebar */}
         <Sidebar 
@@ -101,6 +102,7 @@ const App: React.FC = () => {
               {/* Placement Tests Management */}
               <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
               <Route path="/admin/placement-tests/create" element={<CreateTestPage />} />
+              <Route path="/admin/placement-tests/import" element={<ImportTestPage />} />
               <Route path="/admin/placement-tests/:testId/view" element={<ViewTestPage />} />
               <Route path="/admin/placement-tests/:testId/edit" element={<EditTestPage />} />
 

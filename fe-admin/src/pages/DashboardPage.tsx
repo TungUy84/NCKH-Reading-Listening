@@ -251,8 +251,8 @@ const DashboardPage: React.FC = () => {
                 <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center mb-2">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                 </div>
-                <p className="font-medium text-gray-900">Import Test mới</p>
-                <p className="text-sm text-gray-600">Từ file Word</p>
+                <p className="font-medium text-gray-900">Import test mới</p>
+                <p className="text-sm text-gray-600">Hỗ trợ Word, PDF, Excel</p>
               </Link>
               <Link to="/admin/placement-tests" className="p-4 border rounded-xl hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mb-2">

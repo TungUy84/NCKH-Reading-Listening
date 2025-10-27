@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { 
+import {
   PlacementTest, 
   TestFormData, 
   AdminUser, 
@@ -11,12 +11,17 @@ import {
   UserQueryParams,
   CreateUserInput,
   UpdateUserInput,
-  UserStats
+  UserStats,
+  PlacementTestImportResponse,
+  SectionMedia
 } from '../types';
+
+export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+export const ASSET_BASE_URL = API_BASE_URL.replace(/\/?api\/?$/, '');
 
 // Create axios instance with auth
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  baseURL: API_BASE_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -113,7 +118,7 @@ export class AuthAPI {
 export class DashboardAPI {
   static async getStats(): Promise<DashboardStats> {
     try {
-      const response = await api.get('/placement-tests/admin/stats');
+      const response = await api.get('/placement-tests/stats');
       return response.data.stats;
     } catch (error) {
       console.error('Get dashboard stats error:', error);
@@ -127,7 +132,7 @@ export class TestsAPI {
   // Get all tests (simplified method for TestsPage)
   static async getAll(): Promise<PlacementTest[]> {
     try {
-      const response = await api.get('/placement-tests/admin');
+      const response = await api.get('/placement-tests', { params: { scope: 'admin' } });
       return response.data.tests;
     } catch (error) {
       console.error('Get all tests error:', error);
@@ -138,7 +143,7 @@ export class TestsAPI {
   // Update test (simplified method)
   static async update(testId: string, updateData: Partial<PlacementTest>): Promise<PlacementTest> {
     try {
-      const response = await api.put(`/placement-tests/admin/${testId}`, updateData);
+      const response = await api.put(`/placement-tests/${testId}`, updateData);
       return response.data.test;
     } catch (error) {
       console.error('Update test error:', error);
@@ -149,7 +154,7 @@ export class TestsAPI {
   // Delete test (simplified method)
   static async delete(testId: string): Promise<void> {
     try {
-      await api.delete(`/placement-tests/admin/${testId}`);
+      await api.delete(`/placement-tests/${testId}`);
     } catch (error) {
       console.error('Delete test error:', error);
       throw new Error('Không thể xóa bài test');
@@ -165,7 +170,7 @@ export class TestsAPI {
     isActive?: boolean;
   }): Promise<AdminApiResponse<PlacementTest[]>> {
     try {
-      const response = await api.get('/placement-tests/admin', { params });
+      const response = await api.get('/placement-tests', { params: { scope: 'admin', ...params } });
       return {
         success: true,
         data: response.data.tests,
@@ -180,7 +185,7 @@ export class TestsAPI {
   // Get single test with full details (including answers)
   static async getTest(testId: string): Promise<PlacementTest> {
     try {
-      const response = await api.get(`/placement-tests/admin/${testId}`);
+      const response = await api.get(`/placement-tests/${testId}/details`);
       return response.data.test;
     } catch (error) {
       console.error('Get test error:', error);
@@ -191,7 +196,7 @@ export class TestsAPI {
   // Create new test
   static async createTest(testData: TestFormData): Promise<PlacementTest> {
     try {
-      const response = await api.post('/placement-tests/admin', testData);
+      const response = await api.post('/placement-tests', testData);
       return response.data.test;
     } catch (error) {
       console.error('Create test error:', error);
@@ -202,7 +207,7 @@ export class TestsAPI {
   // Update existing test
   static async updateTest(testId: string, testData: Partial<TestFormData>): Promise<PlacementTest> {
     try {
-      const response = await api.put(`/placement-tests/admin/${testId}`, testData);
+      const response = await api.put(`/placement-tests/${testId}`, testData);
       return response.data.test;
     } catch (error) {
       console.error('Update test error:', error);
@@ -213,7 +218,7 @@ export class TestsAPI {
   // Delete test
   static async deleteTest(testId: string): Promise<void> {
     try {
-      await api.delete(`/placement-tests/admin/${testId}`);
+      await api.delete(`/placement-tests/${testId}`);
     } catch (error) {
       console.error('Delete test error:', error);
       throw new Error('Không thể xóa bài test');
@@ -223,7 +228,7 @@ export class TestsAPI {
   // Bulk operations
   static async bulkDelete(testIds: string[]): Promise<void> {
     try {
-      await api.post('/placement-tests/admin/bulk-delete', { testIds });
+      await api.post('/placement-tests/bulk-delete', { testIds });
     } catch (error) {
       console.error('Bulk delete error:', error);
       throw new Error('Không thể xóa các bài test đã chọn');
@@ -232,7 +237,7 @@ export class TestsAPI {
 
   static async bulkUpdateStatus(testIds: string[], isActive: boolean): Promise<void> {
     try {
-      await api.post('/placement-tests/admin/bulk-update-status', { testIds, isActive });
+      await api.post('/placement-tests/bulk-update-status', { testIds, isActive });
     } catch (error) {
       console.error('Bulk update status error:', error);
       throw new Error('Không thể cập nhật trạng thái các bài test');
@@ -262,9 +267,9 @@ export class FileAPI {
   }
 
   // Upload Word file for test import
-  static async uploadTestFile(formData: FormData): Promise<any> {
+  static async uploadTestFile(formData: FormData): Promise<PlacementTestImportResponse> {
     try {
-      const response = await api.post('/placement-tests/admin/import', formData, {
+      const response = await api.post('/placement-tests/import', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -274,7 +279,7 @@ export class FileAPI {
       return response.data;
     } catch (error) {
       console.error('Test file upload error:', error);
-      throw new Error('Không thể xử lý file Word. Vui lòng kiểm tra format và thử lại.');
+      throw new Error('Không thể xử lý file. Vui lòng kiểm tra định dạng (Word/PDF/Excel) và thử lại.');
     }
   }
 }
@@ -290,8 +295,14 @@ export class PlacementTestAPI {
     status?: 'active' | 'inactive';
   } = {}): Promise<AdminApiResponse<PlacementTest[]>> {
     try {
-      const queryString = adminApiUtils.buildQueryParams(params);
-      const response = await api.get(`/placement-tests/admin?${queryString}`);
+      const queryParams: Record<string, any> = { scope: 'admin' };
+      if (params.page !== undefined) queryParams.page = params.page;
+      if (params.limit !== undefined) queryParams.limit = params.limit;
+      if (params.category) queryParams.category = params.category;
+      if (params.search) queryParams.search = params.search;
+  if (params.status) queryParams.status = params.status;
+
+      const response = await api.get('/placement-tests', { params: queryParams });
       return {
         success: true,
         data: response.data.tests || response.data.data || [],
@@ -307,7 +318,7 @@ export class PlacementTestAPI {
   // Get single test by ID
   static async getTestById(testId: string): Promise<PlacementTest> {
     try {
-      const response = await api.get(`/placement-tests/admin/${testId}`);
+  const response = await api.get(`/placement-tests/${testId}/details`);
       return response.data.test;
     } catch (error) {
       console.error('Get test error:', error);
@@ -318,7 +329,7 @@ export class PlacementTestAPI {
   // Create new test
   static async createTest(testData: TestFormData): Promise<PlacementTest> {
     try {
-      const response = await api.post('/placement-tests/admin', testData);
+  const response = await api.post('/placement-tests', testData);
       return response.data.test;
     } catch (error) {
       console.error('Create test error:', error);
@@ -329,10 +340,9 @@ export class PlacementTestAPI {
   // Update test
   static async updateTest(testId: string, testData: TestFormData): Promise<PlacementTest> {
     try {
-      const response = await api.put(`/placement-tests/admin/${testId}`, testData);
+  const response = await api.put(`/placement-tests/${testId}`, testData);
       return response.data.test;
     } catch (error) {
-      console.error('Update test error:', error);
       throw new Error('Không thể cập nhật bài test');
     }
   }
@@ -340,10 +350,9 @@ export class PlacementTestAPI {
   // Update test metadata only (without questions)
   static async updateTestInfo(testId: string, testData: any): Promise<PlacementTest> {
     try {
-      const response = await api.put(`/placement-tests/admin/${testId}`, testData);
+  const response = await api.put(`/placement-tests/${testId}`, testData);
       return response.data.test;
     } catch (error) {
-      console.error('Update test info error:', error);
       throw new Error('Không thể cập nhật bài test');
     }
   }
@@ -351,7 +360,7 @@ export class PlacementTestAPI {
   // Delete test
   static async deleteTest(testId: string): Promise<void> {
     try {
-      await api.delete(`/placement-tests/admin/${testId}`);
+  await api.delete(`/placement-tests/${testId}`);
     } catch (error) {
       console.error('Delete test error:', error);
       throw new Error('Không thể xóa bài test');
@@ -361,7 +370,7 @@ export class PlacementTestAPI {
   // Get dashboard stats
   static async getStats(): Promise<DashboardStats> {
     try {
-      const response = await api.get('/placement-tests/admin/stats');
+  const response = await api.get('/placement-tests/stats');
       return response.data.stats;
     } catch (error) {
       console.error('Get stats error:', error);
@@ -372,7 +381,7 @@ export class PlacementTestAPI {
   // Bulk operations
   static async bulkDelete(testIds: string[]): Promise<void> {
     try {
-      await api.post('/placement-tests/admin/bulk-delete', { testIds });
+  await api.post('/placement-tests/bulk-delete', { testIds });
     } catch (error) {
       console.error('Bulk delete error:', error);
       throw new Error('Không thể xóa các bài test đã chọn');
@@ -381,7 +390,7 @@ export class PlacementTestAPI {
 
   static async bulkUpdateStatus(testIds: string[], isActive: boolean): Promise<void> {
     try {
-      await api.post('/placement-tests/admin/bulk-update-status', { testIds, isActive });
+  await api.post('/placement-tests/bulk-update-status', { testIds, isActive });
     } catch (error) {
       console.error('Bulk update status error:', error);
       throw new Error('Không thể cập nhật trạng thái các bài test');
@@ -389,19 +398,18 @@ export class PlacementTestAPI {
   }
 
   // Upload media files (images, audio)
-  static async uploadMedia(file: File, type: 'image' | 'audio'): Promise<string> {
+  static async uploadSectionMedia(files: File[]): Promise<SectionMedia[]> {
     try {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('type', type);
+      files.forEach((file) => formData.append('files', file));
 
-      const response = await api.post('/placement-tests/admin/upload-media', formData, {
+  const response = await api.post('/placement-tests/media', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
-      return response.data.url;
+
+      return response.data.files;
     } catch (error) {
       console.error('Upload media error:', error);
       throw new Error('Không thể upload file media');
@@ -411,10 +419,9 @@ export class PlacementTestAPI {
   // Update full test content including sections and questions
   static async updateTestContent(testId: string, data: Partial<PlacementTest>): Promise<PlacementTest> {
     try {
-      const response = await api.put(`/placement-tests/admin/${testId}/content`, data);
+  const response = await api.put(`/placement-tests/${testId}/content`, data);
       return response.data.test;
     } catch (error) {
-      console.error('Update test content error:', error);
       throw new Error('Không thể cập nhật nội dung bài test');
     }
   }
@@ -488,9 +495,9 @@ export class UsersAPI {
     }
   }
 
-  static async toggleUserStatus(userId: string): Promise<AdminUser> {
+  static async toggleUserStatus(userId: string, nextStatus: boolean): Promise<AdminUser> {
     try {
-      const response = await api.put(`/users/${userId}/toggle-status`);
+      const response = await api.put(`/users/${userId}`, { isActive: nextStatus });
       return response.data.user;
     } catch (error: any) {
       console.error('Toggle user status error:', error);
@@ -501,7 +508,7 @@ export class UsersAPI {
 
   static async updateUserRole(userId: string, role: 'admin' | 'user'): Promise<AdminUser> {
     try {
-      const response = await api.put(`/users/${userId}/role`, { role });
+      const response = await api.put(`/users/${userId}`, { role });
       return response.data.user;
     } catch (error: any) {
       console.error('Update user role error:', error);
@@ -536,7 +543,7 @@ export const getPlacementTestById = PlacementTestAPI.getTestById;
 export const createPlacementTest = PlacementTestAPI.createTest;
 export const updatePlacementTest = PlacementTestAPI.updateTestInfo;
 export const updatePlacementTestContent = PlacementTestAPI.updateTestContent;
-export const uploadMediaFile = PlacementTestAPI.uploadMedia;
+export const uploadSectionMediaFiles = PlacementTestAPI.uploadSectionMedia;
 export const deletePlacementTest = PlacementTestAPI.deleteTest;
 export const getTestStats = PlacementTestAPI.getStats;
 export const uploadTestFile = FileAPI.uploadTestFile;
@@ -561,16 +568,6 @@ export const adminApiUtils = {
       message: response.data?.message,
       pagination: response.data?.pagination,
     };
-  },
-
-  buildQueryParams: (params: Record<string, any>): string => {
-    const searchParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        searchParams.append(key, value.toString());
-      }
-    });
-    return searchParams.toString();
   },
 };
 
