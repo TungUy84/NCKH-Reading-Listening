@@ -32,10 +32,10 @@ const deleteMediaFiles = async (blocks = []) => {
 // Lấy danh sách các bài test theo category (Public)
 const getActivePlacementTests = async (req, res) => {
   try {
-    const { category } = req.query; // listening, reading, general
+    const { category } = req.query; // listening hoặc reading
 
     const filter = { isActive: true };
-    if (category && ['listening', 'reading', 'general'].includes(category)) {
+    if (category && ['listening', 'reading'].includes(category)) {
       filter.category = category;
     }
 
@@ -281,7 +281,7 @@ const getAllPlacementTests = async (req, res) => {
     const { search, category, status } = req.query;
     const filter = {};
 
-    if (category && ['listening', 'reading', 'general'].includes(category)) {
+    if (category && ['listening', 'reading'].includes(category)) {
       filter.category = category;
     }
 
@@ -367,7 +367,6 @@ const createPlacementTest = async (req, res) => {
           passage: section?.passage || '',
           audio: section?.audio || '',
           image: section?.image || '',
-          timeLimit: section?.timeLimit || timeLimit || 0,
           mediaBlocks: Array.isArray(section?.mediaBlocks) ? section.mediaBlocks : []
         });
       });
@@ -387,7 +386,6 @@ const createPlacementTest = async (req, res) => {
           passage: '',
           audio: '',
           image: '',
-          timeLimit: timeLimit || 0,
           mediaBlocks: []
         });
       } else {
@@ -398,7 +396,6 @@ const createPlacementTest = async (req, res) => {
             passage: '',
             audio: '',
             image: '',
-            timeLimit: timeLimit || 0,
             mediaBlocks: []
           });
         });
@@ -424,7 +421,6 @@ const createPlacementTest = async (req, res) => {
           type: question.type || 'multi_choice',
           allowMultiple: !!question.allowMultiple,
           content: question.content || question.text || '',
-          skill: question.skill === 'listening' ? 'listening' : 'reading',
           instructions: question.instructions || '',
           options: Array.isArray(question.options)
             ? question.options.map((op) => ({
@@ -495,7 +491,15 @@ const updatePlacementTest = async (req, res) => {
     if (description !== undefined) test.description = description;
     if (Array.isArray(instructions)) test.instructions = instructions;
     if (timeLimit !== undefined) test.timeLimit = timeLimit;
-    if (Array.isArray(questions)) test.questions = questions;
+    if (Array.isArray(questions)) {
+      test.questions = questions.map((question) => {
+        if (question && typeof question === 'object' && 'skill' in question) {
+          const { skill, ...rest } = question;
+          return rest;
+        }
+        return question;
+      });
+    }
     if (typeof isActive === 'boolean') test.isActive = isActive;
     if (category) test.category = category;
 
@@ -544,12 +548,18 @@ const updateTestContent = async (req, res) => {
           ? s.mediaBlocks
           : (Array.isArray(existing.mediaBlocks) ? existing.mediaBlocks : []);
 
-        return {
+        const merged = {
           ...existing,
           ...s,
           _id: sectionId,
           mediaBlocks
         };
+
+        if ('timeLimit' in merged) {
+          delete merged.timeLimit;
+        }
+
+        return merged;
       });
 
       test.sections = nextSections;
@@ -575,6 +585,9 @@ const updateTestContent = async (req, res) => {
         if (!qq.questionNumber) qq.questionNumber = idx + 1;
         if (!qq.sectionId && typeof qq.sectionIndex === 'number' && currentSections[qq.sectionIndex]?._id) {
           qq.sectionId = currentSections[qq.sectionIndex]._id;
+        }
+        if (qq.skill !== undefined) {
+          delete qq.skill;
         }
         return qq;
       });
@@ -753,13 +766,11 @@ const getPlacementTestStats = async (req, res) => {
     const activeTests = await PlacementTest.countDocuments({ isActive: true });
     const listeningTests = await PlacementTest.countDocuments({ category: 'listening', isActive: true });
     const readingTests = await PlacementTest.countDocuments({ category: 'reading', isActive: true });
-    const generalTests = await PlacementTest.countDocuments({ category: 'general', isActive: true });
 
     // Thống kê theo category
     const categoryStats = [
       { category: 'listening', count: listeningTests },
-      { category: 'reading', count: readingTests },
-      { category: 'general', count: generalTests }
+      { category: 'reading', count: readingTests }
     ];
 
     res.json({

@@ -9,8 +9,10 @@ interface TestCardProps {
   isLoading?: boolean;
 }
 
+// Thẻ hiển thị thông tin cơ bản của từng đề kiểm tra
 const TestCard: React.FC<TestCardProps> = ({ test, onStart, isLoading = false }) => {
 
+  // Đổi slug category sang nhãn tiếng Việt
   const getCategoryLabel = (category: string) => {
     switch (category) {
       case 'listening':
@@ -22,6 +24,7 @@ const TestCard: React.FC<TestCardProps> = ({ test, onStart, isLoading = false })
     }
   };
 
+  // Chọn màu sắc tương ứng với từng danh mục
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'listening':
@@ -33,6 +36,7 @@ const TestCard: React.FC<TestCardProps> = ({ test, onStart, isLoading = false })
     }
   };
 
+  // Hiển thị thời lượng bài thi theo phút/giờ dễ đọc
   const formatDuration = (minutes: number) => {
     if (minutes < 60) {
       return `${minutes} phút`;

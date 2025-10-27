@@ -51,10 +51,6 @@ const sectionSchema = new mongoose.Schema({
     type: String, // URL hình ảnh nếu có
     default: ''
   },
-  timeLimit: {
-    type: Number, // Thời gian làm section này (phút)
-    default: 20
-  },
   mediaBlocks: {
     type: [mediaBlockSchema],
     default: []
@@ -88,11 +84,6 @@ const questionSchema = new mongoose.Schema({
   content: {
     type: String,
     required: [true, 'Nội dung câu hỏi là bắt buộc']
-  },
-  skill: {
-    type: String,
-    enum: ['listening', 'reading'],
-    default: 'reading'
   },
   instructions: {
     type: String, // Hướng dẫn làm bài cho nhóm câu hỏi
@@ -147,7 +138,7 @@ const placementTestSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['listening', 'reading', 'general'],
+    enum: ['listening', 'reading'],
     required: [true, 'Loại bài test là bắt buộc']
   },
   timeLimit: {

@@ -1,9 +1,10 @@
 import React from 'react';
 
+// Trang giới thiệu về nền tảng và đội ngũ
 const AboutPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section */}
+  {/* Khối hero giới thiệu tổng quan */}
       <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white py-20" data-aos="fade-down">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -19,7 +20,7 @@ const AboutPage: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        {/* Mission Section */}
+  {/* Phần mô tả sứ mệnh */}
         <div className="mb-20">
           <div className="text-center mb-16" data-aos="fade-up">
             <div className="text-6xl mb-4">🎯</div>
@@ -65,7 +66,7 @@ const AboutPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Features Section */}
+  {/* Phần tính năng nổi bật */}
         <div className="mb-20">
           <div className="text-center mb-16" data-aos="fade-up">
             <div className="text-6xl mb-4">🌟</div>
@@ -141,7 +142,7 @@ const AboutPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Team Section */}
+  {/* Giới thiệu đội ngũ */}
         <div className="mb-20">
           <div className="text-center mb-16" data-aos="fade-up">
             <div className="text-6xl mb-4">👥</div>
@@ -192,7 +193,7 @@ const AboutPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats Section */}
+  {/* Các chỉ số nổi bật */}
         <div className="relative" data-aos="zoom-in">
           <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-3xl text-white p-12 shadow-2xl overflow-hidden">
             <div className="absolute top-0 right-0 transform translate-x-16 -translate-y-8">

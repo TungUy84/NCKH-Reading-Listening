@@ -13,12 +13,15 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   fullWidth?: boolean;
 }
 
+// Các class nền tảng áp dụng cho mọi nút
 const base = 'inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none disabled:opacity-50 disabled:pointer-events-none';
+// Kích thước phổ biến dùng trong toàn bộ giao diện
 const sizeStyles: Record<Size, string> = {
   sm: 'text-xs px-3 h-8 gap-1',
   md: 'text-sm px-4 h-10 gap-2',
   lg: 'text-base px-6 h-12 gap-2',
 };
+// Biến thể màu sắc theo ngữ cảnh sử dụng
 const variantStyles: Record<Variant, string> = {
   primary: 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm',
   secondary: 'bg-gray-900 hover:bg-gray-800 text-white shadow-sm',
@@ -27,6 +30,7 @@ const variantStyles: Record<Variant, string> = {
   danger: 'bg-red-600 hover:bg-red-700 text-white shadow-sm'
 };
 
+// Component Button tái sử dụng với nhiều biến thể và kích thước
 export const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',

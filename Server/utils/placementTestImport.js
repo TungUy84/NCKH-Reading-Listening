@@ -2,8 +2,7 @@ const mammoth = require('mammoth');
 const pdfParse = require('pdf-parse');
 const xlsx = require('xlsx');
 
-const CATEGORY_VALUES = ['listening', 'reading', 'general'];
-const SKILL_VALUES = ['listening', 'reading', 'speaking', 'writing', 'grammar', 'vocabulary'];
+const CATEGORY_VALUES = ['listening', 'reading'];
 const TRUE_VALUES = ['true', 'yes', '1', 'y'];
 
 const normalizeQuestionTypeValue = (value) => {
@@ -53,16 +52,11 @@ const coerceNumber = (value, defaultValue = 0) => {
 const ensureCategory = (value) => {
   const lower = String(value || '').trim().toLowerCase();
   if (!CATEGORY_VALUES.includes(lower)) {
-    throw new Error('Loại bài test phải là listening, reading hoặc general');
+    throw new Error('Loại bài test phải là listening hoặc reading');
   }
   return lower;
 };
 
-const normaliseSkill = (value) => {
-  const lower = String(value || '').trim().toLowerCase();
-  if (!lower) return 'reading';
-  return SKILL_VALUES.includes(lower) ? lower : lower;
-};
 
 const parseOptionsFromString = (raw) => {
   if (!raw) return [];
@@ -100,7 +94,6 @@ const parseKeyValueQuestionBlock = (lines, fallbackNumber) => {
     questionNumber: fallbackNumber,
     type: 'multi_choice',
     content: '',
-    skill: 'reading',
     points: 1,
     allowMultiple: false,
     options: [],
@@ -115,7 +108,6 @@ const parseKeyValueQuestionBlock = (lines, fallbackNumber) => {
     sectionPassage: '',
     sectionAudio: '',
     sectionImage: '',
-    sectionTimeLimit: undefined
   };
 
   let idx = 0;
@@ -177,9 +169,6 @@ const parseKeyValueQuestionBlock = (lines, fallbackNumber) => {
       case 'content':
         question.content = value;
         break;
-      case 'skill':
-        question.skill = normaliseSkill(value);
-        break;
       case 'points':
         question.points = coerceNumber(value, 1);
         break;
@@ -221,10 +210,6 @@ ${value}`
         break;
       case 'sectionimage':
         question.sectionImage = value;
-        break;
-      case 'sectiontimelimit':
-      case 'section time':
-        question.sectionTimeLimit = coerceNumber(value, 0);
         break;
       case 'option':
       case 'options': {
@@ -400,7 +385,7 @@ const parseLegacyFormat = (lines) => {
 
   while (currentLine < lines.length) {
     const line = lines[currentLine++];
-    const questionMatch = line.match(/^Q(\d+):\s*(.+?)\s*\(Level:\s*(AV[1-7]),\s*Skill:\s*(listening|reading|grammar|vocabulary),\s*Points:\s*(\d+)\)$/i);
+    const questionMatch = line.match(/^Q(\d+):\s*(.+?)\s*\(Level:\s*(AV[1-7]),\s*(?:Skill:\s*(?:listening|reading|grammar|vocabulary),\s*)?Points:\s*(\d+)\)$/i);
 
     if (questionMatch) {
       if (currentQuestion) {
@@ -411,8 +396,7 @@ const parseLegacyFormat = (lines) => {
         type: 'multi_choice',
         content: questionMatch[2].trim(),
         level: questionMatch[3].toUpperCase(),
-        skill: questionMatch[4].toLowerCase(),
-        points: Number(questionMatch[5]),
+        points: Number(questionMatch[4]),
         options: [],
         correctAnswers: [],
         allowMultiple: false,
@@ -580,15 +564,13 @@ const finalizePreview = (metadata, questions) => {
           title: question.sectionTitle || question.sectionKey || `Section ${question.sectionIndex + 1}`,
           passage: question.sectionPassage || '',
           audio: question.sectionAudio || '',
-          image: question.sectionImage || '',
-          timeLimit: question.sectionTimeLimit || 0
+          image: question.sectionImage || ''
         };
       } else {
         const entry = sectionsFromQuestions[question.sectionIndex];
         if (!entry.passage && question.sectionPassage) entry.passage = question.sectionPassage;
         if (!entry.audio && question.sectionAudio) entry.audio = question.sectionAudio;
         if (!entry.image && question.sectionImage) entry.image = question.sectionImage;
-        if (!entry.timeLimit && question.sectionTimeLimit) entry.timeLimit = question.sectionTimeLimit;
         if (!entry.title && (question.sectionTitle || question.sectionKey)) {
           entry.title = question.sectionTitle || question.sectionKey;
         }
@@ -602,8 +584,7 @@ const finalizePreview = (metadata, questions) => {
           title: question.sectionTitle || question.sectionKey || `Section ${sectionIndex + 1}`,
           passage: question.sectionPassage || '',
           audio: question.sectionAudio || '',
-          image: question.sectionImage || '',
-          timeLimit: question.sectionTimeLimit || 0
+          image: question.sectionImage || ''
         });
         question.sectionIndex = sectionIndex;
       } else {
@@ -613,7 +594,6 @@ const finalizePreview = (metadata, questions) => {
         if (!entry.passage && question.sectionPassage) entry.passage = question.sectionPassage;
         if (!entry.audio && question.sectionAudio) entry.audio = question.sectionAudio;
         if (!entry.image && question.sectionImage) entry.image = question.sectionImage;
-        if (!entry.timeLimit && question.sectionTimeLimit) entry.timeLimit = question.sectionTimeLimit;
         if (!entry.title && (question.sectionTitle || question.sectionKey)) {
           entry.title = question.sectionTitle || question.sectionKey;
         }
@@ -625,7 +605,6 @@ const finalizePreview = (metadata, questions) => {
     delete question.sectionPassage;
     delete question.sectionAudio;
     delete question.sectionImage;
-    delete question.sectionTimeLimit;
   });
 
   const metadataSections = Array.isArray(metadata.sections) ? metadata.sections : [];
@@ -647,8 +626,7 @@ const finalizePreview = (metadata, questions) => {
       title: base.title || `Section ${i + 1}`,
       passage: base.passage || '',
       audio: base.audio || '',
-      image: base.image || '',
-      timeLimit: base.timeLimit || metadata.timeLimit || 0
+      image: base.image || ''
     });
   }
 
@@ -777,7 +755,6 @@ const parseExcelBuffer = (buffer) => {
         const passageRaw = row.Passage || row.SectionPassage || '';
         const audio = String(row.Audio || row.SectionAudio || row.AudioUrl || '').trim();
         const image = String(row.Image || row.SectionImage || row.ImageUrl || '').trim();
-        const timeLimitValue = row.TimeLimit || row.SectionTimeLimit || row['Time Limit'];
         const idx = row.SectionIndex !== undefined && row.SectionIndex !== ''
           ? coerceNumber(row.SectionIndex, index)
           : coerceNumber(row['Section Index'], index);
@@ -787,8 +764,7 @@ const parseExcelBuffer = (buffer) => {
           title: title || `Section ${index + 1}`,
           passage: typeof passageRaw === 'string' ? passageRaw : String(passageRaw || ''),
           audio,
-          image,
-          timeLimit: coerceNumber(timeLimitValue, 0)
+          image
         };
       })
       .sort((a, b) => a.index - b.index)
@@ -796,8 +772,7 @@ const parseExcelBuffer = (buffer) => {
         title: section.title,
         passage: section.passage,
         audio: section.audio,
-        image: section.image,
-        timeLimit: section.timeLimit
+        image: section.image
       }));
   }
 
@@ -824,7 +799,6 @@ const parseExcelBuffer = (buffer) => {
       questionNumber: coerceNumber(row.QuestionNumber || row['Question Number'], index + 1),
       type: type || (matchingPairs.length ? 'matching' : options.length ? 'multi_choice' : 'short_answer'),
       content: String(row.Content || row.Question || '').trim(),
-      skill: normaliseSkill(row.Skill),
       points: coerceNumber(row.Points, 1),
       allowMultiple,
       options,
@@ -838,8 +812,7 @@ const parseExcelBuffer = (buffer) => {
       sectionTitle: String(row.SectionTitle || row['Section Title'] || '').trim(),
       sectionPassage: String(row.SectionPassage || '').trim(),
       sectionAudio: String(row.SectionAudio || '').trim(),
-      sectionImage: String(row.SectionImage || '').trim(),
-      sectionTimeLimit: coerceNumber(row.SectionTimeLimit || row['Section TimeLimit'] || row['Section Time Limit'], 0)
+      sectionImage: String(row.SectionImage || '').trim()
     };
 
     if (row.MediaAudio || row.Audio) {

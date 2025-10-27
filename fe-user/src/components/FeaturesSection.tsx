@@ -1,7 +1,9 @@
 import React from 'react';
 import Card from './ui/Card';
 
+// Section trình bày các điểm mạnh chính của nền tảng
 const FeaturesSection: React.FC = () => {
+  // Dữ liệu mô tả từng tính năng nổi bật
   const features = [
     {
       icon: (

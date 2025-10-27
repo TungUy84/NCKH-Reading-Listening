@@ -116,7 +116,7 @@ fe-admin/
   - `sample-placement-test.xlsx`
 - Khi tự chuẩn bị file:
   - Word/PDF: khai báo metadata theo key-value, dùng `---` để phân cách phần câu hỏi; đánh dấu đáp án đúng bằng dấu `*` hoặc `[x]`.
-  - Excel: Sheet `Metadata` chứa cột `Field`/`Value`; sheet `Questions` gồm các cột `QuestionNumber`, `Type`, `Content`, `Level`, `Skill`, `Points`, `Options`, `CorrectAnswers`, `MatchingPairs`, ... (ngăn cách nhiều giá trị bằng `|`).
+  - Excel: Sheet `Metadata` chứa cột `Field`/`Value`; sheet `Questions` gồm các cột `QuestionNumber`, `Type`, `Content`, `Level`, `Points`, `Options`, `CorrectAnswers`, `MatchingPairs`, ... (ngăn cách nhiều giá trị bằng `|`).
 
 
 ## 🎨 **Design System**

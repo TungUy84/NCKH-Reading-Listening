@@ -7,12 +7,14 @@ export interface ProgressProps {
   showLabel?: boolean;
 }
 
+// Độ dày tương ứng cho từng kích thước
 const heightMap = {
   sm: 'h-1.5',
   md: 'h-2.5',
   lg: 'h-3.5'
 };
 
+// Thanh tiến độ đơn giản hỗ trợ hiển thị phần trăm
 export const Progress: React.FC<ProgressProps> = ({ value, size = 'md', showLabel }) => {
   const safe = Math.min(100, Math.max(0, value));
   return (

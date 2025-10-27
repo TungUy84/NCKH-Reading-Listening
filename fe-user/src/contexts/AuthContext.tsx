@@ -25,8 +25,10 @@ interface AuthContextType {
   checkAuth: () => Promise<boolean>;
 }
 
+// Chia sẻ trạng thái đăng nhập trên toàn ứng dụng
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Hook tiện lợi để truy cập nhanh vào context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -39,6 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Kiểm tra token hiện tại và lấy thông tin hồ sơ nếu hợp lệ
   const checkAuth = async (): Promise<boolean> => {
     try {
       const token = localStorage.getItem('token');
@@ -67,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Đăng nhập và lưu token + thông tin người dùng vào bộ nhớ
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -88,6 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Đăng ký tài khoản mới rồi đăng nhập ngay nếu thành công
   const register = async (userData: any): Promise<boolean> => {
     try {
       setIsLoading(true);
@@ -109,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Xóa token khỏi localStorage và reset người dùng
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);

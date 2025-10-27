@@ -10,7 +10,7 @@ export interface PlacementTest {
   _id: string;
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   instructions: string[];
   timeLimit: number;
   questions: Question[];
@@ -47,7 +47,6 @@ export interface Question {
   matchingPairs?: MatchingPair[];
   content?: string;
   text?: string;
-  skill?: 'listening' | 'reading';
   passage?: string;
   media?: {
     image?: string;
@@ -88,7 +87,7 @@ export interface SectionMedia {
 export interface PlacementTestImportPreview {
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   timeLimit: number;
   instructions: string[];
   sections?: TestSection[];
@@ -205,7 +204,7 @@ export interface DashboardStats {
 export interface TestFormData {
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   instructions: string[];
   timeLimit: number;
   isActive: boolean;
@@ -216,7 +215,7 @@ export interface TestFormData {
 export interface TestUpdateData {
   title: string;
   description: string;
-  category: 'listening' | 'reading' | 'general';
+  category: 'listening' | 'reading';
   instructions: string[];
   timeLimit: number;
   isActive: boolean;
@@ -227,7 +226,6 @@ export interface TestUpdateData {
 export interface QuestionFormData {
   type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
-  skill: 'listening' | 'reading' | 'grammar' | 'vocabulary';
   sectionIndex?: number;
   passage?: string;
   media?: {

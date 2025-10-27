@@ -1,4 +1,4 @@
-// Generate a consistent color for user avatar based on name
+// Sinh màu avatar cố định dựa trên tên người dùng
 export const getAvatarColor = (name: string): string => {
   const colors = [
     'bg-red-500',
@@ -13,18 +13,18 @@ export const getAvatarColor = (name: string): string => {
     'bg-cyan-500'
   ];
   
-  // Generate hash from name
+  // Tạo hash đơn giản từ tên
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   
-  // Get color index based on hash
+  // Lấy chỉ số màu trong danh sách
   const index = Math.abs(hash) % colors.length;
   return colors[index];
 };
 
-// Get user initials for avatar
+// Lấy chữ cái viết tắt để hiển thị trong avatar
 export const getUserInitials = (user: any): string => {
   if (user?.firstName && user?.lastName) {
     return `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
@@ -32,7 +32,7 @@ export const getUserInitials = (user: any): string => {
   return user?.username?.charAt(0).toUpperCase() || 'U';
 };
 
-// Get user display name
+// Ưu tiên hiển thị họ tên, fallback sang username
 export const getUserDisplayName = (user: any): string => {
   if (user?.firstName && user?.lastName) {
     return `${user.firstName} ${user.lastName}`;
