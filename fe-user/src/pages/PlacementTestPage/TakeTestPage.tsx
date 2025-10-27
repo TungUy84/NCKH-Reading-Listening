@@ -312,13 +312,12 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
             <button
               key={index}
               onClick={() => onSelect(index)}
-              className={`flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold transition shadow-sm ${
-                isCurrent
+              className={`flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold transition shadow-sm ${isCurrent
                   ? 'bg-blue-600 text-white border-blue-600 shadow'
                   : answered
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-              }`}
+                }`}
               aria-label={`Câu ${index + 1}${answered ? ' đã trả lời' : ''}`}
             >
               {index + 1}
@@ -514,9 +513,8 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
               <div
                 key={question._id || globalIndex}
                 id={`question-${globalIndex}`}
-                className={`rounded-2xl border bg-white shadow-sm transition ${
-                  isCurrent ? 'border-blue-400 ring-2 ring-blue-100 shadow-md' : 'border-slate-200 hover:border-blue-200/70'
-                }`}
+                className={`rounded-2xl border bg-white shadow-sm transition ${isCurrent ? 'border-blue-400 ring-2 ring-blue-100 shadow-md' : 'border-slate-200 hover:border-blue-200/70'
+                  }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4 border-b border-blue-100/70 bg-blue-50/60 px-5 py-4">
                   <div>
@@ -579,16 +577,14 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                               });
                               onFocusQuestion(globalIndex);
                             }}
-                            className={`relative flex items-start gap-3 w-full text-left px-4 py-3 rounded-lg border transition shadow-sm text-sm font-medium ${
-                              selected
+                            className={`relative flex items-start gap-3 w-full text-left px-4 py-3 rounded-lg border transition shadow-sm text-sm font-medium ${selected
                                 ? 'bg-blue-600 border-blue-600 text-white shadow-md'
                                 : 'bg-white border-slate-200 hover:border-blue-200/70 hover:bg-blue-50/40 text-slate-700'
-                            }`}
+                              }`}
                           >
                             <span
-                              className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold flex-shrink-0 ${
-                                selected ? 'bg-white text-blue-600 border-blue-600' : 'bg-slate-100 text-slate-500 border-slate-300'
-                              }`}
+                              className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold flex-shrink-0 ${selected ? 'bg-white text-blue-600 border-blue-600' : 'bg-slate-100 text-slate-500 border-slate-300'
+                                }`}
                             >
                               {String.fromCharCode(65 + optionIndex)}
                             </span>
@@ -721,15 +717,29 @@ const TakeTestPage: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Tạm dừng Lenis khi vào trang làm bài để tránh xung đột cuộn trong panel
-    const lenis = window.__lenis;
-    if (lenis?.stop) {
-      lenis.stop();
+    if (typeof window === 'undefined') {
+      return;
     }
 
+    const lenis = window.__lenis;
+    if (!lenis) {
+      return;
+    }
+
+    const syncLenisState = () => {
+      if (window.innerWidth >= 1024) {
+        lenis.stop?.();
+      } else {
+        lenis.start?.();
+      }
+    };
+
+    syncLenisState();
+    window.addEventListener('resize', syncLenisState);
+
     return () => {
-      // Khôi phục Lenis khi rời khỏi trang
-      lenis?.start?.();
+      window.removeEventListener('resize', syncLenisState);
+      lenis.start?.();
     };
   }, []);
 
@@ -745,7 +755,8 @@ const TakeTestPage: React.FC = () => {
     }
 
     const { top } = gridRef.current.getBoundingClientRect();
-    const available = Math.max(420, Math.floor(window.innerHeight - top - 32));
+    const safeTop = Math.max(top, 0); // tránh lấy giá trị âm khiến panel cao bất thường
+    const available = Math.max(420, Math.floor(window.innerHeight - safeTop - 32));
     setPanelHeight(available);
   }, []);
 
@@ -1080,7 +1091,7 @@ const TakeTestPage: React.FC = () => {
             Không tìm thấy bài thi
           </h1>
           <p className="text-gray-600 mb-8 leading-relaxed">
-            Bài thi này có thể đã bị xóa hoặc không khả dụng 
+            Bài thi này có thể đã bị xóa hoặc không khả dụng
           </p>
           <button
             onClick={() => navigate('/tests')}
@@ -1097,7 +1108,7 @@ const TakeTestPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-blue-50/80 flex flex-col">
       <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm">
-  <div className="flex w-full flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 lg:px-12">
+        <div className="flex w-full flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 lg:px-12">
           <div className="space-y-1 pt-2">
             <h1 className="text-lg font-semibold text-slate-900 leading-tight">{test.title}</h1>
           </div>
@@ -1117,7 +1128,7 @@ const TakeTestPage: React.FC = () => {
             </Button>
           </div>
         </div>
-  <div className="w-full px-4 sm:px-6 lg:px-12">
+        <div className="w-full px-4 sm:px-6 lg:px-12">
           <div className="relative h-1 w-full overflow-hidden rounded-full bg-slate-200/70">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100 opacity-50" />
             <div
@@ -1129,7 +1140,7 @@ const TakeTestPage: React.FC = () => {
       </header>
 
       <main className="flex-1 w-full">
-  <div className="mx-auto flex h-full w-full max-w-none px-4 pb-10 pt-6 sm:px-6 lg:px-12">
+        <div className="mx-auto flex h-full w-full max-w-none px-4 pt-6 sm:px-6 lg:px-12">
           <div
             ref={gridRef}
             className="grid h-full w-full grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1.08fr)_minmax(220px,0.44fr)] lg:gap-8"
