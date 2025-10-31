@@ -9,6 +9,7 @@ import {
   BookOpenIcon,
   NewspaperIcon,
 } from '@heroicons/react/24/outline';
+import Swal from 'sweetalert2';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarColor, getUserInitials, getUserDisplayName } from '../utils/avatarUtils';
 
@@ -54,9 +55,32 @@ const Header: React.FC = () => {
     return location.pathname === href || location.pathname.startsWith(`${href}/`);
   };
 
-  const handleLogout = () => {
-    logout();
-    setIsUserMenuOpen(false);
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Bạn muốn đăng xuất?',
+      text: 'Phiên học của bạn sẽ kết thúc sau khi đăng xuất.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Đăng xuất',
+      cancelButtonText: 'Hủy',
+      confirmButtonColor: '#4F46E5',
+      cancelButtonColor: '#6B7280',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      logout();
+      setIsUserMenuOpen(false);
+      setIsMenuOpen(false);
+      await Swal.fire({
+        title: 'Đã đăng xuất',
+        icon: 'success',
+        confirmButtonText: 'Đóng',
+        confirmButtonColor: '#4F46E5',
+        timer: 1400,
+        timerProgressBar: true
+      });
+    }
   };
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
@@ -252,7 +276,7 @@ const Header: React.FC = () => {
                       Kết quả bài thi
                     </Link>
                     <button
-                      onClick={() => { handleLogout(); setIsMenuOpen(false); }}
+                      onClick={handleLogout}
                       className="text-left px-2 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50"
                     >
                       Đăng xuất

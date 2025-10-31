@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AuthAPI } from '../services/api';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 interface LoginPageProps {
   onLogin: (token: string) => void;
@@ -13,6 +14,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  // Luôn render nút xem/ẩn để admin có thể xem mật khẩu bất cứ lúc nào
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,18 +95,32 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Mật khẩu
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={credentials.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
-                placeholder="••••••••"
-                disabled={loading}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  value={credentials.password}
+                  onChange={handleChange}
+                  className="w-full px-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition hover:text-primary-600"
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">
@@ -149,19 +166,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </form>
 
           {/* Demo credentials info */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            {/* <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="text-sm font-medium text-blue-900 mb-2">Thông tin đăng nhập demo:</h4>
               <div className="text-sm text-blue-700 space-y-1">
                 <p><strong>Email/Tên đăng nhập:</strong> admin@vanlang.edu.vn hoặc admin</p>
                 <p><strong>Mật khẩu:</strong> admin123</p>
               </div>
-            </div>
+            </div> */}
         </div>
 
         {/* Footer */}
         <div className="text-center">
           <p className="text-primary-100 text-sm">
-            © 2024 Đại học Văn Lang. Tất cả quyền được bảo lưu.
+            © 2025 Đại học Văn Lang. Nghiên cứu khoa học.
           </p>
         </div>
       </div>

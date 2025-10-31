@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { useAuth } from '../../contexts/AuthContext';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,9 @@ const RegisterPage: React.FC = () => {
     lastName: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  // Giữ sẵn nút xem/ẩn để người dùng coi mật khẩu bất cứ lúc nào
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -193,32 +197,60 @@ const RegisterPage: React.FC = () => {
                     <label htmlFor="password" className="block text-sm font-semibold text-slate-700 mb-1.5">
                       Mật khẩu
                     </label>
-                    <input
-                      id="password"
-                      name="password"
-                      type="password"
-                      required
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className={inputClass}
-                      placeholder="Ít nhất 6 ký tự, có chữ hoa, thường và số"
-                    />
+                    <div className="relative">
+                      <input
+                        id="password"
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        className={`${inputClass} pr-12`}
+                        placeholder="Ít nhất 6 ký tự, có chữ hoa, thường và số"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(prev => !prev)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition hover:text-indigo-500"
+                        aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+                      >
+                        {showPassword ? (
+                          <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                        ) : (
+                          <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                   </div>
 
                   <div>
                     <label htmlFor="confirmPassword" className="block text-sm font-semibold text-slate-700 mb-1.5">
                       Xác nhận mật khẩu
                     </label>
-                    <input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      required
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange}
-                      className={inputClass}
-                      placeholder="Nhập lại mật khẩu"
-                    />
+                    <div className="relative">
+                      <input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        required
+                        value={formData.confirmPassword}
+                        onChange={handleInputChange}
+                        className={`${inputClass} pr-12`}
+                        placeholder="Nhập lại mật khẩu"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(prev => !prev)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 transition hover:text-indigo-500"
+                        aria-label={showConfirmPassword ? 'Ẩn xác nhận mật khẩu' : 'Hiển thị xác nhận mật khẩu'}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                        ) : (
+                          <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import Swal from 'sweetalert2';
 import { ASSET_BASE_URL, AuthAPI } from '../services/api';
 import { AdminUser } from '../types';
 
@@ -124,9 +125,31 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
                 </Link>
                 <div className="border-t border-gray-100 my-2 mx-2" />
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     setShowUserMenu(false);
-                    onLogout();
+                    const result = await Swal.fire({
+                      title: 'Đăng xuất quản trị?',
+                      text: 'Bạn sẽ cần đăng nhập lại để tiếp tục quản lý hệ thống.',
+                      icon: 'warning',
+                      showCancelButton: true,
+                      confirmButtonText: 'Đăng xuất',
+                      cancelButtonText: 'Hủy',
+                      confirmButtonColor: '#2563EB',
+                      cancelButtonColor: '#6B7280',
+                      reverseButtons: true
+                    });
+
+                    if (result.isConfirmed) {
+                      onLogout();
+                      await Swal.fire({
+                        title: 'Đã đăng xuất',
+                        icon: 'success',
+                        confirmButtonText: 'Đóng',
+                        confirmButtonColor: '#2563EB',
+                        timer: 1400,
+                        timerProgressBar: true
+                      });
+                    }
                   }}
                   className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-md mx-2"
                 >
