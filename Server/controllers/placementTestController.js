@@ -811,7 +811,6 @@ const getPlacementTestStats = async (req, res) => {
         totalTests,
         activeTests,
         categoryStats,
-        note: 'Kết quả test không được lưu trong database nên không có thống kê kết quả người dùng'
       }
     });
   } catch (error) {

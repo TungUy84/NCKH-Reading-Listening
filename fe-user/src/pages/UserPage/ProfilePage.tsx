@@ -288,7 +288,7 @@ const ProfilePage: React.FC = () => {
   return (
     <div className="py-10">
       <div className="mx-auto w-full max-w-[1400px] px-4 sm:px-6 lg:px-12">
-  <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-blue-50/70 to-white p-8 shadow-xl shadow-blue-100/60 md:p-12" data-aos="fade-up">
+        <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-blue-50/70 to-white p-8 shadow-xl shadow-blue-100/60 md:p-12" data-aos="fade-up">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between" data-aos="fade-down">
             <div>
               <p className="text-sm font-semibold uppercase tracking-wide text-blue-500">Tài khoản</p>
@@ -582,7 +582,7 @@ const ProfilePage: React.FC = () => {
           </div>
 
           {/* Note about editing */}
-          {!isEditing && (
+          {/* {!isEditing && (
             <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200" data-aos="fade-up" data-aos-delay="800">
               <div className="flex items-start">
                 <div className="text-2xl mr-3">💡</div>
@@ -595,7 +595,7 @@ const ProfilePage: React.FC = () => {
                 </div>
               </div>
             </div>
-          )}
+          )} */}
 
           {isEditing && (
             <div className="mt-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200" data-aos="fade-up" data-aos-delay="200">

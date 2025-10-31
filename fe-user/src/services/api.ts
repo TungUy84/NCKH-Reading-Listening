@@ -135,11 +135,11 @@ export const register = async (userData: {
 };
 
 /**
- * Đăng nhập (nhập email và mật khẩu)
+ * Đăng nhập bằng email hoặc tên đăng nhập + mật khẩu
  * Backend: POST /api/auth/login
  */
 export const login = async (credentials: {
-  email: string;
+  identifier: string;
   password: string;
 }) => {
   const response = await apiService.post('/auth/login', credentials);

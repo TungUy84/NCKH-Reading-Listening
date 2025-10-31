@@ -89,7 +89,7 @@ export class AuthAPI {
       return authData;
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+      throw error;
     }
   }
 

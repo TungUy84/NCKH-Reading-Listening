@@ -63,12 +63,23 @@ const registerUser = async (req, res) => {
 // Đăng nhập
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+  const { identifier, password, email } = req.body;
 
-    // Tìm user và lấy password
-    const user = await User.findOne({ email }).select('+password');
+  const identifierInput = identifier ?? email;
+  const trimmedIdentifier = identifierInput?.trim();
+
+    if (!trimmedIdentifier) {
+      return res.status(400).json({ message: 'Email hoặc tên đăng nhập là bắt buộc' });
+    }
+
+    let user;
+    if (trimmedIdentifier.includes('@')) {
+      user = await User.findOne({ email: trimmedIdentifier.toLowerCase() }).select('+password');
+    } else {
+      user = await User.findOne({ username: trimmedIdentifier }).select('+password');
+    }
     if (!user) {
-      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
+      return res.status(401).json({ message: 'Thông tin đăng nhập hoặc mật khẩu không đúng' });
     }
 
     // Kiểm tra tài khoản có bị vô hiệu hóa
@@ -79,7 +90,7 @@ const loginUser = async (req, res) => {
     // Kiểm tra mật khẩu
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      return res.status(401).json({ message: 'Email hoặc mật khẩu không đúng' });
+      return res.status(401).json({ message: 'Thông tin đăng nhập hoặc mật khẩu không đúng' });
     }
 
     // Cập nhật thời gian đăng nhập cuối

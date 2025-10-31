@@ -19,7 +19,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (identifier: string, password: string) => Promise<boolean>;
   register: (userData: any) => Promise<boolean>;
   logout: () => void;
   checkAuth: () => Promise<boolean>;
@@ -71,10 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Đăng nhập và lưu token + thông tin người dùng vào bộ nhớ
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (identifier: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const response = await apiLogin({ email, password });
+      const response = await apiLogin({ identifier, password });
 
       if (response.token && response.user) {
         localStorage.setItem('token', response.token);

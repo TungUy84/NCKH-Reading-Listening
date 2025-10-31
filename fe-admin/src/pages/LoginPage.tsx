@@ -9,7 +9,7 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
-    email: '',
+    identifier: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
@@ -71,19 +71,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+              <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
+                Email hoặc tên đăng nhập
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="identifier"
+                name="identifier"
+                type="text"
+                autoComplete="username"
                 required
-                value={credentials.email}
+                value={credentials.identifier}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
-                placeholder="admin@vanlang.edu.vn"
+                placeholder="Email hoặc tên đăng nhập"
                 disabled={loading}
               />
             </div>
@@ -149,13 +149,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </form>
 
           {/* Demo credentials info */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">Thông tin đăng nhập demo:</h4>
-            <div className="text-sm text-blue-700 space-y-1">
-              <p><strong>Email:</strong> admin@vanlang.edu.vn</p>
-              <p><strong>Mật khẩu:</strong> admin123</p>
+            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">Thông tin đăng nhập demo:</h4>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p><strong>Email/Tên đăng nhập:</strong> admin@vanlang.edu.vn hoặc admin</p>
+                <p><strong>Mật khẩu:</strong> admin123</p>
+              </div>
             </div>
-          </div>
         </div>
 
         {/* Footer */}
