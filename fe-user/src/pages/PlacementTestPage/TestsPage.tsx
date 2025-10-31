@@ -51,6 +51,11 @@ const CATEGORY_META: Record<PlacementCategory, {
 };
 
 const TestsPage: React.FC = () => {
+  const normalizeSectionTitle = useCallback((title?: string) => {
+    if (!title) return '';
+    return title.replace(/^(passage)/i, 'Part');
+  }, []);
+
   const navigate = useNavigate();
   const [tests, setTests] = useState<PlacementTestSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -234,6 +239,10 @@ const TestsPage: React.FC = () => {
     }
   };
 
+  const startButtonClasses = activeTab === 'reading'
+    ? 'from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800'
+    : 'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700';
+
   const loadingState = (
     <div className="space-y-10">
       <div className="bg-white rounded-2xl shadow-md overflow-hidden animate-pulse">
@@ -342,7 +351,7 @@ const TestsPage: React.FC = () => {
                         <div key={section._id} className="bg-gray-50 rounded-lg p-4">
                           <div className="flex items-start justify-between gap-3">
                             <h4 className="font-medium text-gray-900 leading-snug flex-1 break-words">
-                              {section.title ? section.title.replace(/^(passage)/i, (match) => match.charAt(0).toUpperCase() + match.slice(1).toLowerCase()) : ''}
+                              {normalizeSectionTitle(section.title)}
                             </h4>
                             <span className="text-sm text-blue-600 font-semibold whitespace-nowrap flex-shrink-0">
                               {section.questionCount} câu
@@ -382,7 +391,7 @@ const TestsPage: React.FC = () => {
                     loading={isStarting}
                     rightIcon={<ArrowRight className="w-5 h-5" />}
                     size="lg"
-                    className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 px-10 py-4 text-lg shadow-lg hover:shadow-xl"
+                    className={`bg-gradient-to-r ${startButtonClasses} px-10 py-4 text-lg shadow-lg hover:shadow-xl`}
                   >
                     Bắt đầu kiểm tra
                   </Button>

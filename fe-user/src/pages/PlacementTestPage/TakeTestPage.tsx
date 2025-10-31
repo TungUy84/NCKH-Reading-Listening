@@ -5,6 +5,7 @@ import Swal from 'sweetalert2';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, UserAnswer } from '../../types';
 import { getTestForTaking, submitTest } from '../../services/api';
 import { Button } from '../../components/ui/Button';
+import { Clock } from 'lucide-react';
 
 const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
 
@@ -62,7 +63,6 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       originalName: block?.originalName || block?.name || '',
       mimeType: block?.mimeType || block?.mimetype || '',
       size: block?.size,
-      transcript: block?.transcript || '',
     }))
     .filter((block: SectionMedia) => !!block.id && !!block.url);
 };
@@ -81,7 +81,7 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
         key={`media-missing-${key}`}
         className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"
       >
-        Không tìm thấy nội dung media.
+        Media content not found.
       </div>
     );
   }
@@ -98,13 +98,8 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
           onContextMenu={(event) => event.preventDefault()}
         >
           <source src={block.url} type={block.mimeType ?? 'audio/mpeg'} />
-          Trình duyệt của bạn không hỗ trợ phát audio.
+          Your browser does not support audio playback.
         </audio>
-        {block.transcript ? (
-          <p className="mt-3 text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
-            {block.transcript}
-          </p>
-        ) : null}
       </div>
     );
   }
@@ -128,7 +123,7 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
   );
 };
 
-const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
+const renderPartContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
   if (!passage) return null;
   mediaPlaceholderRegex.lastIndex = 0;
 
@@ -162,7 +157,7 @@ const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = [])
       } else {
         nodes.push(
           <p key={`missing-${key++}`} className="text-xs text-amber-600">
-            Media với mã {mediaId} không khả dụng.
+            Media with code {mediaId} is not available.
           </p>
         );
       }
@@ -192,6 +187,11 @@ interface SectionPanelProps {
   onNextSection: () => void;
 }
 
+const formatSectionTitle = (title?: string | null): string => {
+  if (!title) return 'Current part';
+  return title.replace(/^passage\b/i, 'Part');
+};
+
 const SectionPanel: React.FC<SectionPanelProps> = ({
   section,
   panelHeight,
@@ -210,21 +210,21 @@ const SectionPanel: React.FC<SectionPanelProps> = ({
     >
       <div className="border-b border-slate-200/80 px-6 py-4">
         <div className="text-sm font-semibold text-slate-900 truncate">
-          {section?.title || 'Phần hiện tại'}
+          {formatSectionTitle(section?.title)}
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4" style={{ scrollbarWidth: 'thin' }}>
         {section?.passage ? (
           <div className="prose prose-sm max-w-none text-slate-800">
-            {renderPassageContent(section.passage, section.mediaBlocks || [])}
+            {renderPartContent(section.passage, section.mediaBlocks || [])}
           </div>
         ) : section?.mediaBlocks && section.mediaBlocks.length ? (
           <div className="space-y-4">
             {section.mediaBlocks.map((block, index) => renderMediaBlock(block, block.id || index))}
           </div>
         ) : (
-          <p className="text-sm italic text-slate-500">Không có đoạn văn cho phần này.</p>
+          <p className="text-sm italic text-slate-500">No content for this part.</p>
         )}
 
         {section?.audio ? (
@@ -237,7 +237,7 @@ const SectionPanel: React.FC<SectionPanelProps> = ({
               onContextMenu={(event) => event.preventDefault()}
             >
               <source src={section.audio} type="audio/mpeg" />
-              Trình duyệt của bạn không hỗ trợ phát audio.
+              Your browser does not support audio playback.
             </audio>
           </div>
         ) : null}
@@ -246,7 +246,7 @@ const SectionPanel: React.FC<SectionPanelProps> = ({
           <div>
             <img
               src={section.image}
-              alt={section?.title || 'Section illustration'}
+              alt={formatSectionTitle(section?.title) || 'Section illustration'}
               className="rounded-lg border border-gray-200 w-full max-h-64 object-cover"
             />
           </div>
@@ -255,10 +255,10 @@ const SectionPanel: React.FC<SectionPanelProps> = ({
       <div className="border-t border-slate-200/80 bg-slate-50/80 px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button variant="outline" size="sm" onClick={onPrevSection} disabled={!hasPrevSection}>
-            Phần trước
+            Previous part
           </Button>
           <Button variant="primary" size="sm" onClick={onNextSection} disabled={!hasNextSection}>
-            Phần sau
+            Next part
           </Button>
         </div>
       </div>
@@ -279,6 +279,8 @@ interface QuestionNavigatorProps {
   className?: string;
   gridClassName?: string;
   showLegend?: boolean;
+  inline?: boolean;
+  questionIndices?: number[];
 }
 
 const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
@@ -289,135 +291,59 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
   className,
   gridClassName,
   showLegend = true,
+  inline = false,
+  questionIndices,
 }) => {
-  const containerClass = ['space-y-3', className].filter(Boolean).join(' ');
-  const baseGridClass = 'grid gap-2';
-  const columnClass = gridClassName || 'grid-cols-5';
+  const containerClass = [inline ? 'flex flex-wrap items-center gap-2' : 'space-y-3', className]
+    .filter(Boolean)
+    .join(' ');
+  const baseGridClass = inline ? 'flex flex-wrap gap-2' : 'grid gap-2';
+  const columnClass = inline ? '' : gridClassName || 'grid-cols-5';
   const composedGridClass = [baseGridClass, columnClass].filter(Boolean).join(' ');
 
   return (
     <div className={containerClass}>
       <div className={composedGridClass}>
         {questions.map((_, index) => {
+          const targetIndex = questionIndices ? questionIndices[index] : index;
           const answered = isQuestionAnswered(answers[index]);
-          const isCurrent = index === currentQuestionIndex;
+          const isCurrent = targetIndex === currentQuestionIndex;
+          const displayNumber = targetIndex + 1;
 
           return (
             <button
               key={index}
-              onClick={() => onSelect(index)}
+              onClick={() => onSelect(targetIndex)}
               className={`flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold transition shadow-sm ${isCurrent
                 ? 'bg-blue-600 text-white border-blue-600 shadow'
                 : answered
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100'
                   : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                 }`}
-              aria-label={`Câu ${index + 1}${answered ? ' đã trả lời' : ''}`}
+              aria-label={`Question ${displayNumber}${answered ? ' answered' : ''}`}
             >
-              {index + 1}
+              {displayNumber}
             </button>
           );
         })}
       </div>
 
-      {showLegend ? (
+      {showLegend && !inline ? (
         <div className="flex flex-wrap gap-4 text-[11px] text-slate-500">
           <div className="flex items-center gap-1">
             <span className="inline-block h-3 w-3 rounded-sm bg-blue-600" />
-            Hiện tại
+            Current
           </div>
           <div className="flex items-center gap-1">
             <span className="inline-block h-3 w-3 rounded-sm border border-emerald-500 bg-emerald-300" />
-            Đã trả lời
+            Answered
           </div>
           <div className="flex items-center gap-1">
             <span className="inline-block h-3 w-3 rounded-sm border border-slate-300 bg-slate-200" />
-            Chưa trả lời
+            Not answered
           </div>
         </div>
       ) : null}
-    </div>
-  );
-};
-
-interface OverviewPanelProps {
-  questions: TestQuestion[];
-  answers: UserAnswer[];
-  sectionQuestionCount: number;
-  currentSectionIndex: number;
-  totalSections: number;
-  currentQuestionIndex: number;
-  totalQuestions: number;
-  answeredCount: number;
-  panelHeight: number;
-  onSelectQuestion: (index: number) => void;
-}
-
-// Khung tổng quan ở desktop giúp chọn câu nhanh và theo dõi tiến độ
-const OverviewPanel: React.FC<OverviewPanelProps> = ({
-  questions,
-  answers,
-  sectionQuestionCount,
-  currentSectionIndex,
-  totalSections,
-  currentQuestionIndex,
-  totalQuestions,
-  answeredCount,
-  panelHeight,
-  onSelectQuestion,
-}) => {
-  const panelStyle = { minHeight: 420, height: panelHeight > 0 ? panelHeight : 'auto' };
-
-  return (
-    <div
-      className="hidden h-full flex-col gap-5 rounded-3xl border border-blue-100/80 bg-gradient-to-br from-white via-blue-50/60 to-white p-6 shadow-lg shadow-blue-100/70 lg:flex"
-      style={panelStyle}
-      data-lenis-prevent
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-slate-900">Câu hỏi trong phần này</div>
-          {/* <p className="mt-1 text-xs text-slate-500">
-            Hiển thị {sectionQuestionCount} câu • Phần {totalSections > 0 && currentSectionIndex >= 0 ? currentSectionIndex + 1 : 0}/
-            {totalSections || 0}
-          </p> */}
-        </div>
-        {/* <span className="inline-flex items-center rounded-xl bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-600 shadow-inner">
-          Câu {currentQuestionIndex + 1} / {totalQuestions || 0}
-        </span> */}
-      </div>
-
-      <div className="flex-1 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-        <QuestionNavigator
-          questions={questions}
-          answers={answers}
-          currentQuestionIndex={currentQuestionIndex}
-          onSelect={onSelectQuestion}
-          showLegend={false}
-          className="space-y-4"
-          gridClassName="grid-cols-5"
-        />
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex flex-wrap gap-4 text-[11px] text-slate-500">
-          <div className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-blue-600" />
-            Hiện tại
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm border border-emerald-500 bg-emerald-300" />
-            Đã trả lời
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm border border-slate-300 bg-slate-200" />
-            Chưa trả lời
-          </div>
-        </div>
-        <div className="text-xs text-slate-500">
-          Đã trả lời {answeredCount}/{totalQuestions || 0} câu
-        </div>
-      </div>
     </div>
   );
 };
@@ -431,7 +357,6 @@ interface QuestionPanelProps {
   totalQuestions: number;
   currentSectionIndex: number;
   totalSections: number;
-  answeredCount: number;
   onGoToQuestion: (index: number) => void;
   onFocusQuestion: (index: number) => void;
   onPrevQuestion: () => void;
@@ -448,7 +373,6 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
   totalQuestions,
   currentSectionIndex,
   totalSections,
-  answeredCount,
   onGoToQuestion,
   onFocusQuestion,
   onPrevQuestion,
@@ -456,6 +380,12 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
   onAnswerChange,
 }) => {
   const panelStyle = { minHeight: 420, height: panelHeight > 0 ? panelHeight : 'auto' };
+  const sectionQuestionTotal = sectionQuestions.length;
+  const sectionQuestionPosition = sectionQuestions.findIndex(({ globalIndex }) => globalIndex === currentQuestionIndex);
+  const sectionQuestionNumber = sectionQuestionPosition >= 0 ? sectionQuestionPosition + 1 : 0;
+  const sectionAnsweredCount = sectionQuestions.reduce((count, { globalIndex }) => {
+    return count + (isQuestionAnswered(answers[globalIndex]) ? 1 : 0);
+  }, 0);
 
   return (
     <div
@@ -463,31 +393,29 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
       style={panelStyle}
       data-lenis-prevent
     >
-      <div className="border-b border-slate-200/80 bg-slate-50/80 px-6 py-4 lg:hidden">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="border-b border-slate-200/80 bg-slate-50/80 px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-slate-900">Câu hỏi trong phần này</div>
-            {/* <p className="mt-1 text-xs text-slate-500">
-              Hiển thị {sectionQuestions.length} câu • Phần {currentSectionIndex >= 0 ? currentSectionIndex + 1 : '-'} /{' '}
-              {totalSections || 0}
-            </p>
+            <div className="text-sm font-semibold text-slate-900">Questions in this part</div>
+            {/* <div className="text-xs text-slate-500">
+              {sectionQuestionTotal} questions • {currentSectionIndex >= 0 && totalSections > 0 ? `Part ${currentSectionIndex + 1}/${totalSections}` : 'Unknown'}
+            </div> */}
           </div>
-          <div className="inline-flex items-center rounded-md bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-600 shadow-inner">
-            Câu {currentQuestionIndex + 1} / {totalQuestions} */}
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            {/* <span>
+              Question {currentQuestionIndex + 1}/{totalQuestions}
+            </span> */}
+            {/* <span>
+              In section: {sectionQuestionNumber > 0 ? sectionQuestionNumber : 0}/{sectionQuestionTotal || 0}
+            </span> */}
+            <span>Answered {sectionAnsweredCount}/{sectionQuestionTotal || 0}</span>
           </div>
         </div>
-        <QuestionNavigator
-          className="mt-4"
-          questions={questions}
-          answers={answers}
-          currentQuestionIndex={currentQuestionIndex}
-          onSelect={onGoToQuestion}
-        />
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5" style={{ scrollbarWidth: 'thin' }}>
         {sectionQuestions.length === 0 ? (
-          <div className="text-sm text-slate-500">Chưa có câu hỏi cho phần này.</div>
+          <div className="text-sm text-slate-500">No questions for this section.</div>
         ) : (
           sectionQuestions.map(({ question, globalIndex }) => {
             const answer = answers[globalIndex] ?? { selectedOptions: [], userAnswer: '', matchingAnswers: [] };
@@ -504,15 +432,16 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                 className={`rounded-2xl border bg-white shadow-sm transition ${isCurrent ? 'border-blue-400 ring-2 ring-blue-100 shadow-md' : 'border-slate-200 hover:border-blue-200/70'
                   }`}
               >
-                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-blue-100/70 bg-blue-50/60 px-5 py-4">
-                  <div className="mt-1 text-base font-medium text-gray-900">
-                    Câu {question.questionNumber ?? globalIndex + 1}
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-blue-100/70 bg-blue-50/60 px-5 py-4">
+                  <div className="text-base font-semibold text-gray-900 leading-relaxed">
+                    <span>{`Question ${question.questionNumber ?? globalIndex + 1}: `}</span>
+                    <span className="font-normal text-slate-700 whitespace-pre-wrap">
+                      {question.content}
+                    </span>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {selectedCount > 0 ? (
-                      <span className="text-[11px] font-medium text-green-600">Đã chọn {selectedCount}</span>
-                    ) : null}
-                  </div>
+                  {/* {selectedCount > 0 ? (
+                    <span className="text-[11px] font-medium text-green-600">Đã chọn {selectedCount}</span>
+                  ) : null} */}
                 </div>
 
                 <div className="px-5 py-5 space-y-4">
@@ -526,17 +455,22 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                         onContextMenu={(event) => event.preventDefault()}
                       >
                         <source src={question.media.audioUrl} type="audio/mpeg" />
-                        Trình duyệt của bạn không hỗ trợ phát audio.
+                        Your browser does not support audio playback.
                       </audio>
                     </div>
                   ) : null}
-
-                  <div className="text-slate-800 leading-relaxed whitespace-pre-wrap">{question.content}</div>
 
                   {question.type === 'multi_choice' ? (
                     <div className="flex flex-col gap-2">
                       {question.options?.map((option, optionIndex) => {
                         const selected = answer.selectedOptions.includes(option.text);
+                        const selectedClass = allowMultiple
+                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          : 'bg-blue-600 border-blue-600 text-white shadow-md';
+                        const unselectedClass = allowMultiple
+                          ? 'bg-white border-slate-200 hover:border-blue-300 hover:bg-blue-50 text-slate-700'
+                          : 'bg-white border-slate-200 hover:border-blue-200/70 hover:bg-blue-50/40 text-slate-700';
+
                         return (
                           <button
                             key={optionIndex}
@@ -557,25 +491,32 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                               });
                               onFocusQuestion(globalIndex);
                             }}
-                            className={`relative flex items-start gap-3 w-full text-left px-4 py-3 rounded-lg border transition shadow-sm text-sm font-medium ${selected
-                              ? 'bg-blue-600 border-blue-600 text-white shadow-md'
-                              : 'bg-white border-slate-200 hover:border-blue-200/70 hover:bg-blue-50/40 text-slate-700'
-                              }`}
+                            className={`relative flex items-start gap-3 w-full text-left px-4 py-3 rounded-lg border transition shadow-sm text-sm font-medium ${selected ? selectedClass : unselectedClass}`}
                           >
-                            <span
-                              className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold flex-shrink-0 ${selected ? 'bg-white text-blue-600 border-blue-600' : 'bg-slate-100 text-slate-500 border-slate-300'
-                                }`}
-                            >
-                              {String.fromCharCode(65 + optionIndex)}
-                            </span>
+                            {allowMultiple ? (
+                              <span
+                                className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-md border text-[11px] font-semibold flex-shrink-0 ${selected
+                                  ? 'bg-blue-600 border-blue-600 text-white'
+                                  : 'bg-white border-slate-300 text-transparent'
+                                  }`}
+                                aria-hidden
+                              >
+                                ✓
+                              </span>
+                            ) : (
+                              <span
+                                className={`mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-[10px] font-bold flex-shrink-0 ${selected
+                                  ? 'bg-white text-blue-600 border-blue-600'
+                                  : 'bg-slate-100 text-slate-500 border-slate-300'
+                                  }`}
+                              >
+                                {String.fromCharCode(65 + optionIndex)}
+                              </span>
+                            )}
                             <span className="flex-1 leading-relaxed">{option.text}</span>
-                            {selected ? (
-                              <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-white shadow-inner" />
-                            ) : null}
                           </button>
                         );
                       })}
-                      {allowMultiple ? <p className="text-xs text-slate-500">Có thể chọn nhiều đáp án.</p> : null}
                     </div>
                   ) : null}
 
@@ -593,7 +534,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                         }}
                         className="w-full p-3 border border-slate-300 rounded-lg bg-white text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
                       >
-                        <option value="">Chọn đáp án...</option>
+                        <option value="">Select an answer...</option>
                         {question.options?.map((option, optionIndex) => (
                           <option key={optionIndex} value={option.text}>
                             {option.text}
@@ -615,7 +556,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                           });
                           onFocusQuestion(globalIndex);
                         }}
-                        placeholder="Nhập câu trả lời của bạn..."
+                        placeholder="Enter your answer..."
                         className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
                         type="text"
                       />
@@ -647,7 +588,6 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                                 });
                                 onFocusQuestion(globalIndex);
                               }}
-                              // placeholder="Nhập câu trả lời ghép cặp"
                               className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
                             />
                           </div>
@@ -663,22 +603,17 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 bg-slate-50/80 px-6 py-4">
-        {/* <div className="text-xs text-slate-500">Đã trả lời {answeredCount}/{totalQuestions} câu</div> */}
         <Button variant="outline" size="sm" onClick={onPrevQuestion} disabled={currentQuestionIndex === 0}>
-          Câu trước
+          Previous question
         </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onNextQuestion}
-          disabled={currentQuestionIndex >= totalQuestions - 1}
-        >
-          Câu sau
+        <Button variant="primary" size="sm" onClick={onNextQuestion} disabled={currentQuestionIndex >= totalQuestions - 1}>
+          Next question
         </Button>
       </div>
     </div>
   );
 };
+
 
 const TakeTestPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
@@ -749,7 +684,7 @@ const TakeTestPage: React.FC = () => {
       // Lấy dữ liệu bài thi và chuẩn hóa cấu trúc trước khi hiển thị
       if (!testId) {
         setIsLoading(false);
-        toast.error('Không tìm thấy mã bài thi.');
+        toast.error('Test ID not found.');
         return;
       }
 
@@ -771,12 +706,12 @@ const TakeTestPage: React.FC = () => {
           setCurrentQuestionIndex(0);
           setTimeout(updatePanelHeight, 100);
         } else {
-          toast.error('Bài thi không tồn tại hoặc đã bị gỡ.');
+          toast.error('The test does not exist or has been removed.');
           setTest(null);
         }
       } catch (error) {
-        console.error('Không thể tải bài thi:', error);
-        toast.error('Không thể tải bài thi. Vui lòng thử lại sau.');
+        console.error('Unable to load test:', error);
+        toast.error('Unable to load the test. Please try again later.');
         setTest(null);
       } finally {
         setIsLoading(false);
@@ -860,15 +795,15 @@ const TakeTestPage: React.FC = () => {
         });
 
         if (isAutoSubmit) {
-          toast.info('Hết thời gian. Hệ thống đã nộp bài tự động.');
+          toast.info('Time is up. The system submitted your test automatically.');
         } else {
-          toast.success('Đã nộp bài thành công!');
+          toast.success('Test submitted successfully!');
         }
 
         navigate(`/test/${test._id}/result`, { state: { result: response?.result } });
       } catch (error) {
-        console.error('Không thể nộp bài:', error);
-        toast.error('Có lỗi xảy ra khi nộp bài. Vui lòng thử lại.');
+        console.error('Unable to submit test:', error);
+        toast.error('An error occurred while submitting. Please try again.');
         setIsSubmitting(false);
       }
     },
@@ -991,6 +926,19 @@ const TakeTestPage: React.FC = () => {
       .filter(({ question: candidate }) => normalizeId(candidate.sectionId) === currentSectionId);
   }, [currentSectionId, questions]);
 
+  const sectionNavigatorQuestions = useMemo(() => sectionQuestions.map(({ question }) => question), [sectionQuestions]);
+  const sectionNavigatorAnswers = useMemo(
+    () =>
+      sectionQuestions.map(({ globalIndex }) =>
+        answers[globalIndex] ?? { selectedOptions: [], userAnswer: '', matchingAnswers: [] }
+      ),
+    [answers, sectionQuestions]
+  );
+  const sectionNavigatorIndices = useMemo(
+    () => sectionQuestions.map(({ globalIndex }) => globalIndex),
+    [sectionQuestions]
+  );
+
   const currentSectionIndex = useMemo(() => {
     if (!currentSectionId) {
       return -1;
@@ -1001,9 +949,18 @@ const TakeTestPage: React.FC = () => {
   const hasPrevSection = currentSectionIndex > 0;
   const hasNextSection = currentSectionIndex >= 0 && currentSectionIndex < totalSections - 1;
 
-  const answeredCount = useMemo(() => {
-    return answers.reduce((count, answer) => count + (isQuestionAnswered(answer) ? 1 : 0), 0);
-  }, [answers]);
+  const sectionAnsweredCount = useMemo(() => {
+    return sectionQuestions.reduce((count, { globalIndex }) => {
+      return count + (isQuestionAnswered(answers[globalIndex]) ? 1 : 0);
+    }, 0);
+  }, [answers, sectionQuestions]);
+
+  const sectionQuestionPosition = useMemo(() => {
+    return sectionQuestions.findIndex(({ globalIndex }) => globalIndex === currentQuestionIndex);
+  }, [sectionQuestions, currentQuestionIndex]);
+
+  const sectionQuestionNumber = sectionQuestionPosition >= 0 ? sectionQuestionPosition + 1 : 0;
+  const sectionQuestionTotal = sectionQuestions.length;
 
   const goToNextSection = useCallback(() => {
     if (currentSectionIndex < 0) {
@@ -1039,12 +996,12 @@ const TakeTestPage: React.FC = () => {
     }
 
     const result = await Swal.fire({
-      title: 'Bạn chắc chắn muốn nộp bài?',
-      text: 'Sau khi nộp sẽ không thể chỉnh sửa câu trả lời.',
+      title: 'Are you sure you want to submit?',
+      text: 'After submitting you will not be able to modify your answers.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Nộp bài',
-      cancelButtonText: 'Hủy',
+      confirmButtonText: 'Submit',
+      cancelButtonText: 'Cancel',
       confirmButtonColor: '#2563eb',
       cancelButtonColor: '#d33',
       reverseButtons: true,
@@ -1062,7 +1019,7 @@ const TakeTestPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
-          <p className="text-sm text-gray-600">Đang tải bài kiểm tra...</p>
+          <p className="text-sm text-gray-600">Loading test...</p>
         </div>
       </div>
     );
@@ -1074,17 +1031,17 @@ const TakeTestPage: React.FC = () => {
         <div className="text-center p-8 bg-white rounded-2xl shadow-2xl border border-red-100" data-aos="zoom-in">
           <div className="text-8xl mb-6">❌</div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-4">
-            Không tìm thấy bài thi
+            Test not found
           </h1>
           <p className="text-gray-600 mb-8 leading-relaxed">
-            Bài thi này có thể đã bị xóa hoặc không khả dụng
+            This test may have been deleted or is unavailable
           </p>
           <button
             onClick={() => navigate('/tests')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
             <span className="mr-2">🔙</span>
-            Quay lại danh sách bài thi
+            Back to test list
           </button>
         </div>
       </div>
@@ -1094,23 +1051,54 @@ const TakeTestPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-blue-50/80 flex flex-col">
       <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm">
-        <div className="flex w-full flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:px-6 lg:px-12">
-          <div className="space-y-1 pt-2">
+        <div className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12">
+          <div className="space-y-1">
             <h1 className="text-lg font-semibold text-slate-900 leading-tight">{test.title}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50/80 px-3 py-1.5 font-mono text-sm font-semibold text-blue-600 shadow-inner">
-              <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" aria-hidden />
-              {formatTime(timeRemaining)}
+          {sectionQuestionTotal > 0 ? (
+            <div className="flex-1 min-w-[260px] max-w-full">
+              <div className="flex flex-col items-center gap-2">
+                <QuestionNavigator
+                  className="w-full justify-center"
+                  questions={sectionNavigatorQuestions}
+                  answers={sectionNavigatorAnswers}
+                  currentQuestionIndex={currentQuestionIndex}
+                  onSelect={goToQuestion}
+                  showLegend={false}
+                  inline
+                  questionIndices={sectionNavigatorIndices}
+                />
+                <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-blue-600" />
+                    Current
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm border border-emerald-500 bg-emerald-300" />
+                    Answered
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="inline-block h-2.5 w-2.5 rounded-sm border border-slate-300 bg-slate-200" />
+                    Not answered
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-100 px-4 py-2 font-mono text-base font-semibold text-blue-600 shadow-inner">
+              <Clock className="h-4 w-4 text-blue-500" aria-hidden />
+              <span>{formatTime(timeRemaining)}</span>
             </div>
             <Button
               onClick={handleManualSubmit}
               disabled={isSubmitting}
               variant="danger"
-              size="sm"
+              size="md"
               loading={isSubmitting}
+              className="text-sm font-semibold"
             >
-              {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </Button>
           </div>
         </div>
@@ -1129,7 +1117,7 @@ const TakeTestPage: React.FC = () => {
         <div className="mx-auto flex h-full w-full max-w-none px-4 pt-6 sm:px-6 lg:px-12">
           <div
             ref={gridRef}
-            className="grid h-full w-full grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1.08fr)_minmax(220px,0.44fr)] lg:gap-8"
+            className="grid h-full w-full grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8"
           >
             <SectionPanel
               section={currentSection}
@@ -1149,7 +1137,6 @@ const TakeTestPage: React.FC = () => {
               totalQuestions={totalQuestions}
               currentSectionIndex={currentSectionIndex}
               totalSections={totalSections}
-              answeredCount={answeredCount}
               onGoToQuestion={goToQuestion}
               onFocusQuestion={setCurrentQuestionIndex}
               onPrevQuestion={prevQuestion}
@@ -1157,18 +1144,6 @@ const TakeTestPage: React.FC = () => {
               onAnswerChange={handleAnswerChange}
             />
 
-            <OverviewPanel
-              questions={questions}
-              answers={answers}
-              sectionQuestionCount={sectionQuestions.length}
-              currentSectionIndex={currentSectionIndex}
-              totalSections={totalSections}
-              currentQuestionIndex={currentQuestionIndex}
-              totalQuestions={totalQuestions}
-              answeredCount={answeredCount}
-              panelHeight={panelHeight}
-              onSelectQuestion={goToQuestion}
-            />
           </div>
         </div>
       </main>
