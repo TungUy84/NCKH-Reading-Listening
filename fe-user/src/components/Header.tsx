@@ -8,6 +8,12 @@ import {
   CheckBadgeIcon,
   BookOpenIcon,
   NewspaperIcon,
+  ChevronDownIcon,
+  Bars3Icon,
+  XMarkIcon,
+  UserCircleIcon,
+  ChartBarIcon,
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import Swal from 'sweetalert2';
 import { useAuth } from '../contexts/AuthContext';
@@ -102,8 +108,8 @@ const Header: React.FC = () => {
                   key={item.href}
                   to={item.href}
                   className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${active
-                      ? 'bg-blue-50 text-blue-600 shadow-sm'
-                      : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                    ? 'bg-blue-50 text-blue-600 shadow-sm'
+                    : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
                     }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -137,12 +143,7 @@ const Header: React.FC = () => {
                     </div>
                   )}
                   <span className="max-w-[120px] truncate">{getUserDisplayName(user)}</span>
-                  <svg
-                    className={`h-4 w-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                  </svg>
+                  <ChevronDownIcon className={`h-4 w-4 transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
                 </button>
                 {isUserMenuOpen && (
                   <div
@@ -155,7 +156,8 @@ const Header: React.FC = () => {
                       onClick={() => setIsUserMenuOpen(false)}
                       role="menuitem"
                     >
-                      <span>👤</span> Thông tin cá nhân
+                      <UserCircleIcon className="h-4 w-4" aria-hidden="true" />
+                      Thông tin cá nhân
                     </Link>
                     <Link
                       to="/my-tests"
@@ -163,7 +165,8 @@ const Header: React.FC = () => {
                       onClick={() => setIsUserMenuOpen(false)}
                       role="menuitem"
                     >
-                      <span>📊</span> Kết quả bài thi
+                      <ChartBarIcon className="h-4 w-4" aria-hidden="true" />
+                      Kết quả bài thi
                     </Link>
                     <div className="my-1 h-px bg-gray-100" />
                     <button
@@ -171,7 +174,8 @@ const Header: React.FC = () => {
                       className="flex w-full items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
                       role="menuitem"
                     >
-                      <span>🚪</span> Đăng xuất
+                      <ArrowRightOnRectangleIcon className="h-4 w-4" aria-hidden="true" />
+                      Đăng xuất
                     </button>
                   </div>
                 )}
@@ -194,26 +198,16 @@ const Header: React.FC = () => {
               aria-expanded={isMenuOpen}
               className="inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-600/50"
             >
-              <svg
-                className="h-6 w-6"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                {isMenuOpen ? (
-                  <path d="M6 18L18 6M6 6l12 12" />
-                ) : (
-                  <path d="M4 6h16M4 12h16M4 18h16" />
-                )}
-              </svg>
+              {isMenuOpen ? (
+                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+              ) : (
+                <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+              )}
             </button>
           </div>
         </div>
 
-  {/* Menu thả xuống cho mobile */}
+        {/* Menu thả xuống cho mobile */}
         {isMenuOpen && (
           <div className="md:hidden pb-6 border-t border-gray-100 animate-[fade-in_0.15s_ease-out]">
             <nav className="flex flex-col gap-1 pt-4">
@@ -226,8 +220,8 @@ const Header: React.FC = () => {
                     to={item.href}
                     onClick={() => setIsMenuOpen(false)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${active
-                        ? 'text-blue-600 bg-blue-50'
-                        : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-blue-50'
                       }`}
                   >
                     <Icon className="h-4 w-4" />

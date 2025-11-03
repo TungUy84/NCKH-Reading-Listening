@@ -1,193 +1,177 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
+import { ClipLoader } from 'react-spinners';
 import { forgotPassword } from '../../services/api';
+
+const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 focus:outline-none';
 
 const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!email) {
-      toast.error('Vui lòng nhập địa chỉ email 📧');
+  useEffect(() => {
+    AOS.init({ duration: 800, once: true, easing: 'ease-out-cubic' });
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    if (!email.trim()) {
+      toast.error('Vui lòng nhập địa chỉ email');
       return;
     }
-    
+
     if (!/\S+@\S+\.\S+/.test(email)) {
-      toast.error('Địa chỉ email không hợp lệ 📧');
+      toast.error('Địa chỉ email không hợp lệ');
       return;
     }
-    
+
+    if (isLoading) {
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
-      await forgotPassword(email);
+      await forgotPassword(email.trim());
       setSuccess(true);
-      toast.success('Link reset mật khẩu đã được gửi! Kiểm tra email của bạn 📧✨');
+      toast.success('Link reset mật khẩu đã được gửi! Kiểm tra email của bạn');
     } catch (error: any) {
       console.error('Forgot password error:', error);
       if (error.response?.data?.message) {
         toast.error(error.response.data.message);
       } else {
-        toast.error('Có lỗi xảy ra. Vui lòng thử lại. ⚠️');
+        toast.error('Có lỗi xảy ra. Vui lòng thử lại.');
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md" data-aos="zoom-in">
-          <div className="bg-white py-10 px-6 shadow-2xl rounded-2xl sm:px-12 border border-gray-100">
-            <div className="text-center">
-              {/* Success Icon */}
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-green-100 to-green-200 mb-6 animate-bounce">
-                <svg className="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-              </div>
-              
-              <h2 className="text-3xl font-bold bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent mb-4">
-                ✉️ Email đã được gửi!
-              </h2>
-              
-              <p className="text-gray-600 mb-6">
-                Chúng tôi đã gửi link reset mật khẩu đến địa chỉ email:
-              </p>
-              
-              <p className="text-blue-600 font-semibold mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                📧 {email}
-              </p>
-              
-              <p className="text-sm text-gray-500 mb-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                💡 Vui lòng kiểm tra email của bạn và làm theo hướng dẫn để reset mật khẩu. 
-                Nếu không thấy email, hãy kiểm tra thư mục spam.
-              </p>
-              
-              <div className="space-y-3">
-                <Link
-                  to="/login"
-                  className="w-full flex justify-center py-3 px-6 border border-transparent rounded-xl shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform transition-all duration-300 hover:scale-105"
-                >
-                  🔐 Quay lại đăng nhập
-                </Link>
-                
-                <button
-                  onClick={() => {
-                    setSuccess(false);
-                    setEmail('');
-                  }}
-                  className="w-full flex justify-center py-3 px-4 border-2 border-orange-200 rounded-xl shadow-sm text-sm font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 hover:border-orange-300 transition-all duration-300 hover:shadow-md"
-                >
-                  <span className="mr-2">📧</span>
-                  Gửi lại email
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-red-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md" data-aos="fade-down">
-        <div className="text-center">
-          <div className="text-6xl mb-4">🤔</div>
-          <h2 className="mt-6 text-4xl font-extrabold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
-            Quên mật khẩu?
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Nhập email của bạn để nhận link reset mật khẩu ✨
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-100 flex items-center justify-center px-4 pt-10 pb-20">
+      <div className="w-full max-w-[720px] rounded-[32px] overflow-hidden bg-white shadow-2xl" data-aos="fade-up">
+        <div
+          className="relative flex flex-col justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-10 py-14 sm:px-16"
+          data-aos="fade-right"
+        >
+          <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+            <div className="absolute -left-10 top-12 h-32 w-32 rounded-full bg-indigo-200/50 blur-3xl" />
+            <div className="absolute -bottom-8 right-16 h-28 w-28 rounded-full bg-purple-200/60 blur-3xl" />
+          </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md" data-aos="fade-up" data-aos-delay="200">
-        <div className="bg-white py-10 px-6 shadow-2xl rounded-2xl sm:px-12 border border-gray-100">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {/* Email Input */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Địa chỉ email
-              </label>
-              <div className="mt-1">
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                  }}
-                  className="appearance-none block w-full px-4 py-3 border-2 border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-sm bg-white shadow-sm hover:shadow-md"
-                  placeholder="Nhập địa chỉ email của bạn"
-                />
-              </div>
-            </div>
+          <div className="relative z-10 mx-auto w-full max-w-xl">
+            {/* <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">
+              EnglishMaster
+            </span> */}
 
-            {/* Submit Button */}
-            <div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="group relative w-full flex justify-center py-4 px-6 border border-transparent text-base font-bold rounded-xl text-white bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 focus:outline-none focus:ring-4 focus:ring-orange-300 disabled:opacity-50 transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
-              >
-                <span className="mr-2">📧</span>
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span className="ml-2">Đang gửi...</span>
-                  </>
-                ) : (
-                  'Gửi link reset mật khẩu'
-                )}
-              </button>
-            </div>
-
-            {/* Back to Login */}
-            <div className="mt-8">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-200" />
+            {success ? (
+              <div className="mt-8 space-y-8">
+                <div>
+                  <h1 className="text-4xl font-bold text-slate-900">Kiểm tra email của bạn</h1>
+                  <p className="mt-3 text-base text-slate-600">
+                    Chúng tôi đã gửi đường dẫn đặt lại mật khẩu tới địa chỉ:
+                  </p>
+                  <p className="mt-4 inline-flex items-center rounded-xl border border-indigo-200 bg-white px-4 py-3 text-sm font-semibold text-indigo-600 shadow-sm">
+                    {email}
+                  </p>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-white text-gray-500 font-medium">Hoặc</span>
+
+                {/* <div className="rounded-2xl bg-white/80 p-6 shadow-lg backdrop-blur">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tiếp theo</h2>
+                  <ul className="mt-4 space-y-3 text-sm text-slate-600">
+                    <li className="flex items-start gap-3">
+                      Mở hộp thư và tìm email từ EnglishMaster.
+                    </li>
+                    <li className="flex items-start gap-3">
+                      Nhấn vào nút đặt lại mật khẩu trong email trong vòng 1 giờ.
+                    </li>
+                    <li className="flex items-start gap-3">
+                      Tạo mật khẩu mới thật mạnh để bảo vệ tài khoản của bạn.
+                    </li>
+                  </ul>
+                </div> */}
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Link
+                    to="/login"
+                    className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                  >
+                    Quay lại đăng nhập
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSuccess(false);
+                      setEmail('');
+                    }}
+                    className="flex w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-indigo-300 hover:text-indigo-600 hover:shadow-md"
+                  >
+                    Gửi lại yêu cầu
+                  </button>
                 </div>
               </div>
+            ) : (
+              <form className="mt-8 space-y-8" onSubmit={handleSubmit}>
+                <div>
+                  <h1 className="text-4xl font-bold text-slate-900">Quên mật khẩu?</h1>
+                  <p className="mt-3 text-base text-slate-600">
+                    Nhập email bạn đã dùng để đăng ký. Chúng tôi sẽ gửi đường dẫn đặt lại mật khẩu trong giây lát.
+                  </p>
+                </div>
 
-              <div className="mt-6">
-                <Link
-                  to="/login"
-                  className="w-full flex justify-center py-3 px-4 border-2 border-orange-200 rounded-xl shadow-sm text-sm font-bold text-orange-600 bg-orange-50 hover:bg-orange-100 hover:border-orange-300 transition-all duration-300 hover:shadow-md"
+                <div>
+                  <label htmlFor="email" className="mb-1.5 block text-sm font-semibold text-slate-700">
+                    Địa chỉ email
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    value={email}
+                    onChange={event => setEmail(event.target.value)}
+                    className={`${inputClass} placeholder:text-slate-400`}
+                    placeholder="Nhập địa chỉ email của bạn"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <span className="mr-2">🔙</span>
-                  Quay lại đăng nhập
-                </Link>
-              </div>
-            </div>
-          </form>
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <ClipLoader color="#FFFFFF" size={16} />
+                      Đang gửi...
+                    </span>
+                  ) : (
+                    'Gửi link đặt lại mật khẩu'
+                  )}
+                </button>
 
-          {/* Help Text */}
-          <div className="mt-6 p-6 bg-gradient-to-r from-orange-50 to-red-50 rounded-xl border border-orange-100">
-            <div className="text-center">
-              <div className="text-3xl mb-2">💡</div>
-              <p className="text-sm text-gray-700 leading-relaxed">
-                <strong className="text-orange-600">Lưu ý:</strong> Nếu email của bạn có trong hệ thống, bạn sẽ nhận được link reset mật khẩu trong vài phút. 
-                Link này có hiệu lực trong <span className="font-semibold text-orange-600">1 giờ</span>.
-              </p>
-            </div>
+                <div className="flex flex-col gap-3 text-sm text-slate-600">
+                  <div className="flex items-center justify-between">
+                    <span>Bạn đã nhớ mật khẩu?</span>
+                    <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                      Quay lại đăng nhập
+                    </Link>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Chưa có tài khoản?</span>
+                    <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-700">
+                      Tạo tài khoản mới
+                    </Link>
+                  </div>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       </div>

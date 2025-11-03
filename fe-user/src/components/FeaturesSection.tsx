@@ -1,4 +1,5 @@
 import React from 'react';
+import { CheckCircle2, FileText, LayoutDashboard } from 'lucide-react';
 import Card from './ui/Card';
 
 // Section trình bày các điểm mạnh chính của nền tảng
@@ -6,33 +7,21 @@ const FeaturesSection: React.FC = () => {
   // Dữ liệu mô tả từng tính năng nổi bật
   const features = [
     {
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      ),
+      Icon: CheckCircle2,
       title: 'Tự động chấm điểm',
       description: 'Tính toán và đánh giá kết quả của bạn một cách chính xác và nhanh chóng',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50',
     },
     {
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
+      Icon: FileText,
       title: 'Giải thích chi tiết',
       description: 'Phân tích từng câu hỏi với lời giải và gợi ý cải thiện kỹ năng',
       color: 'text-orange-600',
       bgColor: 'bg-orange-50',
     },
     {
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-        </svg>
-      ),
+      Icon: LayoutDashboard,
       title: 'Giao diện thân thiện',
       description: 'Thiết kế đơn giản, dễ sử dụng và tối ưu cho mọi thiết bị',
       color: 'text-green-600',
@@ -63,7 +52,9 @@ const FeaturesSection: React.FC = () => {
               data-aos-delay={i * 120 + 150}
             >
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-br from-white/0 via-white/40 to-white/0" />
-              <div className={`${f.bgColor} ${f.color} w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm ring-1 ring-inset ring-white/50 group-hover:scale-105 transition-transform`}>{f.icon}</div>
+              <div className={`${f.bgColor} ${f.color} w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-sm ring-1 ring-inset ring-white/50 group-hover:scale-105 transition-transform`}>
+                <f.Icon className="w-8 h-8" aria-hidden="true" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-3 group-hover:text-blue-600 transition-colors">
                 {f.title}
               </h3>

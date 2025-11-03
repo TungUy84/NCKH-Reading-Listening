@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, UserAnswer } from '../../types';
 import { getTestForTaking, submitTest } from '../../services/api';
 import { Button } from '../../components/ui/Button';
-import { Clock } from 'lucide-react';
+import { Clock, Check, XCircle, ArrowLeft } from 'lucide-react';
 
 const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
 
@@ -350,14 +350,10 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
 
 interface QuestionPanelProps {
   sectionQuestions: SectionQuestion[];
-  questions: TestQuestion[];
   answers: UserAnswer[];
   panelHeight: number;
   currentQuestionIndex: number;
   totalQuestions: number;
-  currentSectionIndex: number;
-  totalSections: number;
-  onGoToQuestion: (index: number) => void;
   onFocusQuestion: (index: number) => void;
   onPrevQuestion: () => void;
   onNextQuestion: () => void;
@@ -366,14 +362,10 @@ interface QuestionPanelProps {
 
 const QuestionPanel: React.FC<QuestionPanelProps> = ({
   sectionQuestions,
-  questions,
   answers,
   panelHeight,
   currentQuestionIndex,
   totalQuestions,
-  currentSectionIndex,
-  totalSections,
-  onGoToQuestion,
   onFocusQuestion,
   onPrevQuestion,
   onNextQuestion,
@@ -381,8 +373,6 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
 }) => {
   const panelStyle = { minHeight: 420, height: panelHeight > 0 ? panelHeight : 'auto' };
   const sectionQuestionTotal = sectionQuestions.length;
-  const sectionQuestionPosition = sectionQuestions.findIndex(({ globalIndex }) => globalIndex === currentQuestionIndex);
-  const sectionQuestionNumber = sectionQuestionPosition >= 0 ? sectionQuestionPosition + 1 : 0;
   const sectionAnsweredCount = sectionQuestions.reduce((count, { globalIndex }) => {
     return count + (isQuestionAnswered(answers[globalIndex]) ? 1 : 0);
   }, 0);
@@ -395,19 +385,8 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
     >
       <div className="border-b border-slate-200/80 bg-slate-50/80 px-6 py-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-900">Questions in this part</div>
-            {/* <div className="text-xs text-slate-500">
-              {sectionQuestionTotal} questions • {currentSectionIndex >= 0 && totalSections > 0 ? `Part ${currentSectionIndex + 1}/${totalSections}` : 'Unknown'}
-            </div> */}
-          </div>
+          <div className="text-sm font-semibold text-slate-900">Questions in this part</div>
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            {/* <span>
-              Question {currentQuestionIndex + 1}/{totalQuestions}
-            </span> */}
-            {/* <span>
-              In section: {sectionQuestionNumber > 0 ? sectionQuestionNumber : 0}/{sectionQuestionTotal || 0}
-            </span> */}
             <span>Answered {sectionAnsweredCount}/{sectionQuestionTotal || 0}</span>
           </div>
         </div>
@@ -420,9 +399,6 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
           sectionQuestions.map(({ question, globalIndex }) => {
             const answer = answers[globalIndex] ?? { selectedOptions: [], userAnswer: '', matchingAnswers: [] };
             const allowMultiple = question.allowMultiple ?? false;
-            const matchingCount =
-              answer.matchingAnswers?.filter((pair) => pair.selected && pair.selected.trim().length > 0).length || 0;
-            const selectedCount = answer.selectedOptions.length || matchingCount || (answer.userAnswer ? 1 : 0);
             const isCurrent = globalIndex === currentQuestionIndex;
 
             return (
@@ -439,9 +415,6 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                       {question.content}
                     </span>
                   </div>
-                  {/* {selectedCount > 0 ? (
-                    <span className="text-[11px] font-medium text-green-600">Đã chọn {selectedCount}</span>
-                  ) : null} */}
                 </div>
 
                 <div className="px-5 py-5 space-y-4">
@@ -501,7 +474,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
                                   }`}
                                 aria-hidden
                               >
-                                ✓
+                                <Check className="h-3 w-3" aria-hidden="true" />
                               </span>
                             ) : (
                               <span
@@ -949,17 +922,6 @@ const TakeTestPage: React.FC = () => {
   const hasPrevSection = currentSectionIndex > 0;
   const hasNextSection = currentSectionIndex >= 0 && currentSectionIndex < totalSections - 1;
 
-  const sectionAnsweredCount = useMemo(() => {
-    return sectionQuestions.reduce((count, { globalIndex }) => {
-      return count + (isQuestionAnswered(answers[globalIndex]) ? 1 : 0);
-    }, 0);
-  }, [answers, sectionQuestions]);
-
-  const sectionQuestionPosition = useMemo(() => {
-    return sectionQuestions.findIndex(({ globalIndex }) => globalIndex === currentQuestionIndex);
-  }, [sectionQuestions, currentQuestionIndex]);
-
-  const sectionQuestionNumber = sectionQuestionPosition >= 0 ? sectionQuestionPosition + 1 : 0;
   const sectionQuestionTotal = sectionQuestions.length;
 
   const goToNextSection = useCallback(() => {
@@ -1029,7 +991,7 @@ const TakeTestPage: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-orange-50 flex items-center justify-center">
         <div className="text-center p-8 bg-white rounded-2xl shadow-2xl border border-red-100" data-aos="zoom-in">
-          <div className="text-8xl mb-6">❌</div>
+          <XCircle className="mx-auto mb-6 h-20 w-20 text-red-500" aria-hidden="true" />
           <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-4">
             Test not found
           </h1>
@@ -1040,7 +1002,9 @@ const TakeTestPage: React.FC = () => {
             onClick={() => navigate('/tests')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
-            <span className="mr-2">🔙</span>
+            <span className="mr-2 inline-flex items-center justify-center">
+              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            </span>
             Back to test list
           </button>
         </div>
@@ -1130,14 +1094,10 @@ const TakeTestPage: React.FC = () => {
 
             <QuestionPanel
               sectionQuestions={sectionQuestions}
-              questions={questions}
               answers={answers}
               panelHeight={panelHeight}
               currentQuestionIndex={currentQuestionIndex}
               totalQuestions={totalQuestions}
-              currentSectionIndex={currentSectionIndex}
-              totalSections={totalSections}
-              onGoToQuestion={goToQuestion}
               onFocusQuestion={setCurrentQuestionIndex}
               onPrevQuestion={prevQuestion}
               onNextQuestion={nextQuestion}

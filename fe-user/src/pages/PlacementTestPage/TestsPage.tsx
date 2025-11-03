@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowRight, CheckCircle, Clock, FileText, HeadphonesIcon } from 'lucide-react';
+import AOS from 'aos';
+import 'aos/dist/aos.css';
 import { PlacementTest } from '../../types';
 import { getActiveTests, getTestForTaking } from '../../services/api';
 import Card from '../../components/ui/Card';
@@ -86,6 +88,14 @@ const TestsPage: React.FC = () => {
   }, [fetchTests]);
 
   useEffect(() => {
+    AOS.init({
+      duration: 500,
+      once: true,
+      easing: 'ease-out-cubic'
+    });
+  }, []);
+
+  useEffect(() => {
     if (!tests.length) {
       return;
     }
@@ -119,11 +129,6 @@ const TestsPage: React.FC = () => {
 
     return candidate;
   }, []);
-
-  const activeTests = useMemo(
-    () => tests.filter(test => test.category === activeTab),
-    [tests, activeTab]
-  );
 
   useEffect(() => {
     const pool = tests.filter(test => test.category === activeTab);
@@ -260,10 +265,19 @@ const TestsPage: React.FC = () => {
     </div>
   );
 
+  useEffect(() => {
+    if (!loading) {
+      AOS.refresh();
+    }
+  }, [loading, activeTab, previewTest, previewDetail, sectionsWithQuestions.length]);
+
   return (
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-lg p-2 mb-8 max-w-md mx-auto">
+        <div
+          className="bg-white rounded-xl shadow-lg p-2 mb-8 max-w-md mx-auto"
+          data-aos="fade-down"
+        >
           <div className="flex">
             {CATEGORY_ORDER.map((tab) => {
               const meta = CATEGORY_META[tab];
@@ -300,8 +314,15 @@ const TestsPage: React.FC = () => {
           loadingState
         ) : (
           <>
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-12">
-              <div className={`bg-gradient-to-r ${CATEGORY_META[activeTab].gradient} p-8 text-white`}>
+            <div
+              className="bg-white rounded-2xl shadow-xl overflow-hidden mb-12"
+              data-aos="fade-up"
+            >
+              <div
+                className={`bg-gradient-to-r ${CATEGORY_META[activeTab].gradient} p-8 text-white`}
+                data-aos="fade-up"
+                data-aos-delay="50"
+              >
                 <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-4">
                     {CATEGORY_META[activeTab].icon}
@@ -337,7 +358,7 @@ const TestsPage: React.FC = () => {
               </div>
 
               <div className="p-8">
-                <div className="mb-8">
+                <div className="mb-8" data-aos="fade-up" data-aos-delay="100">
                   <h3 className="text-xl font-semibold text-gray-900 mb-4 text-center md:text-left">
                     Cấu trúc bài thi
                   </h3>
@@ -367,7 +388,7 @@ const TestsPage: React.FC = () => {
                   )}
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-8" data-aos="fade-up" data-aos-delay="150">
                   <h3 className="font-semibold text-gray-900 mb-3">Hướng dẫn quan trọng</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(isDetailLoading
@@ -376,7 +397,12 @@ const TestsPage: React.FC = () => {
                         ? previewDetail.instructions
                         : CATEGORY_META[activeTab].fallbackInstructions
                     ).map((instruction, index) => (
-                      <div key={index} className="flex items-start gap-3 text-gray-600">
+                      <div
+                        key={index}
+                        className="flex items-start gap-3 text-gray-600"
+                        data-aos="fade-up"
+                        data-aos-delay={200 + index * 50}
+                      >
                         <CheckCircle className="w-5 h-5 text-green-500 mt-1" />
                         <span className="text-sm md:text-base">{instruction}</span>
                       </div>
@@ -384,7 +410,7 @@ const TestsPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="text-center">
+                <div className="text-center" data-aos="zoom-in" data-aos-delay="250">
                   <Button
                     onClick={handleStartTest}
                     disabled={isStarting || !previewTest}
@@ -399,10 +425,14 @@ const TestsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-8 mb-12">
+            <div
+              className="bg-white rounded-xl shadow-lg p-8 mb-12"
+              data-aos="fade-up"
+              data-aos-delay="150"
+            >
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Thông tin quan trọng</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
+                <div data-aos="fade-up" data-aos-delay="200">
                   <h3 className="font-semibold text-gray-900 mb-3">Trước khi bắt đầu</h3>
                   <ul className="space-y-2 text-gray-600 text-sm md:text-base">
                     <li>• Chuẩn bị tai nghe chất lượng tốt (cho Listening test)</li>
@@ -411,7 +441,7 @@ const TestsPage: React.FC = () => {
                     <li>• Chuẩn bị tinh thần tập trung trong suốt quá trình làm bài</li>
                   </ul>
                 </div>
-                <div>
+                <div data-aos="fade-up" data-aos-delay="250">
                   <h3 className="font-semibold text-gray-900 mb-3">Sau khi hoàn thành</h3>
                   <ul className="space-y-2 text-gray-600 text-sm md:text-base">
                     <li>• Nhận kết quả và phân tích chi tiết ngay lập tức</li>

@@ -37,35 +37,35 @@ const RegisterPage: React.FC = () => {
 
   const validateForm = () => {
     if (formData.password !== formData.confirmPassword) {
-      toast.error('Mật khẩu xác nhận không khớp 🔐');
+      toast.error('Mật khẩu xác nhận không khớp');
       return false;
     }
     if (formData.password.length < 6) {
-      toast.error('Mật khẩu phải có ít nhất 6 ký tự 🔢');
+      toast.error('Mật khẩu phải có ít nhất 6 ký tự');
       return false;
     }
     if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      toast.error('Mật khẩu cần chữ hoa, chữ thường và số ✨');
+      toast.error('Mật khẩu cần chữ hoa, chữ thường và số');
       return false;
     }
     if (!formData.email.includes('@')) {
-      toast.error('Email không hợp lệ 📧');
+      toast.error('Email không hợp lệ');
       return false;
     }
     if (formData.username.length < 3 || formData.username.length > 30) {
-      toast.error('Tên đăng nhập phải từ 3-30 ký tự 👤');
+      toast.error('Tên đăng nhập phải từ 3-30 ký tự');
       return false;
     }
     if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      toast.error('Tên đăng nhập chỉ gồm chữ, số, gạch dưới ✏️');
+      toast.error('Tên đăng nhập chỉ gồm chữ, số, gạch dưới');
       return false;
     }
     if (!formData.firstName.trim()) {
-      toast.error('Họ là bắt buộc 👤');
+      toast.error('Họ là bắt buộc');
       return false;
     }
     if (!formData.lastName.trim()) {
-      toast.error('Tên là bắt buộc 👤');
+      toast.error('Tên là bắt buộc');
       return false;
     }
     return true;
@@ -85,7 +85,7 @@ const RegisterPage: React.FC = () => {
 
       const success = await register(cleanData);
       if (success) {
-        toast.success('Đăng ký thành công! 🎉');
+        toast.success('Đăng ký thành công!');
         navigate('/');
       } else {
         toast.error('Đăng ký thất bại, vui lòng kiểm tra lại thông tin.');
@@ -101,7 +101,7 @@ const RegisterPage: React.FC = () => {
   const inputClass = 'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 focus:outline-none';
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-start justify-center px-4 pt-16 pb-10">
+    <div className="min-h-screen bg-slate-100 flex items-start justify-center px-4 pt-10">
       <div className="w-full max-w-[1280px] rounded-[36px] overflow-hidden bg-white shadow-2xl" data-aos="fade-up">
         <div className="grid md:grid-cols-[1.1fr_1fr]">
           <div
@@ -114,9 +114,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="relative z-10 max-w-xl">
-              <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">
+              {/* <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">
                 EnglishMaster
-              </span>
+              </span> */}
               <h1 className="mt-6 text-4xl font-bold text-slate-900">Tạo tài khoản mới</h1>
               <p className="mt-3 text-base text-slate-600">
                 Đã có tài khoản?{' '}

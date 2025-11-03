@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { MoveRight, ArrowRight } from 'lucide-react';
 import Card from './ui/Card';
 
 // Section mô tả quy trình học 4 bước
@@ -55,9 +56,7 @@ const ProcessSection: React.FC = () => {
               <p className="mt-3 text-sm text-gray-600 leading-relaxed">{s.description}</p>
               {i < steps.length - 1 && (
                 <div className="hidden lg:block absolute top-1/2 -right-5 translate-x-1/2 -translate-y-1/2 text-gray-300">
-                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
-                  </svg>
+                  <MoveRight className="h-7 w-7" aria-hidden="true" />
                 </div>
               )}
             </Card>
@@ -82,9 +81,7 @@ const ProcessSection: React.FC = () => {
               className="inline-flex items-center gap-2 bg-white text-blue-700 font-semibold px-8 py-4 rounded-xl shadow hover:shadow-lg transition hover:-translate-y-0.5 text-sm md:text-base"
             >
               Bắt đầu ngay
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
+              <ArrowRight className="w-5 h-5" aria-hidden="true" />
             </Link>
           </div>
         </Card>

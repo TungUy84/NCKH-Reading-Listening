@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { ClipLoader } from 'react-spinners';
 
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -72,7 +73,7 @@ const LoginPage: React.FC = () => {
     'w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 shadow-sm transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 focus:outline-none';
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-start justify-center px-4 pt-16 pb-10">
+    <div className="min-h-screen bg-slate-100 flex items-start justify-center px-4 pt-10 ">
       <div className="w-full max-w-[1280px] rounded-[36px] overflow-hidden bg-white shadow-2xl" data-aos="fade-up">
         <div className="grid md:grid-cols-[1.1fr_1fr]">
           <div className="relative flex flex-col justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 px-10 py-12 sm:px-16" data-aos="fade-right">
@@ -81,9 +82,9 @@ const LoginPage: React.FC = () => {
               <div className="absolute -bottom-10 right-16 h-28 w-28 rounded-full bg-purple-200/60 blur-3xl" />
             </div>
             <div className="relative z-10 max-w-lg">
-              <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">
+              {/* <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">
                 EnglishMaster
-              </span>
+              </span> */}
               <h1 className="mt-6 text-4xl font-bold text-slate-900">Chào mừng quay lại!</h1>
               <p className="mt-3 text-base text-slate-600">
                 Đăng nhập để tiếp tục lộ trình học tập, theo dõi tiến độ và trải nghiệm những tài liệu luyện thi mới nhất.
@@ -160,29 +161,10 @@ const LoginPage: React.FC = () => {
                   className="mt-2 flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isLoading ? (
-                    <>
-                      <svg
-                        className="mr-3 h-4 w-4 animate-spin text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
+                    <span className="flex items-center gap-2">
+                      <ClipLoader color="#FFFFFF" size={16} />
                       Đang đăng nhập...
-                    </>
+                    </span>
                   ) : (
                     'Đăng nhập'
                   )}

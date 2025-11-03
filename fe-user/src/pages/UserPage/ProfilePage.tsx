@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { ClipLoader } from 'react-spinners';
 import { useAuth } from '../../contexts/AuthContext';
 import { updateProfile, uploadAvatar, changePassword } from '../../services/api';
 import { getAvatarColor, getUserInitials, getUserDisplayName } from '../../utils/avatarUtils';
@@ -10,7 +11,15 @@ import {
   CheckCircleIcon,
   XMarkIcon,
   EyeIcon,
-  EyeSlashIcon
+  EyeSlashIcon,
+  CameraIcon,
+  UserCircleIcon,
+  ClipboardDocumentListIcon,
+  ChartBarIcon,
+  DocumentTextIcon,
+  StarIcon,
+  TrophyIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 
 const ProfilePage: React.FC = () => {
@@ -330,13 +339,10 @@ const ProfilePage: React.FC = () => {
                     className="inline-flex items-center justify-center rounded-lg border border-transparent bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-blue-600 hover:to-indigo-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isLoading ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                      <span className="flex items-center gap-2">
+                        <ClipLoader color="#FFFFFF" size={16} />
                         Đang lưu...
-                      </>
+                      </span>
                     ) : (
                       'Lưu thay đổi'
                     )}
@@ -380,19 +386,13 @@ const ProfilePage: React.FC = () => {
                 title="Thay đổi avatar"
               >
                 {isUploadingAvatar ? (
-                  <svg className="animate-spin w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <ClipLoader color="#FFFFFF" size={18} />
                 ) : (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                  </svg>
+                  <CameraIcon className="h-5 w-5" aria-hidden="true" />
                 )}
               </button>
             </div>
-            {/* <p className="mt-4 text-gray-600 text-sm">📷 Click vào ảnh để thay đổi avatar</p> */}
+            {/* <p className="mt-4 text-gray-600 text-sm">Click vào ảnh để thay đổi avatar</p> */}
 
             {/* Hidden file input */}
             <input
@@ -413,7 +413,7 @@ const ProfilePage: React.FC = () => {
             {/* Basic Information */}
             <div className="space-y-6" data-aos="fade-right" data-aos-delay="200">
               <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-blue-500 pb-3 flex items-center">
-                <span className="mr-2">👤</span>
+                <UserCircleIcon className="mr-2 h-6 w-6 text-blue-500" aria-hidden="true" />
                 Thông tin cơ bản
               </h2>
 
@@ -440,7 +440,7 @@ const ProfilePage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    📧 Email
+                    Email
                   </label>
                   {isEditing ? (
                     <input
@@ -461,7 +461,7 @@ const ProfilePage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      👤 Họ
+                      Họ
                     </label>
                     {isEditing ? (
                       <input
@@ -480,7 +480,7 @@ const ProfilePage: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      👤 Tên
+                      Tên
                     </label>
                     {isEditing ? (
                       <input
@@ -504,14 +504,14 @@ const ProfilePage: React.FC = () => {
             {/* Additional Information */}
             <div className="space-y-6" data-aos="fade-left" data-aos-delay="300">
               <h2 className="text-2xl font-bold text-gray-800 border-b-2 border-green-500 pb-3 flex items-center">
-                <span className="mr-2">📋</span>
+                <ClipboardDocumentListIcon className="mr-2 h-6 w-6 text-green-500" aria-hidden="true" />
                 Thông tin bổ sung
               </h2>
 
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    📱 Số điện thoại
+                    Số điện thoại
                   </label>
                   {isEditing ? (
                     <input
@@ -531,7 +531,7 @@ const ProfilePage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    🎓 Mã số sinh viên
+                    Mã số sinh viên
                   </label>
                   {isEditing ? (
                     <input
@@ -551,7 +551,7 @@ const ProfilePage: React.FC = () => {
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    📅 Ngày sinh
+                    Ngày sinh
                   </label>
                   {isEditing ? (
                     <input
@@ -574,20 +574,29 @@ const ProfilePage: React.FC = () => {
           {/* Account Statistics */}
           <div className="mt-10 pt-8 border-t-2 border-gray-200" data-aos="fade-up" data-aos-delay="400">
             <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-              <span className="mr-2">📊</span>
+              <ChartBarIcon className="mr-2 h-6 w-6 text-slate-700" aria-hidden="true" />
               Thống kê tài khoản
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl text-center shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105" data-aos="zoom-in" data-aos-delay="500">
-                <div className="text-3xl font-bold text-blue-600 mb-2">📝 0</div>
+                <div className="mb-2 flex items-center justify-center gap-2 text-3xl font-bold text-blue-600">
+                  <DocumentTextIcon className="h-8 w-8" aria-hidden="true" />
+                  <span>0</span>
+                </div>
                 <div className="text-sm font-medium text-gray-700">Bài kiểm tra đã làm</div>
               </div>
               <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl text-center shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105" data-aos="zoom-in" data-aos-delay="600">
-                <div className="text-3xl font-bold text-green-600 mb-2">⭐ 0</div>
+                <div className="mb-2 flex items-center justify-center gap-2 text-3xl font-bold text-green-600">
+                  <StarIcon className="h-8 w-8" aria-hidden="true" />
+                  <span>0</span>
+                </div>
                 <div className="text-sm font-medium text-gray-700">Điểm trung bình</div>
               </div>
               <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl text-center shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105" data-aos="zoom-in" data-aos-delay="700">
-                <div className="text-3xl font-bold text-purple-600 mb-2">🏆 -</div>
+                <div className="mb-2 flex items-center justify-center gap-2 text-3xl font-bold text-purple-600">
+                  <TrophyIcon className="h-8 w-8" aria-hidden="true" />
+                  <span>-</span>
+                </div>
                 <div className="text-sm font-medium text-gray-700">Cấp độ hiện tại</div>
               </div>
             </div>
@@ -597,11 +606,11 @@ const ProfilePage: React.FC = () => {
           {/* {!isEditing && (
             <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200" data-aos="fade-up" data-aos-delay="800">
               <div className="flex items-start">
-                <div className="text-2xl mr-3">💡</div>
+                <div className="text-2xl mr-3 font-semibold">Gợi ý</div>
                 <div>
                   <h3 className="font-bold text-blue-900 mb-2">Hướng dẫn sử dụng</h3>
                   <p className="text-sm text-blue-800">
-                    Nhấn nút <strong>"✏️ Chỉnh sửa"</strong> để cập nhật thông tin cá nhân của bạn.
+                    Nhấn nút <strong>"Chỉnh sửa"</strong> để cập nhật thông tin cá nhân của bạn.
                     Tất cả các thông tin sẽ được lưu trữ an toàn trong hệ thống và được bảo mật tối đa.
                   </p>
                 </div>
@@ -612,12 +621,12 @@ const ProfilePage: React.FC = () => {
           {isEditing && (
             <div className="mt-8 p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200" data-aos="fade-up" data-aos-delay="200">
               <div className="flex items-start">
-                <div className="text-2xl mr-3">⚠️</div>
+                <ExclamationTriangleIcon className="mr-3 h-6 w-6 text-orange-500" aria-hidden="true" />
                 <div>
                   <h3 className="font-bold text-orange-900 mb-2">Chế độ chỉnh sửa</h3>
                   <p className="text-sm text-orange-800">
                     Vui lòng kiểm tra kỹ thông tin trước khi lưu.
-                    Nhấn <strong>"❌ Hủy"</strong> để quay lại chế độ xem hoặc <strong>"💾 Lưu thay đổi"</strong> để cập nhật.
+                    Nhấn <strong>"Hủy"</strong> để quay lại chế độ xem hoặc <strong>"Lưu thay đổi"</strong> để cập nhật.
                   </p>
                 </div>
               </div>
@@ -784,17 +793,12 @@ const ProfilePage: React.FC = () => {
                   className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:from-indigo-600 hover:to-purple-600 focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isChangingPassword ? (
-                    <>
-                      <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
+                    <span className="flex items-center gap-2">
+                      <ClipLoader color="#FFFFFF" size={16} />
                       Đang cập nhật...
-                    </>
+                    </span>
                   ) : (
-                    <>
-                      Đổi mật khẩu
-                    </>
+                    'Đổi mật khẩu'
                   )}
                 </button>
               </div>
