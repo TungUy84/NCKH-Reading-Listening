@@ -3,6 +3,16 @@ import { DragDropContext, Draggable, Droppable, DropResult } from '@hello-pangea
 import Swal from 'sweetalert2';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import {
+  ArrowPathIcon,
+  ArrowUpTrayIcon,
+  Bars3Icon,
+  CheckCircleIcon,
+  EllipsisVerticalIcon,
+  PauseCircleIcon,
+  PlayCircleIcon,
+  PlusIcon,
+} from '@heroicons/react/24/outline';
 import { PlacementTestAPI } from '../../services/api';
 import { PlacementTest, SectionMedia } from '../../types';
 
@@ -56,6 +66,7 @@ const sanitizeSectionsForSave = (sections: any[] | undefined) => {
   });
 };
 
+// Trình chỉnh sửa chi tiết từng phần và câu hỏi của bài kiểm tra đầu vào
 const EditTestPage: React.FC = () => {
   const { testId } = useParams();
   const [loading, setLoading] = useState(true);
@@ -1151,7 +1162,7 @@ const EditTestPage: React.FC = () => {
         </div>
       ) : null}
 
-      <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
+      <div className="space-y-6 -mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-slate-800">Chỉnh sửa bài test</h1>
           <div className="flex items-center gap-3">
@@ -1168,16 +1179,11 @@ const EditTestPage: React.FC = () => {
               {autoSaveEnabled ? (
                 (infoSaving || contentSaving) ? (
                   <span className="inline-flex items-center text-slate-500" title="Đang tự động lưu">
-                    <svg className="animate-spin -ml-0.5 mr-1 h-4 w-4 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                    </svg>
+                    <ArrowPathIcon className="animate-spin -ml-0.5 mr-1 h-4 w-4 text-slate-400" />
                   </span>
                 ) : ((infoSavedAt || contentSavedAt) ? (
                   <span className="inline-flex items-center text-emerald-600" title="Đã lưu gần đây">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-7.25 7.25a1 1 0 01-1.414 0l-3.5-3.5a1 1 0 111.414-1.414l2.793 2.793 6.543-6.543a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+                    <CheckCircleIcon className="h-4 w-4 text-emerald-600" />
                   </span>
                 ) : null)
               ) : (
@@ -1197,12 +1203,7 @@ const EditTestPage: React.FC = () => {
             aria-expanded={showBasicInfo}
           >
             <div className="flex items-center gap-3">
-              {/* Hamburger icon */}
-              <span className="inline-block w-5">
-                <span className="block h-[2px] bg-slate-700 mb-1"></span>
-                <span className="block h-[2px] bg-slate-700 mb-1"></span>
-                <span className="block h-[2px] bg-slate-700"></span>
-              </span>
+              <Bars3Icon className="w-5 h-5 text-slate-700" />
               <span className="font-medium text-slate-800">Thông tin bài test</span>
             </div>
             <span className="text-slate-500 text-sm">{showBasicInfo ? 'Ẩn' : 'Hiện'}</span>
@@ -1313,9 +1314,7 @@ const EditTestPage: React.FC = () => {
                 <div className="flex items-center justify-between border-b px-4 py-3" onDragOver={handleMediaDragOver} onDragLeave={handleMediaDragLeave} onDrop={handleMediaDrop}>
                   <div className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
                     <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-blue-600">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
-                      </svg>
+                      <PlusIcon className="h-4 w-4" />
                     </span>
                     Media trong đoạn văn
                   </div>
@@ -1325,16 +1324,12 @@ const EditTestPage: React.FC = () => {
                       onClick={openMediaPicker}
                       className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14m7-7H5" />
-                      </svg>
+                      <PlusIcon className="h-4 w-4" />
                       Thêm media
                     </button>
                     {isMediaDropActive ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-3.5 w-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M7 10l5-5m0 0l5 5m-5-5v12" />
-                        </svg>
+                        <ArrowUpTrayIcon className="h-3.5 w-3.5" />
                         Thả để tải lên
                       </span>
                     ) : null}
@@ -1398,9 +1393,7 @@ const EditTestPage: React.FC = () => {
                                 aria-expanded={isMenuOpen}
                               >
                                 <span className="sr-only">Mở menu media</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
-                                  <path d="M5.25 12a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm5.25 0a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm6.75-1.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3Z" />
-                                </svg>
+                                <EllipsisVerticalIcon className="h-5 w-5" />
                               </button>
                               {isMenuOpen ? (
                                 <div
@@ -1472,13 +1465,9 @@ const EditTestPage: React.FC = () => {
                                       aria-label={audioInfo.isPlaying ? 'Tạm dừng audio' : 'Phát audio'}
                                     >
                                       {audioInfo.isPlaying ? (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-                                          <path d="M8.25 5.25a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1-.75-.75V5.25Zm5.25 0a.75.75 0 0 1 .75-.75h1.5a.75.75 0 0 1 .75.75v13.5a.75.75 0 0 1-.75.75H14.25a.75.75 0 0 1-.75-.75V5.25Z" />
-                                        </svg>
+                                        <PauseCircleIcon className="h-8 w-8" />
                                       ) : (
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-8 w-8">
-                                          <path d="M6.75 5.428c0-1.355 1.449-2.217 2.635-1.525l8.39 4.822c1.291.742 1.291 2.61 0 3.352l-8.39 4.821c-1.186.682-2.635-.17-2.635-1.525V5.428Z" />
-                                        </svg>
+                                        <PlayCircleIcon className="h-8 w-8" />
                                       )}
                                     </button>
                                     <span className="absolute bottom-3 right-3 rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">

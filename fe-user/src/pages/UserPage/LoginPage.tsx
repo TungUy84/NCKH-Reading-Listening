@@ -7,6 +7,7 @@ import 'aos/dist/aos.css';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { ClipLoader } from 'react-spinners';
 
+// Trang đăng nhập cho người dùng cuối trên ứng dụng khách
 const LoginPage: React.FC = () => {
   const [formData, setFormData] = useState({
     identifier: '',
@@ -23,6 +24,7 @@ const LoginPage: React.FC = () => {
     AOS.init({ duration: 800, once: true, easing: 'ease-out-cubic' });
   }, []);
 
+  // Đồng bộ giá trị input vào state biểu mẫu
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setFormData(prev => ({
@@ -31,6 +33,7 @@ const LoginPage: React.FC = () => {
     }));
   };
 
+  // Gửi thông tin đăng nhập và điều hướng khi thành công
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -82,9 +85,6 @@ const LoginPage: React.FC = () => {
               <div className="absolute -bottom-10 right-16 h-28 w-28 rounded-full bg-purple-200/60 blur-3xl" />
             </div>
             <div className="relative z-10 max-w-lg">
-              {/* <span className="inline-flex items-center rounded-full bg-indigo-100 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-indigo-600">
-                EnglishMaster
-              </span> */}
               <h1 className="mt-6 text-4xl font-bold text-slate-900">Chào mừng quay lại!</h1>
               <p className="mt-3 text-base text-slate-600">
                 Đăng nhập để tiếp tục lộ trình học tập, theo dõi tiến độ và trải nghiệm những tài liệu luyện thi mới nhất.

@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Placeholder cho trang quản lý bài học lý thuyết
 const LessonsPage: React.FC = () => {
   return (
     <div className="space-y-4">

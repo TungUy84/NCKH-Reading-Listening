@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTestAPI } from '../../services/api';
 
+// Form tạo bài kiểm tra đầu vào mới với thông tin cơ bản
 const CreateTestPage: React.FC = () => {
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
@@ -13,25 +14,36 @@ const CreateTestPage: React.FC = () => {
   const [instructions, setInstructions] = useState<string[]>(['']);
   const [isActive, setIsActive] = useState<boolean>(true);
 
+  // Quản lý danh sách hướng dẫn hiển thị cho thí sinh
   const addInstruction = () => setInstructions((prev) => [...prev, '']);
   const removeInstruction = (idx: number) => setInstructions((prev) => prev.filter((_, i) => i !== idx));
-  const updateInstruction = (idx: number, value: string) => setInstructions((prev) => prev.map((v, i) => i === idx ? value : v));
+  const updateInstruction = (idx: number, value: string) => setInstructions((prev) => prev.map((v, i) => (i === idx ? value : v)));
 
-  // submit: create test with basic info
+  // Gửi yêu cầu tạo bài test dựa trên thông tin cơ bản
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) { toast.error('Vui lòng nhập tiêu đề và mô tả'); return; }
     try {
       setSaving(true);
-      const payload: any = {
+      const sanitizedInstructions = instructions.map((i) => i.trim()).filter(Boolean);
+      const payload = {
         title: title.trim(),
         description: description.trim(),
         category,
         timeLimit,
-        instructions: instructions.map((i) => i.trim()).filter(Boolean),
+        instructions: sanitizedInstructions,
         isActive,
         sections: [], // create without content first
         questions: [],
+      } satisfies {
+        title: string;
+        description: string;
+        category: 'reading' | 'listening';
+        timeLimit: number;
+        instructions: string[];
+        isActive: boolean;
+        sections: unknown[];
+        questions: unknown[];
       };
       const created = await PlacementTestAPI.createTest(payload);
       toast.success('Tạo bài test thành công');
@@ -45,7 +57,7 @@ const CreateTestPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
+    <div className="space-y-6 -mb-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-800">Tạo bài test mới</h1>
         <Link to="/admin/placement-tests" className="px-4 py-2 rounded-lg border">Danh sách</Link>

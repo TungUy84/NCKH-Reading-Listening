@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AuthAPI } from '../services/api';
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, EyeIcon, EyeSlashIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 
 interface LoginPageProps {
   onLogin: (token: string) => void;
 }
 
+// Trang đăng nhập cho quản trị viên với form và xử lý hiển thị mật khẩu
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
     identifier: '',
@@ -18,6 +19,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  // Gửi thông tin đăng nhập lên server và lưu token nếu thành công
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -36,6 +38,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
   };
 
+  // Cập nhật state khi admin nhập email hoặc mật khẩu
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials({
       ...credentials,
@@ -49,9 +52,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-white rounded-full flex items-center justify-center mb-4">
-            <svg className="h-8 w-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+            <Squares2X2Icon className="h-8 w-8 text-primary-600" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
             Admin Portal
@@ -153,10 +154,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <ArrowPathIcon className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                   Đang đăng nhập...
                 </>
               ) : (
@@ -166,7 +164,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </form>
 
           {/* Demo credentials info */}
-            {/* <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          {/* <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <h4 className="text-sm font-medium text-blue-900 mb-2">Thông tin đăng nhập demo:</h4>
               <div className="text-sm text-blue-700 space-y-1">
                 <p><strong>Email/Tên đăng nhập:</strong> admin@vanlang.edu.vn hoặc admin</p>

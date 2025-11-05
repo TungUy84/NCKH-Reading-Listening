@@ -4,6 +4,7 @@ import { AdminUser, UpdateUserInput, UserRole } from '../../types';
 import { getUserById, updateUser } from '../../services/api';
 import { toast } from 'react-toastify';
 
+// Trang chỉnh sửa thông tin người dùng hiện có
 const EditUserPage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const EditUserPage: React.FC = () => {
   });
 
   useEffect(() => {
+    // Lấy dữ liệu người dùng để điền sẵn vào form
     const load = async () => {
       if (!userId) return;
       setLoading(true);
@@ -46,13 +48,16 @@ const EditUserPage: React.FC = () => {
     load();
   }, [userId, navigate]);
 
+  // Cập nhật state form mỗi khi admin chỉnh input
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
   };
 
+  // Đảo trạng thái hoạt động khi admin gạt công tắc
   const onToggleActive = () => setForm((f) => ({ ...f, isActive: !f.isActive }));
 
+  // Kiểm tra dữ liệu trước khi gửi cập nhật
   const validate = (): string | null => {
     if (!form.firstName || !form.lastName) return 'Vui lòng nhập đầy đủ Họ và Tên';
     if (form.phoneNumber && !/^\d{10,11}$/.test(form.phoneNumber)) return 'Số điện thoại không hợp lệ (10-11 chữ số)';
@@ -60,6 +65,7 @@ const EditUserPage: React.FC = () => {
     return null;
   };
 
+  // Gửi yêu cầu cập nhật người dùng sau khi hợp lệ hóa dữ liệu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
@@ -68,11 +74,11 @@ const EditUserPage: React.FC = () => {
 
     setLoading(true);
     try {
-  const payload: UpdateUserInput = { ...form };
+      const payload: UpdateUserInput = { ...form };
       if (!payload.phoneNumber) delete (payload as any).phoneNumber;
       if (!payload.studentId) delete (payload as any).studentId;
       if (!payload.dateOfBirth) payload.dateOfBirth = null; // allow clearing
-  if (!payload.password) delete (payload as any).password; // only send when changing
+      if (!payload.password) delete (payload as any).password; // only send when changing
 
       await updateUser(userId, payload);
       toast.success('Cập nhật người dùng thành công');
@@ -98,7 +104,7 @@ const EditUserPage: React.FC = () => {
           {/* Avatar preview */}
           <div className="flex items-center gap-4">
             <img
-              src={initial.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(((initial.firstName || '') + ' ' + (initial.lastName || ''))) }
+              src={initial.avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(((initial.firstName || '') + ' ' + (initial.lastName || '')))}
               alt="avatar"
               className="w-14 h-14 rounded-full object-cover border"
             />

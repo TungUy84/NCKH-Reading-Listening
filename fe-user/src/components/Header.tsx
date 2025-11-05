@@ -19,6 +19,7 @@ import Swal from 'sweetalert2';
 import { useAuth } from '../contexts/AuthContext';
 import { getAvatarColor, getUserInitials, getUserDisplayName } from '../utils/avatarUtils';
 
+// Thanh điều hướng chính cho người dùng cuối, quản lý menu và trạng thái đăng nhập
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);

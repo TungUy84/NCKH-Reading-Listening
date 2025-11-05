@@ -12,6 +12,15 @@ const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
 const EMPTY_SECTIONS: TestSection[] = [];
 const EMPTY_QUESTIONS: TestQuestion[] = [];
 
+// Kiểu dữ liệu mô tả media dạng thô nhận từ backend
+type RawSectionMedia = Partial<SectionMedia> & {
+  _id?: string;
+  path?: string;
+  name?: string;
+  mimetype?: string;
+};
+
+// Chuẩn hóa mọi giá trị về chuỗi để sử dụng làm khóa map hoặc id
 const normalizeId = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
@@ -30,6 +39,7 @@ const normalizeId = (value: unknown): string => {
   }
 };
 
+// Kiểm tra một câu hỏi đã có câu trả lời hợp lệ hay chưa
 const isQuestionAnswered = (answer?: UserAnswer | null): boolean => {
   if (!answer) {
     return false;
@@ -40,6 +50,7 @@ const isQuestionAnswered = (answer?: UserAnswer | null): boolean => {
   return hasSelectedOption || hasInput || hasMatching;
 };
 
+// Tạo id giả lập cho media khi backend chưa trả về id chuẩn
 const generateMediaId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -51,22 +62,31 @@ const generateMediaId = (): string => {
   return Math.random().toString(36).slice(2, 10);
 };
 
+// Chuẩn hóa danh sách media block, đảm bảo đầy đủ thông tin cần thiết
 const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
   if (!Array.isArray(blocks)) return [];
   return blocks
     .filter(Boolean)
-    .map((block: any) => ({
-      ...block,
-      id: block?.id || block?._id || generateMediaId(),
-      type: block?.type === 'audio' ? 'audio' : 'image',
-      url: block?.url || block?.path || '',
-      originalName: block?.originalName || block?.name || '',
-      mimeType: block?.mimeType || block?.mimetype || '',
-      size: block?.size,
-    }))
-    .filter((block: SectionMedia) => !!block.id && !!block.url);
+    .map((block) => {
+      const candidate = block as RawSectionMedia;
+      const normalizedType: SectionMedia['type'] = candidate.type === 'audio' ? 'audio' : 'image';
+
+      const normalized: SectionMedia = {
+        id: candidate.id || candidate._id || generateMediaId(),
+        type: normalizedType,
+        url: candidate.url || candidate.path || '',
+        originalName: candidate.originalName || candidate.name || '',
+        mimeType: candidate.mimeType || candidate.mimetype,
+        size: candidate.size,
+        transcript: typeof candidate.transcript === 'string' ? candidate.transcript : undefined,
+      };
+
+      return normalized;
+    })
+    .filter((block) => !!block.id && !!block.url);
 };
 
+// Chuẩn hóa lại cấu trúc section để tránh crash khi thiếu dữ liệu
 const sanitizeSections = (sections: TestSection[] = []): TestSection[] => {
   return sections.map((section) => ({
     ...section,
@@ -74,6 +94,7 @@ const sanitizeSections = (sections: TestSection[] = []): TestSection[] => {
   }));
 };
 
+// Render phần media (audio, ảnh) dựa trên loại dữ liệu
 const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode => {
   if (!block?.url) {
     return (
@@ -113,16 +134,19 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
         src={block.url}
         alt={block.originalName || `Media ${block.id}`}
         className="w-full h-auto object-contain"
+      // Chuẩn hóa tiêu đề section về định dạng thân thiện với người đọc
       />
       {block.originalName ? (
         <figcaption className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100">
           {block.originalName}
         </figcaption>
+        // Panel hiển thị nội dung phần thi (passage/media) kèm điều hướng trước/sau
       ) : null}
     </figure>
   );
 };
 
+// Render nội dung passage và chèn media tương ứng vào đúng vị trí placeholder
 const renderPartContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
   if (!passage) return null;
   mediaPlaceholderRegex.lastIndex = 0;
@@ -283,6 +307,7 @@ interface QuestionNavigatorProps {
   questionIndices?: number[];
 }
 
+// Bảng điều hướng nhanh tới từng câu hỏi và hiển thị trạng thái đã trả lời
 const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
   questions,
   answers,
@@ -303,6 +328,7 @@ const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
 
   return (
     <div className={containerClass}>
+      {/* Panel hiển thị nội dung câu hỏi cùng input trả lời theo từng section */}
       <div className={composedGridClass}>
         {questions.map((_, index) => {
           const targetIndex = questionIndices ? questionIndices[index] : index;
@@ -587,7 +613,7 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
   );
 };
 
-
+// Trang làm bài kiểm tra đầu vào với đồng hồ đếm ngược và xử lý gửi bài
 const TakeTestPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
@@ -682,7 +708,7 @@ const TakeTestPage: React.FC = () => {
           toast.error('The test does not exist or has been removed.');
           setTest(null);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Unable to load test:', error);
         toast.error('Unable to load the test. Please try again later.');
         setTest(null);
@@ -774,7 +800,7 @@ const TakeTestPage: React.FC = () => {
         }
 
         navigate(`/test/${test._id}/result`, { state: { result: response?.result } });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Unable to submit test:', error);
         toast.error('An error occurred while submitting. Please try again.');
         setIsSubmitting(false);

@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Placeholder cho trang cấu hình lộ trình học
 const RoadmapPage: React.FC = () => {
   return (
     <div className="space-y-4">

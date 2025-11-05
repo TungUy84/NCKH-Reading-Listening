@@ -41,6 +41,7 @@ const sanitizeSections = (sections: any[] | undefined) => {
   }));
 };
 
+// Hiển thị media tương ứng với placeholder trong đề bài
 const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode => {
   if (block.type === 'audio') {
     return (
@@ -75,6 +76,7 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
   );
 };
 
+// Phân tách đoạn văn và chèn media dựa trên placeholder [[media:ID]]
 const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
   if (!passage) return null;
   mediaPlaceholderRegex.lastIndex = 0;
@@ -129,6 +131,7 @@ const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = [])
   return nodes;
 };
 
+// Trang xem trước bài kiểm tra với bố cục hai cột giống trình chỉnh sửa
 const ViewTestPage: React.FC = () => {
   const { testId } = useParams();
   const [loading, setLoading] = useState(true);
@@ -208,7 +211,7 @@ const ViewTestPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6" style={{ marginBottom: '-1.5rem' }}>
+    <div className="space-y-6 -mb-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">{test.title}</h1>

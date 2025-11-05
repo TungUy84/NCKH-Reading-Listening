@@ -41,6 +41,7 @@ const getAllUsers = async (req, res) => {
     const total = await User.countDocuments(query);
 
     res.json({
+      message: 'Lấy danh sách người dùng thành công',
       users,
       pagination: {
         page,
@@ -50,6 +51,7 @@ const getAllUsers = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Get users error:', error);
     res.status(500).json({ message: 'Lỗi server khi lấy danh sách users' });
   }
 };
@@ -71,6 +73,7 @@ const getUserStats = async (req, res) => {
     });
 
     res.json({
+      message: 'Lấy thống kê người dùng thành công',
       statistics: {
         totalUsers,
         activeUsers,
@@ -81,6 +84,7 @@ const getUserStats = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Get user stats error:', error);
     res.status(500).json({ message: 'Lỗi server khi lấy thống kê' });
   }
 };
@@ -95,11 +99,12 @@ const getUserById = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy user' });
     }
 
-    res.json({ user });
+    res.json({ message: 'Lấy thông tin người dùng thành công', user });
   } catch (error) {
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'ID user không hợp lệ' });
     }
+    console.error('Get user error:', error);
     res.status(500).json({ message: 'Lỗi server khi lấy thông tin user' });
   }
 };
@@ -167,6 +172,7 @@ const createUser = async (req, res) => {
       user
     });
   } catch (error) {
+    console.error('Create user error:', error);
     res.status(500).json({ message: 'Lỗi server khi tạo user' });
   }
 };
@@ -242,6 +248,7 @@ const updateUser = async (req, res) => {
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'ID user không hợp lệ' });
     }
+    console.error('Update user error:', error);
     res.status(500).json({ message: 'Lỗi server khi cập nhật user' });
   }
 };
@@ -267,6 +274,7 @@ const deleteUser = async (req, res) => {
     if (error.name === 'CastError') {
       return res.status(400).json({ message: 'ID user không hợp lệ' });
     }
+    console.error('Delete user error:', error);
     res.status(500).json({ message: 'Lỗi server khi xóa user' });
   }
 };

@@ -32,6 +32,7 @@ declare global {
   }
 }
 
+// Thành phần khung ứng dụng quản lý layout chung và routing chính
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
   const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname);
@@ -84,11 +85,12 @@ const AppShell: React.FC = () => {
   );
 };
 
-function App() {
+// Thành phần gốc thiết lập nhà cung cấp context và cấu hình router
+const App: React.FC = () => {
   useEffect(() => {
     // Khởi tạo AOS để kích hoạt animation mỗi khi cuộn tới section mới
     AOS.init({
-      duration: 400, 
+      duration: 400,
       once: true,
       offset: 50,
     });
@@ -143,6 +145,6 @@ function App() {
       </Router>
     </AuthProvider>
   );
-}
+};
 
 export default App;

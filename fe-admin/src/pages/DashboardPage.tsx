@@ -1,9 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import {
+  Squares2X2Icon,
+  UserGroupIcon,
+  ClipboardDocumentListIcon,
+  SpeakerWaveIcon,
+  BookOpenIcon,
+  UserCircleIcon,
+  MapIcon,
+  BoltIcon,
+  AcademicCapIcon,
+  ClipboardDocumentCheckIcon,
+  NewspaperIcon,
+  PlusCircleIcon,
+  UserPlusIcon,
+  Bars3Icon,
+  ArrowDownTrayIcon,
+  ClipboardDocumentIcon,
+} from '@heroicons/react/24/outline';
 import { DashboardStats, UserStats } from '../types';
 import { getTestStats, getUserStats } from '../services/api';
 
+// Trang tổng quan hiển thị chỉ số chính dành cho quản trị viên
 const DashboardPage: React.FC = () => {
   const [testStats, setTestStats] = useState<DashboardStats | null>(null);
   const [userStats, setUserStats] = useState<UserStats['statistics'] | null>(null);
@@ -13,6 +32,7 @@ const DashboardPage: React.FC = () => {
     loadDashboard();
   }, []);
 
+  // Tải dữ liệu thống kê Dashboard từ API
   const loadDashboard = async () => {
     try {
       const [ts, us] = await Promise.all([
@@ -56,9 +76,7 @@ const DashboardPage: React.FC = () => {
           </div>
           <div className="hidden lg:block">
             <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h7l2 3h9v13a2 2 0 01-2 2H5a2 2 0 01-2-2V3z" />
-              </svg>
+              <Squares2X2Icon className="w-12 h-12 text-white" />
             </div>
           </div>
         </div>
@@ -74,9 +92,7 @@ const DashboardPage: React.FC = () => {
               <p className="text-3xl font-bold text-gray-900">{userStats?.totalUsers ?? 0}</p>
             </div>
             <div className="w-14 h-14 bg-gradient-to-br from-sky-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20h6m-6 0v-2a4 4 0 013-3.87M9 20H4v-2a4 4 0 013-3.87M16 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
+              <UserGroupIcon className="w-7 h-7 text-white" />
             </div>
           </div>
           <div className="mt-4 flex items-center gap-2 text-sm">
@@ -97,9 +113,7 @@ const DashboardPage: React.FC = () => {
               <p className="text-3xl font-bold text-gray-900">{testStats?.totalTests ?? 0}</p>
             </div>
             <div className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
+              <ClipboardDocumentListIcon className="w-7 h-7 text-white" />
             </div>
           </div>
           <div className="mt-4 flex items-center text-sm">
@@ -117,9 +131,7 @@ const DashboardPage: React.FC = () => {
               <p className="text-3xl font-bold text-gray-900">{testStats?.categoryStats?.find(c => c.category === 'listening')?.count ?? 0}</p>
             </div>
             <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 9H4a1 1 0 00-1 1v4a1 1 0 001 1h1.586l4.707 4.707C10.923 20.337 12 19.939 12 19V5c0-.939-1.077-1.337-1.707-.707L5.586 9z" />
-              </svg>
+              <SpeakerWaveIcon className="w-7 h-7 text-white" />
             </div>
           </div>
           <div className="mt-4 text-sm">
@@ -135,9 +147,7 @@ const DashboardPage: React.FC = () => {
               <p className="text-3xl font-bold text-gray-900">{testStats?.categoryStats?.find(c => c.category === 'reading')?.count ?? 0}</p>
             </div>
             <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+              <BookOpenIcon className="w-7 h-7 text-white" />
             </div>
           </div>
           <div className="mt-4 text-sm">
@@ -158,7 +168,7 @@ const DashboardPage: React.FC = () => {
               {/* Users */}
               <Link to="/admin/users" className="group p-4 border rounded-xl hover:shadow-md transition-all bg-white">
                 <div className="w-9 h-9 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  <UserCircleIcon className="w-5 h-5" />
                 </div>
                 <p className="font-medium text-gray-900">Người dùng</p>
                 <p className="text-sm text-gray-600">Quản lý tài khoản</p>
@@ -167,7 +177,7 @@ const DashboardPage: React.FC = () => {
               {/* Placement Tests */}
               <Link to="/admin/placement-tests" className="group p-4 border rounded-xl hover:shadow-md transition-all bg-white">
                 <div className="w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <ClipboardDocumentListIcon className="w-5 h-5" />
                 </div>
                 <p className="font-medium text-gray-900">Kiểm tra đầu vào</p>
                 <p className="text-sm text-gray-600">Tạo và quản lý tests</p>
@@ -176,7 +186,7 @@ const DashboardPage: React.FC = () => {
               {/* Roadmap */}
               <Link to="/admin/roadmap" className="group p-4 border rounded-xl hover:shadow-md transition-all bg-white">
                 <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A2 2 0 013 15.382V5a2 2 0 012-2h3m3 0h7a2 2 0 012 2v10.382a2 2 0 01-1.553 1.894L15 20M9 3v7m0 0l-2-2m2 2l2-2"/></svg>
+                  <MapIcon className="w-5 h-5" />
                 </div>
                 <p className="font-medium text-gray-900">Lộ trình</p>
                 <p className="text-sm text-gray-600">Định hướng học tập</p>
@@ -185,7 +195,7 @@ const DashboardPage: React.FC = () => {
               {/* Practice */}
               <Link to="/admin/practice" className="group p-4 border rounded-xl hover:shadow-md transition-all bg-white">
                 <div className="w-9 h-9 rounded-lg bg-fuchsia-100 text-fuchsia-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6l4 2"/></svg>
+                  <BoltIcon className="w-5 h-5" />
                 </div>
                 <p className="font-medium text-gray-900">Ôn luyện</p>
                 <p className="text-sm text-gray-600">Bài tập luyện tập</p>
@@ -194,7 +204,7 @@ const DashboardPage: React.FC = () => {
               {/* Lessons */}
               <Link to="/admin/lessons" className="group p-4 border rounded-xl hover:shadow-md transition-all bg-white">
                 <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 20l9-5-9-5-9 5 9 5z"/></svg>
+                  <AcademicCapIcon className="w-5 h-5" />
                 </div>
                 <p className="font-medium text-gray-900">Bài học</p>
                 <p className="text-sm text-gray-600">Nội dung giảng dạy</p>
@@ -203,7 +213,7 @@ const DashboardPage: React.FC = () => {
               {/* Mock Exams */}
               <Link to="/admin/mock-exams" className="group p-4 border rounded-xl hover:shadow-md transition-all bg-white">
                 <div className="w-9 h-9 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 17l-5-5m0 0l5-5m-5 5h12"/></svg>
+                  <ClipboardDocumentCheckIcon className="w-5 h-5" />
                 </div>
                 <p className="font-medium text-gray-900">Thi thử</p>
                 <p className="text-sm text-gray-600">Đề thi thử</p>
@@ -212,7 +222,7 @@ const DashboardPage: React.FC = () => {
               {/* Blog */}
               <Link to="/admin/blog" className="group p-4 border rounded-xl hover:shadow-md transition-all bg-white">
                 <div className="w-9 h-9 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center mb-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h8m-8 4h6M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  <NewspaperIcon className="w-5 h-5" />
                 </div>
                 <p className="font-medium text-gray-900">Blog</p>
                 <p className="text-sm text-gray-600">Tin tức & bài viết</p>
@@ -228,35 +238,35 @@ const DashboardPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <Link to="/admin/placement-tests/create" className="p-4 border rounded-xl hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 bg-green-100 text-green-600 rounded-lg flex items-center justify-center mb-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                  <PlusCircleIcon className="w-4 h-4" />
                 </div>
                 <p className="font-medium text-gray-900">Tạo bài test</p>
                 <p className="text-sm text-gray-600">Tạo mới thủ công</p>
               </Link>
               <Link to="/admin/users/create" className="p-4 border rounded-xl hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 bg-sky-100 text-sky-600 rounded-lg flex items-center justify-center mb-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                  <UserPlusIcon className="w-4 h-4" />
                 </div>
                 <p className="font-medium text-gray-900">Tạo người dùng</p>
                 <p className="text-sm text-gray-600">Thêm tài khoản mới</p>
               </Link>
               <Link to="/admin/users" className="p-4 border rounded-xl hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mb-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7h18M3 12h18M3 17h18"/></svg>
+                  <Bars3Icon className="w-4 h-4" />
                 </div>
                 <p className="font-medium text-gray-900">Quản lý Users</p>
                 <p className="text-sm text-gray-600">Danh sách & phân quyền</p>
               </Link>
               <Link to="/admin/placement-tests/import" className="p-4 border rounded-xl hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center mb-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                  <ArrowDownTrayIcon className="w-4 h-4" />
                 </div>
                 <p className="font-medium text-gray-900">Import test mới</p>
                 <p className="text-sm text-gray-600">Hỗ trợ Word, PDF, Excel</p>
               </Link>
               <Link to="/admin/placement-tests" className="p-4 border rounded-xl hover:bg-gray-50 transition-colors">
                 <div className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mb-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                  <ClipboardDocumentIcon className="w-4 h-4" />
                 </div>
                 <p className="font-medium text-gray-900">Quản lý Tests</p>
                 <p className="text-sm text-gray-600">Xem & chỉnh sửa</p>

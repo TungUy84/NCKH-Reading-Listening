@@ -52,6 +52,7 @@ const CATEGORY_META: Record<PlacementCategory, {
   },
 };
 
+// Trang liệt kê các đề kiểm tra đầu vào kèm xem trước thông tin chi tiết
 const TestsPage: React.FC = () => {
   const normalizeSectionTitle = useCallback((title?: string) => {
     if (!title) return '';
@@ -76,7 +77,7 @@ const TestsPage: React.FC = () => {
       setError(null);
       const response = await getActiveTests();
       setTests(response.tests || []);
-    } catch (err) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Có lỗi xảy ra khi tải danh sách bài thi');
     } finally {
       setLoading(false);
@@ -176,7 +177,7 @@ const TestsPage: React.FC = () => {
             setPreviewDetail(null);
           }
         }
-      } catch (err) {
+      } catch (err: unknown) {
         console.error('Không thể tải chi tiết bài test:', err);
         if (!ignore) {
           setPreviewDetail(null);

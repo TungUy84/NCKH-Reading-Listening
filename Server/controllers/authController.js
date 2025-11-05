@@ -121,7 +121,7 @@ const loginUser = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    res.json({ user });
+    res.json({ message: 'Lấy thông tin profile thành công', user });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ message: 'Lỗi server khi lấy thông tin profile' });

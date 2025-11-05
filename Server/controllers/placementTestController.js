@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { PlacementTest } = require('../models/PlacementTest');
 const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/placementTestImport');
 
+// Xóa các tệp media cũ để tránh rác khi admin cập nhật bài thi
 const deleteMediaFiles = async (blocks = []) => {
   if (!Array.isArray(blocks) || !blocks.length) return;
 
@@ -82,7 +83,7 @@ const getPlacementTestForTaking = async (req, res) => {
 // Chấm điểm bài test ngay lập tức (Public - không lưu database)
 const checkPlacementTest = async (req, res) => {
   try {
-    const { answers } = req.body || {};
+  const { answers } = req.body || {};
     const testId = req.params.testId || req.body?.testId;
 
     if (!testId) {
@@ -236,7 +237,8 @@ const checkPlacementTest = async (req, res) => {
     const percentage = Math.round((earnedPoints / test.totalPoints) * 100);
 
     // Tính điểm IELTS và level AV (không cần lưu database)
-    const getIELTSAndLevel = (percentage) => {
+  // Quy đổi phần trăm sang thang điểm nội bộ để gợi ý lộ trình học
+  const getIELTSAndLevel = (percentage) => {
       let ieltsScore, avLevel, recommendation;
 
       if (percentage >= 95) {

@@ -8,7 +8,7 @@ dotenv.config();
 
 const app = express();
 
-// Configuration constants
+// Thiết lập cấu hình chung cho máy chủ
 const jsonBodyLimit = process.env.JSON_BODY_LIMIT || '10mb';
 const uploadsDir = path.join(__dirname, 'uploads');
 const audioMimeTypes = {
@@ -19,14 +19,15 @@ const audioMimeTypes = {
 };
 const audioExtensions = new Set(Object.keys(audioMimeTypes));
 
+// Ẩn header mặc định để giảm thông tin lộ ra
 app.disable('x-powered-by');
 
-// Core middleware stack
+// Nạp các middleware cốt lõi
 app.use(cors());
 app.use(express.json({ limit: jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded assets (audio/images) while keeping audio inline-only
+// Thư mục uploads và thiết lập header cho file audio
 app.use('/uploads', express.static(uploadsDir, {
   setHeaders: (res, filePath) => {
     const ext = path.extname(filePath).toLowerCase();
@@ -43,32 +44,34 @@ app.use('/uploads', express.static(uploadsDir, {
   },
 }));
 
-// Database connection
+// Kết nối MongoDB
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch((error) => console.log('MongoDB connection error:', error));
+  .then(() => console.log('Kết nối MongoDB thành công'))
+  .catch((error) => {
+    console.error('Lỗi kết nối MongoDB:', error);
+  });
 
-// Application routes
+// Khai báo các tuyến API chính
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/placement-tests', require('./routes/placementTest'));
 
-// Fallback error handler
+// Middleware xử lý lỗi tập trung
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Unhandled error:', err);
+  res.status(500).json({ message: 'Đã xảy ra lỗi trên máy chủ', error: err.message });
 });
 
-// 404 handler for any unmatched route
+// Xử lý 404 cho mọi route không tồn tại
 app.use('*', (req, res) => {
-  res.status(404).json({ message: 'Route not found' });
+  res.status(404).json({ message: 'Đường dẫn không tồn tại' });
 });
 
 const PORT = Number(process.env.PORT) || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server đang chạy tại cổng ${PORT}`);
 });

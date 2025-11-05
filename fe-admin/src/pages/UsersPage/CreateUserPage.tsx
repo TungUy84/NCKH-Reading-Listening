@@ -4,6 +4,7 @@ import { CreateUserInput, UserRole } from '../../types';
 import { createUser } from '../../services/api';
 import { toast } from 'react-toastify';
 
+// Form tạo mới người dùng cho quản trị viên
 const CreateUserPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -19,11 +20,13 @@ const CreateUserPage: React.FC = () => {
     role: 'user',
   });
 
+  // Đồng bộ giá trị từ các input vào state form
   const onChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
   };
 
+  // Kiểm tra dữ liệu cơ bản trước khi gửi
   const validate = (): string | null => {
     const username = form.username?.trim() || '';
     if (!username || username.length < 3) return 'Tên đăng nhập phải có ít nhất 3 ký tự';
@@ -40,6 +43,7 @@ const CreateUserPage: React.FC = () => {
     return null;
   };
 
+  // Gửi yêu cầu tạo người dùng sau khi đã hợp lệ hóa dữ liệu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const err = validate();
@@ -50,11 +54,11 @@ const CreateUserPage: React.FC = () => {
 
     setLoading(true);
     try {
-  const payload: CreateUserInput = { ...form, email: form.email.trim().toLowerCase(), username: form.username.trim() };
+      const payload: CreateUserInput = { ...form, email: form.email.trim().toLowerCase(), username: form.username.trim() };
       // Clean optional fields
       if (!payload.phoneNumber) delete (payload as any).phoneNumber;
       if (!payload.studentId) delete (payload as any).studentId;
-  if (!payload.dateOfBirth) delete (payload as any).dateOfBirth;
+      if (!payload.dateOfBirth) delete (payload as any).dateOfBirth;
       if (!payload.role) delete (payload as any).role;
 
       await createUser(payload);

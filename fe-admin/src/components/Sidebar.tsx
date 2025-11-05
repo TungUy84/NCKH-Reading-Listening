@@ -8,7 +8,8 @@ import {
   AcademicCapIcon,
   BookOpenIcon,
   CheckBadgeIcon,
-  NewspaperIcon
+  NewspaperIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarProps {
@@ -23,6 +24,7 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
+// Sidebar điều hướng dành cho khu vực quản trị
 const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
   const location = useLocation();
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -78,8 +80,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
   };
 
   const toggleExpanded = (label: string) => {
-    setExpandedItems(prev => 
-      prev.includes(label) 
+    setExpandedItems(prev =>
+      prev.includes(label)
         ? prev.filter(item => item !== label)
         : [...prev, label]
     );
@@ -95,9 +97,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
         <div key={item.label} className="space-y-1">
           <button
             onClick={() => toggleExpanded(item.label)}
-            className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${
-              isCollapsed ? 'justify-center' : ''
-            } text-slate-300 hover:text-white hover:bg-slate-700`}
+            className={`w-full flex items-center justify-between p-3 rounded-xl transition-all duration-200 group ${isCollapsed ? 'justify-center' : ''
+              } text-slate-300 hover:text-white hover:bg-slate-700`}
             title={isCollapsed ? item.label : undefined}
           >
             <div className="flex items-center space-x-3">
@@ -107,14 +108,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
               )}
             </div>
             {!isCollapsed && (
-              <svg 
-                className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRightIcon className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
             )}
           </button>
           {!isCollapsed && isExpanded && (
@@ -130,11 +124,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       <Link
         key={item.href}
         to={item.href!}
-        className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${
-          isActive 
-            ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform' 
+        className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${isActive
+            ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform'
             : 'text-slate-300 hover:text-white hover:bg-slate-700'
-        } ${isCollapsed ? 'justify-center' : ''} ${level > 0 ? 'text-sm ml-3' : ''}`}
+          } ${isCollapsed ? 'justify-center' : ''} ${level > 0 ? 'text-sm ml-3' : ''}`}
         title={isCollapsed ? item.label : undefined}
       >
         <div className="flex items-center space-x-3">

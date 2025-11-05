@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { getTestForTaking } from '../../services/api';
-import { DetailedResult, SectionMedia, TestResult, TestSection } from '../../types';
+import { DetailedResult, SectionMedia, TestResult, TestSection, MatchingPair, Option } from '../../types';
 
 const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
 
@@ -13,6 +13,15 @@ interface PassageGroup {
   questions: DetailedResult[];
 }
 
+// Kiểu media thô như backend trả về giúp chuẩn hóa trước khi render
+type RawSectionMedia = Partial<SectionMedia> & {
+  _id?: string;
+  path?: string;
+  name?: string;
+  mimetype?: string;
+};
+
+// Chuẩn hóa id để đồng bộ giữa dữ liệu backend và giao diện
 const normalizeId = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
@@ -31,6 +40,7 @@ const normalizeId = (value: unknown): string => {
   }
 };
 
+// Tạo id dự phòng cho media khi thiếu thông tin từ backend
 const generateMediaId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -42,23 +52,28 @@ const generateMediaId = (): string => {
   return Math.random().toString(36).slice(2, 10);
 };
 
+// Chuẩn hóa danh sách media block để tránh giá trị thiếu gây lỗi
 const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
   if (!Array.isArray(blocks)) return [];
   return blocks
     .filter(Boolean)
-    .map((block: any) => ({
-      ...block,
-      id: block?.id || block?._id || generateMediaId(),
-      type: block?.type === 'audio' ? 'audio' : 'image',
-      url: block?.url || block?.path || '',
-      originalName: block?.originalName || block?.name || '',
-      mimeType: block?.mimeType || block?.mimetype || '',
-      size: block?.size,
-      transcript: typeof block?.transcript === 'string' ? block.transcript : undefined,
-    }))
-    .filter((block: SectionMedia) => !!block.id && !!block.url);
+    .map((block) => {
+      const candidate = block as RawSectionMedia;
+      const normalized: SectionMedia = {
+        id: candidate.id || candidate._id || generateMediaId(),
+        type: candidate.type === 'audio' ? 'audio' : 'image',
+        url: candidate.url || candidate.path || '',
+        originalName: candidate.originalName || candidate.name || '',
+        mimeType: candidate.mimeType || candidate.mimetype,
+        size: candidate.size,
+        transcript: typeof candidate.transcript === 'string' ? candidate.transcript : undefined,
+      };
+      return normalized;
+    })
+    .filter((block) => !!block.id && !!block.url);
 };
 
+// Ghép bổ sung audio/image vào section và loại bỏ trùng lặp
 const sanitizeSections = (sections: TestSection[] = []): TestSection[] => {
   return sections.map((section) => {
     const normalizedBlocks = normalizeMediaBlocks(section?.mediaBlocks);
@@ -101,6 +116,7 @@ const sanitizeSections = (sections: TestSection[] = []): TestSection[] => {
   });
 };
 
+// Render media block kèm xử lý giao diện nhất quán cho audio/ảnh
 const renderMediaBlock = (block: SectionMedia, key: React.Key): React.ReactNode => {
   if (!block?.url) {
     return (
@@ -113,6 +129,7 @@ const renderMediaBlock = (block: SectionMedia, key: React.Key): React.ReactNode 
     );
   }
 
+  // Chèn media vào passage dựa trên placeholder [[media:id]]
   if (block.type === 'audio') {
     return (
       <div
@@ -229,6 +246,7 @@ const renderPartContent = (passage: string, mediaBlocks: SectionMedia[] = []): R
   return nodes;
 };
 
+// Render media gắn trực tiếp với từng câu hỏi (nếu có)
 const renderQuestionMedia = (detail: DetailedResult): React.ReactNode => {
   const media = detail.question?.media;
   if (!media) {
@@ -268,6 +286,7 @@ const renderQuestionMedia = (detail: DetailedResult): React.ReactNode => {
   );
 };
 
+// Chuẩn hóa tiêu đề section thành định dạng dễ đọc hơn
 const formatSectionTitle = (title?: string | null): string => {
   if (!title) return '';
   return title.replace(/^passage\b/i, (match) => {
@@ -277,6 +296,7 @@ const formatSectionTitle = (title?: string | null): string => {
   });
 };
 
+// Gom nhóm kết quả theo passage/section để hiển thị thành từng khối
 const buildPassageGroups = (
   details: DetailedResult[] = [],
   sectionLookup?: Map<string, TestSection>
@@ -313,16 +333,19 @@ const buildPassageGroups = (
   return groups;
 };
 
+// Trả về nhãn A, B, C... cho đáp án lựa chọn
 const getOptionLabel = (index: number) => String.fromCharCode(65 + index);
 
+// So sánh chuỗi bỏ qua hoa thường và khoảng trắng
 const isSameText = (a?: string, b?: string) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 
+// Render đáp án dạng lựa chọn, kèm trạng thái đúng/sai của học viên
 const renderOptionAnswers = (detail: DetailedResult) => {
   const options = Array.isArray(detail.question.options) ? detail.question.options : [];
   const selected = Array.isArray(detail.userAnswer.selectedOptions)
     ? detail.userAnswer.selectedOptions.map((opt) => (opt || '').trim())
     : [];
-  const allowMultiple = Boolean((detail.question as any)?.allowMultiple);
+  const allowMultiple = Boolean(detail.question.allowMultiple);
 
   if (!options.length) {
     return (
@@ -334,7 +357,7 @@ const renderOptionAnswers = (detail: DetailedResult) => {
 
   return (
     <div className="space-y-3">
-      {options.map((option: any, optionIndex: number) => {
+      {options.map((option: Option, optionIndex: number) => {
         const optionText = typeof option?.text === 'string' ? option.text : '';
         const isCorrect =
           Boolean(option?.isCorrect) || (detail.correctAnswers || []).some((answer) => isSameText(answer, optionText));
@@ -351,13 +374,12 @@ const renderOptionAnswers = (detail: DetailedResult) => {
         return (
           <div key={`${detail.questionNumber}-option-${optionIndex}`} className={`${baseClasses} ${stateClasses}`}>
             <span
-              className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
-                isCorrect
+              className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${isCorrect
                   ? 'border-emerald-500/80 bg-white text-emerald-600'
                   : isWrongSelection
                     ? 'border-rose-400 bg-white text-rose-500'
                     : 'border-slate-300 text-slate-500'
-              }`}
+                }`}
             >
               {getOptionLabel(optionIndex)}
             </span>
@@ -380,6 +402,7 @@ const renderOptionAnswers = (detail: DetailedResult) => {
   );
 };
 
+// Render đáp án dạng điền ngắn và hiển thị đáp án đúng
 const renderShortAnswer = (detail: DetailedResult) => {
   const userAnswer = (detail.userAnswer.userAnswer || '').trim();
   const answered = Boolean(userAnswer);
@@ -402,9 +425,10 @@ const renderShortAnswer = (detail: DetailedResult) => {
   );
 };
 
+// Render đáp án dạng nối cặp và đánh dấu đúng sai cho từng prompt
 const renderMatchingAnswer = (detail: DetailedResult) => {
-  const expectedPairs = Array.isArray((detail.question as any)?.matchingPairs)
-    ? (detail.question as any).matchingPairs
+  const expectedPairs = Array.isArray(detail.question.matchingPairs)
+    ? detail.question.matchingPairs
     : [];
   const submittedPairs = Array.isArray(detail.userAnswer.matchingAnswers)
     ? detail.userAnswer.matchingAnswers
@@ -416,7 +440,7 @@ const renderMatchingAnswer = (detail: DetailedResult) => {
 
   return (
     <div className="space-y-3">
-      {expectedPairs.map((pair: any, pairIndex: number) => {
+      {expectedPairs.map((pair: MatchingPair, pairIndex: number) => {
         const prompt = pair?.prompt || '';
         const correctOption = pair?.correctOption || '';
         const userSelection = submittedPairs.find((answer) => isSameText(answer?.prompt, prompt));
@@ -452,6 +476,7 @@ const renderMatchingAnswer = (detail: DetailedResult) => {
   );
 };
 
+// Xác định component render đáp án dựa trên loại câu hỏi
 const renderAnswerBlock = (detail: DetailedResult) => {
   switch (detail.question.type) {
     case 'multi_choice':
@@ -465,6 +490,7 @@ const renderAnswerBlock = (detail: DetailedResult) => {
   }
 };
 
+// Trả về màu sắc tương ứng với cấp độ AV
 const getLevelColor = (avLevel: string) => {
   const level = avLevel.toLowerCase();
   if (level.includes('av1') || level.includes('av2')) return 'text-rose-600 bg-rose-100';
@@ -474,6 +500,7 @@ const getLevelColor = (avLevel: string) => {
   return 'text-slate-600 bg-slate-100';
 };
 
+// Trả về màu chữ cho tổng điểm dựa trên phần trăm đạt được
 const getScoreColor = (percentage: number) => {
   if (percentage >= 80) return 'text-emerald-600';
   if (percentage >= 60) return 'text-amber-600';
@@ -481,6 +508,7 @@ const getScoreColor = (percentage: number) => {
   return 'text-rose-600';
 };
 
+// Trang hiển thị chi tiết kết quả bài kiểm tra đầu vào của người học
 const TestResultPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const location = useLocation();
@@ -509,7 +537,7 @@ const TestResultPage: React.FC = () => {
           return;
         }
         setSections(sanitizeSections(fetchedSections));
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Unable to load section content for results:', error);
         if (isMounted) {
           setSections([]);
@@ -646,8 +674,8 @@ const TestResultPage: React.FC = () => {
                         <div className="mt-3 space-y-4">
                           {Array.isArray(partContent)
                             ? partContent.map((node, nodeIndex) => (
-                                <React.Fragment key={nodeIndex}>{node}</React.Fragment>
-                              ))
+                              <React.Fragment key={nodeIndex}>{node}</React.Fragment>
+                            ))
                             : partContent}
                         </div>
                       </div>
@@ -666,9 +694,8 @@ const TestResultPage: React.FC = () => {
                             </div>
                             <div className="flex flex-col items-end gap-2">
                               <span
-                                className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${
-                                  detail.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                                }`}
+                                className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${detail.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                                  }`}
                               >
                                 {detail.isCorrect ? 'Correct' : 'Incorrect'}
                               </span>

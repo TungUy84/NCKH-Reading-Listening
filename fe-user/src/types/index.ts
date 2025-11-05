@@ -42,6 +42,15 @@ export interface TestSection {
   mediaBlocks?: SectionMedia[];
 }
 
+export interface QuestionMedia {
+  audioUrl?: string;
+  audioMimeType?: string;
+  audioName?: string;
+  imageUrl?: string;
+  imageName?: string;
+  transcript?: string;
+}
+
 export interface TestQuestion {
   _id?: string;
   sectionId: string;
@@ -56,10 +65,7 @@ export interface TestQuestion {
   points: number;
   level?: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
   passage?: string; // dùng cho bối cảnh đọc hiểu
-  media?: {
-    audioUrl?: string;
-    imageUrl?: string;
-  }; // dùng cho bài nghe hoặc câu hỏi có hình
+  media?: QuestionMedia; // dùng cho bài nghe hoặc câu hỏi có hình
   allowMultiple?: boolean;
   matchingPairs?: MatchingPair[];
 }
@@ -126,13 +132,15 @@ export interface TestResult {
 export interface DetailedResult {
   questionNumber: number;
   question: {
-    type: string;
+    type: TestQuestion['type'];
     content: string;
     passage?: string;
-    media?: any;
-    options?: any[];
+    media?: QuestionMedia;
+    options?: Option[];
     sectionId?: string;
     sectionTitle?: string;
+    allowMultiple?: boolean;
+    matchingPairs?: MatchingPair[];
   };
   userAnswer: {
     selectedOptions: string[];

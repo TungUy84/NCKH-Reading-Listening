@@ -26,6 +26,7 @@ const protect = async (req, res, next) => {
 
       next();
     } catch (error) {
+      console.error('Bảo vệ route thất bại:', error);
       return res.status(401).json({ message: 'Token không hợp lệ' });
     }
   }

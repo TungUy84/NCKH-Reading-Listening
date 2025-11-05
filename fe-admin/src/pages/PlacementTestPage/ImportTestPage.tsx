@@ -18,6 +18,7 @@ const categoryLabel: Record<'listening' | 'reading', string> = {
   reading: 'Reading'
 };
 
+// Trang import bài test từ file Word/PDF/Excel và xem trước nội dung
 const ImportTestPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -28,12 +29,13 @@ const ImportTestPage: React.FC = () => {
   const [meta, setMeta] = useState({
     title: '',
     description: '',
-  category: 'reading' as 'listening' | 'reading',
+    category: 'reading' as 'listening' | 'reading',
     timeLimit: 60,
     instructionsText: '',
-    isActive: true
+    isActive: true,
   });
 
+  // Tổng hợp nhanh số lượng câu hỏi theo loại để hiển thị
   const summary = useMemo(() => {
     if (!preview) return null;
     const multiChoice = preview.questions.filter((q) => q.type === 'multi_choice').length;
@@ -50,12 +52,13 @@ const ImportTestPage: React.FC = () => {
     };
   }, [preview]);
 
+  // Đưa form và preview về trạng thái ban đầu
   const resetState = () => {
     setPreview(null);
     setMeta({
       title: '',
       description: '',
-  category: 'reading',
+      category: 'reading',
       timeLimit: 60,
       instructionsText: '',
       isActive: true
@@ -64,6 +67,7 @@ const ImportTestPage: React.FC = () => {
     setErrorMessage(null);
   };
 
+  // Lưu file người dùng chọn và xóa preview cũ
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
     setSelectedFile(file);
@@ -71,6 +75,7 @@ const ImportTestPage: React.FC = () => {
     setErrorMessage(null);
   };
 
+  // Gửi file lên server để trích xuất câu hỏi và thông tin bài test
   const handleUpload = async () => {
     if (!selectedFile) {
       toast.error('Vui lòng chọn file trước khi import.');
@@ -107,6 +112,7 @@ const ImportTestPage: React.FC = () => {
     }
   };
 
+  // Lưu bài test xuống hệ thống dựa trên dữ liệu đã phân tích
   const handleCreateTest = async () => {
     if (!preview) {
       toast.error('Chưa có dữ liệu để import. Vui lòng upload file trước.');
@@ -213,9 +219,8 @@ const ImportTestPage: React.FC = () => {
                 type="button"
                 onClick={handleUpload}
                 disabled={isUploading || !selectedFile}
-                className={`px-4 py-2 rounded-lg text-white flex items-center gap-2 ${
-                  isUploading || !selectedFile ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
-                }`}
+                className={`px-4 py-2 rounded-lg text-white flex items-center gap-2 ${isUploading || !selectedFile ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
+                  }`}
               >
                 {isUploading ? 'Đang xử lý...' : 'Phân tích file'}
               </button>
@@ -391,9 +396,8 @@ const ImportTestPage: React.FC = () => {
                   type="button"
                   onClick={handleCreateTest}
                   disabled={isSaving}
-                  className={`px-4 py-2 rounded-lg text-white flex items-center gap-2 ${
-                    isSaving ? 'bg-emerald-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-white flex items-center gap-2 ${isSaving ? 'bg-emerald-300 cursor-not-allowed' : 'bg-emerald-600 hover:bg-emerald-700'
+                    }`}
                 >
                   {isSaving ? 'Đang lưu...' : 'Import & tạo bài test'}
                 </button>

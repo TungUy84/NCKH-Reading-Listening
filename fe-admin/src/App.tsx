@@ -21,11 +21,13 @@ import UsersPage from './pages/UsersPage/UsersPage';
 import CreateUserPage from './pages/UsersPage/CreateUserPage';
 import EditUserPage from './pages/UsersPage/EditUserPage';
 
+// Ứng dụng quản trị chính của hệ thống, điều phối layout và định tuyến
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Kiểm tra token mỗi khi ứng dụng khởi động để khôi phục phiên đăng nhập
   useEffect(() => {
     // Check if user is already logged in
     const token = localStorage.getItem('adminToken');
@@ -35,11 +37,13 @@ const App: React.FC = () => {
     setLoading(false);
   }, []);
 
+  // Lưu token admin sau khi đăng nhập thành công
   const handleLogin = (token: string) => {
     localStorage.setItem('adminToken', token);
     setIsAuthenticated(true);
   };
 
+  // Xóa token và reset trạng thái khi đăng xuất
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     setIsAuthenticated(false);
@@ -60,13 +64,13 @@ const App: React.FC = () => {
     return (
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
-          <Route 
-            path="/admin/login" 
-            element={<LoginPage onLogin={handleLogin} />} 
+          <Route
+            path="/admin/login"
+            element={<LoginPage onLogin={handleLogin} />}
           />
-          <Route 
-            path="*" 
-            element={<Navigate to="/admin/login" replace />} 
+          <Route
+            path="*"
+            element={<Navigate to="/admin/login" replace />}
           />
         </Routes>
       </Router>
@@ -77,18 +81,17 @@ const App: React.FC = () => {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50">
         {/* Sidebar */}
-        <Sidebar 
+        <Sidebar
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
         {/* Main Content Area */}
-        <div className={`transition-all duration-300 ${
-          sidebarCollapsed ? 'ml-20' : 'ml-64'
-        }`}>
+        <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'
+          }`}>
           {/* Header */}
-          <AdminHeader 
-            onLogout={handleLogout} 
+          <AdminHeader
+            onLogout={handleLogout}
             onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
             sidebarCollapsed={sidebarCollapsed}
           />
@@ -98,7 +101,7 @@ const App: React.FC = () => {
             <Routes>
               {/* Dashboard */}
               <Route path="/admin/dashboard" element={<DashboardPage />} />
-              
+
               {/* Placement Tests Management */}
               <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
               <Route path="/admin/placement-tests/create" element={<CreateTestPage />} />
@@ -117,7 +120,7 @@ const App: React.FC = () => {
               <Route path="/admin/users/create" element={<CreateUserPage />} />
               <Route path="/admin/users/:userId/edit" element={<EditUserPage />} />
 
-              
+
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -126,7 +129,7 @@ const App: React.FC = () => {
           </main>
         </div>
       </div>
-      
+
       {/* Toast Container */}
       <ToastContainer
         position="top-right"

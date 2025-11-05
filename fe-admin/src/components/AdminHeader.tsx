@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import {
+  ArrowRightOnRectangleIcon,
+  Bars3BottomLeftIcon,
+  Bars3Icon,
+  ChevronDownIcon,
+  ChevronRightIcon,
+  UserCircleIcon,
+} from '@heroicons/react/24/outline';
 import { ASSET_BASE_URL, AuthAPI } from '../services/api';
 import { AdminUser } from '../types';
 
@@ -10,6 +18,7 @@ interface AdminHeaderProps {
   sidebarCollapsed?: boolean;
 }
 
+// Sinh URL avatar ưu tiên ảnh upload, fallback sang avatar initials
 const buildAvatarUrl = (user: AdminUser | null, errored: boolean): string => {
   const displayName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.username || 'Admin';
   const raw = user?.avatar;
@@ -21,6 +30,7 @@ const buildAvatarUrl = (user: AdminUser | null, errored: boolean): string => {
   return `https://ui-avatars.com/api/?background=4C6EF5&color=fff&name=${encodeURIComponent(displayName)}`;
 };
 
+// Header cố định trên admin: hiển thị breadcrumb và menu tài khoản
 const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, sidebarCollapsed }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -62,22 +72,15 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
           className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
           aria-label="Toggle sidebar"
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {sidebarCollapsed ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h10M4 18h16" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6h12M6 12h12M6 18h12" />
-            )}
-          </svg>
+          {sidebarCollapsed ? (
+            <Bars3Icon className="w-5 h-5" />
+          ) : (
+            <Bars3BottomLeftIcon className="w-5 h-5" />
+          )}
         </button>
         <div className="hidden md:flex items-center text-sm text-gray-500 gap-2 truncate">
           <span className="text-gray-400">Admin</span>
-          <svg className="w-4 h-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          <ChevronRightIcon className="w-4 h-4 text-gray-300" />
           <span className="font-medium text-gray-700 truncate max-w-[180px]">{getCrumb()}</span>
         </div>
 
@@ -103,9 +106,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
               <p className="text-sm font-medium text-gray-800 truncate">{user?.firstName || user?.username || 'Admin'} {user?.lastName || ''}</p>
               <p className="text-xs text-gray-500 truncate">{user?.email || ''}</p>
               </div>
-            <svg className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+            <ChevronDownIcon className={`w-4 h-4 text-gray-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
             </button>
 
             {/* Dropdown Menu */}
@@ -117,9 +118,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
                   onClick={() => setShowUserMenu(false)}
                 >
                   <div className="flex items-center">
-                    <svg className="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                    <UserCircleIcon className="w-4 h-4 mr-3 text-gray-400" />
                     <span className="font-medium">Thông tin cá nhân</span>
                   </div>
                 </Link>
@@ -154,9 +153,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
                   className="block w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-md mx-2"
                 >
                   <div className="flex items-center">
-                    <svg className="w-4 h-4 mr-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
+                    <ArrowRightOnRectangleIcon className="w-4 h-4 mr-3 text-red-500" />
                     <span className="font-medium">Đăng xuất</span>
                   </div>
                 </button>
