@@ -4,8 +4,8 @@ node_modules/
 # Environment variables
 .env
 
-# vscode settings
+# VS Code settings
 .vscode/
 
-#github settings
+# GitHub settings
 .github/
