@@ -15,7 +15,6 @@ const audioMimeTypes = {
   '.mp3': 'audio/mpeg',
   '.wav': 'audio/wav',
   '.m4a': 'audio/mp4',
-  '.ogg': 'audio/ogg',
 };
 const audioExtensions = new Set(Object.keys(audioMimeTypes));
 
@@ -58,6 +57,7 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/placement-tests', require('./routes/placementTest'));
+app.use('/api/practices', require('./routes/practice'));
 
 // Middleware xử lý lỗi tập trung
 app.use((err, req, res, next) => {

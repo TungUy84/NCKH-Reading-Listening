@@ -17,7 +17,6 @@ type RawSectionMedia = Partial<SectionMedia> & {
   _id?: string;
   path?: string;
   name?: string;
-  mimetype?: string;
 };
 
 // Chuẩn hóa mọi giá trị về chuỗi để sử dụng làm khóa map hoặc id
@@ -76,8 +75,6 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
         type: normalizedType,
         url: candidate.url || candidate.path || '',
         originalName: candidate.originalName || candidate.name || '',
-        mimeType: candidate.mimeType || candidate.mimetype,
-        size: candidate.size,
         transcript: typeof candidate.transcript === 'string' ? candidate.transcript : undefined,
       };
 
@@ -118,7 +115,7 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
           className="w-full"
           onContextMenu={(event) => event.preventDefault()}
         >
-          <source src={block.url} type={block.mimeType ?? 'audio/mpeg'} />
+          <source src={block.url} />
           Your browser does not support audio playback.
         </audio>
       </div>

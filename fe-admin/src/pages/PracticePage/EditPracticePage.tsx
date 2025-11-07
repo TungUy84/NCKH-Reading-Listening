@@ -15,10 +15,17 @@ import {
   PlayCircleIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline';
-import { PlacementTestAPI } from '../../services/api';
-import { PlacementTest, SectionMedia } from '../../types';
+import { PracticeAPI } from '../../services/api';
+import {
+  Practice,
+  PracticeLevelGroup,
+  PracticeMediaBlock,
+  PracticeQuestion,
+  PracticeSection,
+  PracticeSkill,
+} from '../../types';
 
-// Sinh ID ngẫu nhiên để tránh va chạm khi thiếu dữ liệu media
+// Sinh ID ngẫu nhiên để tránh trùng media khi dữ liệu thiếu
 const generateMediaId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -30,7 +37,7 @@ const generateMediaId = (): string => {
   return Math.random().toString(36).slice(2, 10);
 };
 
-// Đổi số giây thành chuỗi mm:ss cho giao diện
+// Đổi số giây thành chuỗi mm:ss dễ đọc
 const formatDuration = (seconds?: number): string => {
   if (!seconds || Number.isNaN(seconds) || seconds <= 0) {
     return '00:00';
@@ -42,8 +49,8 @@ const formatDuration = (seconds?: number): string => {
 };
 
 
-// Chuẩn hóa danh sách media của phần kiểm tra
-const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
+// Chuẩn hóa danh sách media về cùng cấu trúc sử dụng trong form
+const normalizeMediaBlocks = (blocks: unknown): PracticeMediaBlock[] => {
   if (!Array.isArray(blocks)) return [];
   return blocks
     .filter(Boolean)
@@ -55,10 +62,10 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       originalName: block?.originalName || block?.name || '',
       transcript: block?.transcript || '',
     }))
-    .filter((block: SectionMedia) => !!block.id);
+  .filter((block: PracticeMediaBlock) => !!block.id);
 };
 
-// Dọn dữ liệu phần trước khi gọi API lưu
+// Dọn dữ liệu phần trước khi gửi lên server
 const sanitizeSectionsForSave = (sections: any[] | undefined) => {
   return (sections || []).map((section: any) => {
     if (!section) return { mediaBlocks: [] };
@@ -70,9 +77,9 @@ const sanitizeSectionsForSave = (sections: any[] | undefined) => {
   });
 };
 
-// Trình chỉnh sửa chi tiết từng phần và câu hỏi của bài kiểm tra đầu vào
-const EditTestPage: React.FC = () => {
-  const { testId } = useParams();
+// Trình chỉnh sửa chi tiết từng phần và câu hỏi của bài ôn luyện
+const EditPracticePage: React.FC = () => {
+  const { practiceId } = useParams();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   // Auto-save states
@@ -88,7 +95,7 @@ const EditTestPage: React.FC = () => {
   const lastInfoSigRef = useRef<string | null>(null);
   const lastContentSigRef = useRef<string | null>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [test, setTest] = useState<PlacementTest | null>(null);
+  const [practice, setPractice] = useState<Practice | null>(null);
   const [openQuestionIdx, setOpenQuestionIdx] = useState<number | null>(null);
   const [showBasicInfo, setShowBasicInfo] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -176,55 +183,50 @@ const EditTestPage: React.FC = () => {
   // form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState<'reading' | 'listening'>('reading');
-  const [timeLimit, setTimeLimit] = useState<number>(60);
-  const [instructions, setInstructions] = useState<string[]>(['']);
+  const [skill, setSkill] = useState<PracticeSkill>('reading');
+  const [levelGroup, setLevelGroup] = useState<PracticeLevelGroup>('AV1-AV3');
+  const [estimatedTime, setEstimatedTime] = useState<number>(45);
   const [isActive, setIsActive] = useState<boolean>(true);
 
   useEffect(() => {
     const load = async () => {
-      if (!testId) return;
+      if (!practiceId) return;
       try {
         setLoading(true);
-        const data: PlacementTest = await PlacementTestAPI.getTestById(testId);
+        const data: Practice = await PracticeAPI.getPractice(practiceId);
         setTitle(data.title);
         setDescription(data.description || '');
-        setCategory(data.category);
-        setTimeLimit(data.timeLimit || 60);
-        setInstructions(data.instructions && data.instructions.length ? data.instructions : ['']);
-        setIsActive(typeof (data as any).isActive === 'boolean' ? !!(data as any).isActive : true);
-        setTest({
+        setSkill(data.skill);
+        setLevelGroup(data.levelGroup);
+        setEstimatedTime(typeof data.estimatedTime === 'number' ? data.estimatedTime : 0);
+        setIsActive(typeof data.isActive === 'boolean' ? data.isActive : true);
+        setPractice({
           ...data,
-          sections: sanitizeSectionsForSave(data.sections) as any,
+          sections: sanitizeSectionsForSave(data.sections) as PracticeSection[],
         });
       } catch (err: any) {
         console.error(err);
-        toast.error(err.message || 'Không thể tải bài test');
+        toast.error(err?.message || 'Không thể tải bài ôn luyện');
       } finally {
         setLoading(false);
-        // Mark initial load complete so autosave won't trigger from initial setState
         hasLoadedRef.current = true;
       }
     };
     load();
-  }, [testId]);
-
-  const addInstruction = () => setInstructions((prev) => [...prev, '']);
-  const removeInstruction = (idx: number) => setInstructions((prev) => prev.filter((_, i) => i !== idx));
-  const updateInstruction = (idx: number, value: string) => setInstructions((prev) => prev.map((v, i) => i === idx ? value : v));
+  }, [practiceId]);
 
   const currentSection = useMemo(() => {
-    return test?.sections && test.sections.length > 0
-      ? test.sections[currentSectionIndex]
+    return practice?.sections && practice.sections.length > 0
+      ? practice.sections[currentSectionIndex]
       : undefined;
-  }, [test, currentSectionIndex]);
+  }, [practice, currentSectionIndex]);
 
   // Build pairs {q, idx} for the current section to support updates by absolute index
   const sectionQuestionPairs = useMemo(() => {
-    if (!test || !test.questions) return [] as { q: any; idx: number }[];
+    if (!practice || !practice.questions) return [] as { q: any; idx: number }[];
     const hasId = !!currentSection?._id;
     const currId = hasId ? normalizeId((currentSection as any)?._id) : '';
-    return test.questions
+    return practice.questions
       .map((q, idx) => ({ q, idx }))
       .filter(({ q }) => {
         const qsid = normalizeId((q as any)?.sectionId);
@@ -234,13 +236,13 @@ const EditTestPage: React.FC = () => {
         return typeof qIndex === 'number' && qIndex === currentSectionIndex;
       })
       .sort((a, b) => ((a.q.questionNumber || 0) - (b.q.questionNumber || 0)));
-  }, [test, currentSection, currentSectionIndex]);
+  }, [practice, currentSection, currentSectionIndex]);
 
-  const sectionMediaBlocks: SectionMedia[] = useMemo(() => {
+  const sectionMediaBlocks: PracticeMediaBlock[] = useMemo(() => {
     if (!Array.isArray((currentSection as any)?.mediaBlocks)) {
       return [];
     }
-    return ((currentSection as any).mediaBlocks as SectionMedia[]) || [];
+    return ((currentSection as any).mediaBlocks as PracticeMediaBlock[]) || [];
   }, [currentSection]);
 
   useEffect(() => {
@@ -273,7 +275,7 @@ const EditTestPage: React.FC = () => {
   }, [openMediaMenuId]);
 
   const mutateCurrentSection = (updater: (section: any) => any) => {
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev || !prev.sections) return prev;
       if (currentSectionIndex < 0 || currentSectionIndex >= prev.sections.length) return prev;
       const sections = [...prev.sections];
@@ -281,23 +283,23 @@ const EditTestPage: React.FC = () => {
       const nextSection = updater(target);
       if (!nextSection) return prev;
       sections[currentSectionIndex] = nextSection;
-      return { ...prev, sections } as PlacementTest;
+      return { ...prev, sections } as Practice;
     });
   };
 
-  const updateSectionMediaBlock = (mediaId: string, patch: Partial<SectionMedia>) => {
+  const updateSectionMediaBlock = (mediaId: string, patch: Partial<PracticeMediaBlock>) => {
     mutateCurrentSection((section) => {
-      const blocks: SectionMedia[] = Array.isArray(section.mediaBlocks)
-        ? section.mediaBlocks.map((block: SectionMedia) => ({ ...block }))
+      const blocks: PracticeMediaBlock[] = Array.isArray(section.mediaBlocks)
+        ? section.mediaBlocks.map((block: PracticeMediaBlock) => ({ ...block }))
         : [];
-      const idx = blocks.findIndex((block: SectionMedia) => block.id === mediaId);
+      const idx = blocks.findIndex((block: PracticeMediaBlock) => block.id === mediaId);
       if (idx === -1) return section;
       blocks[idx] = { ...blocks[idx], ...patch };
       return { ...section, mediaBlocks: blocks };
     });
   };
 
-  const openTranscriptEditor = (media: SectionMedia) => {
+  const openTranscriptEditor = (media: PracticeMediaBlock) => {
     setTranscriptModal({ open: true, mediaId: media.id, value: media.transcript || '' });
   };
 
@@ -308,7 +310,7 @@ const EditTestPage: React.FC = () => {
   const saveTranscriptFromModal = () => {
     if (!transcriptModal.mediaId) return;
     const trimmed = transcriptModal.value.trim();
-    updateSectionMediaBlock(transcriptModal.mediaId, { transcript: trimmed });
+  updateSectionMediaBlock(transcriptModal.mediaId, { transcript: trimmed });
     setTranscriptModal({ open: false, mediaId: null, value: '' });
     toast.success('Đã lưu transcript cho media');
   };
@@ -407,8 +409,8 @@ const EditTestPage: React.FC = () => {
     if (!result.isConfirmed) return;
 
     mutateCurrentSection((section) => {
-      const blocks: SectionMedia[] = Array.isArray(section.mediaBlocks)
-        ? section.mediaBlocks.filter((block: SectionMedia) => block.id !== mediaId)
+      const blocks: PracticeMediaBlock[] = Array.isArray(section.mediaBlocks)
+        ? section.mediaBlocks.filter((block: PracticeMediaBlock) => block.id !== mediaId)
         : [];
       return { ...section, mediaBlocks: blocks };
     });
@@ -466,30 +468,30 @@ const EditTestPage: React.FC = () => {
     if (!fileList || !fileList.length) return;
     const fileArray = Array.from(fileList).slice(0, 10);
     if (!fileArray.length) return;
-    if (!test || !Array.isArray(test.sections) || !test.sections.length) {
+    if (!practice || !Array.isArray(practice.sections) || !practice.sections.length) {
       toast.error('Vui lòng tạo phần trước khi tải media');
       return;
     }
-    if (currentSectionIndex < 0 || currentSectionIndex >= test.sections.length) {
+    if (currentSectionIndex < 0 || currentSectionIndex >= practice.sections.length) {
       toast.error('Không tìm thấy phần đang chọn');
       return;
     }
     setMediaUploadError(null);
     setMediaUploading(true);
     try {
-      const uploaded = await PlacementTestAPI.uploadSectionMedia(fileArray);
+      const uploaded = await PracticeAPI.uploadPracticeMedia(fileArray);
       const normalizedUploads = normalizeMediaBlocks(uploaded);
       if (!normalizedUploads.length) {
         toast.warn('Không có media hợp lệ được tải lên');
         return;
       }
       mutateCurrentSection((section) => {
-        const existing: SectionMedia[] = Array.isArray(section.mediaBlocks)
-          ? section.mediaBlocks.map((block: SectionMedia) => ({ ...block }))
+        const existing: PracticeMediaBlock[] = Array.isArray(section.mediaBlocks)
+          ? section.mediaBlocks.map((block: PracticeMediaBlock) => ({ ...block }))
           : [];
-        const merged: SectionMedia[] = [...existing];
-        normalizedUploads.forEach((item: SectionMedia) => {
-          const idx = merged.findIndex((block: SectionMedia) => block.id === item.id);
+        const merged: PracticeMediaBlock[] = [...existing];
+        normalizedUploads.forEach((item: PracticeMediaBlock) => {
+          const idx = merged.findIndex((block: PracticeMediaBlock) => block.id === item.id);
           if (idx >= 0) {
             merged[idx] = { ...merged[idx], ...item };
           } else {
@@ -545,8 +547,8 @@ const EditTestPage: React.FC = () => {
     : `section-index-${currentSectionIndex}`;
 
   const nextSection = () => {
-    if (!test?.sections) return;
-    setCurrentSectionIndex((idx) => Math.min(test.sections!.length - 1, idx + 1));
+    if (!practice?.sections) return;
+    setCurrentSectionIndex((idx) => Math.min(practice.sections!.length - 1, idx + 1));
     setOpenQuestionIdx(null);
   };
 
@@ -562,18 +564,18 @@ const EditTestPage: React.FC = () => {
 
   // ---- Editing helpers ----
   const updateSectionField = (field: 'title' | 'passage' | 'audio' | 'image', value: any) => {
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev || !prev.sections) return prev;
-      const next = { ...prev, sections: [...prev.sections] } as PlacementTest;
+      const next = { ...prev, sections: [...prev.sections] } as Practice;
       next.sections![currentSectionIndex] = { ...(next.sections![currentSectionIndex] || {}), [field]: value } as any;
       return next;
     });
   };
 
   const updateQuestion = (qIdx: number, updater: (q: any) => any) => {
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as Practice;
       const oldQ = next.questions[qIdx] || ({} as any);
       const newQ = updater({ ...oldQ });
       newQ.sectionId = oldQ.sectionId; // keep link
@@ -590,9 +592,9 @@ const EditTestPage: React.FC = () => {
   };
 
   const updateOption = (qIdx: number, optIdx: number, patch: Partial<{ text: string; isCorrect: boolean }>) => {
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as Practice;
       const q: any = { ...(next.questions[qIdx] || {}) };
       const opts = [...(q.options || [])];
       const requiresSingleAnswer = q.type === 'dropdown' || (q.type === 'multi_choice' && !q.allowMultiple);
@@ -661,7 +663,7 @@ const EditTestPage: React.FC = () => {
   };
 
   const addSection = () => {
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev) return prev;
       const sections = [...(prev.sections || [])];
       const newSection = {
@@ -671,19 +673,19 @@ const EditTestPage: React.FC = () => {
         image: '',
         mediaBlocks: [],
       } as any;
-      const next = { ...prev, sections } as PlacementTest;
+      const next = { ...prev, sections } as Practice;
       next.sections!.push(newSection);
       return next;
     });
     setOpenQuestionIdx(null);
     setCurrentSectionIndex((idx) => {
-      const count = (test?.sections?.length || 0) + 1;
+      const count = (practice?.sections?.length || 0) + 1;
       return Math.max(0, count - 1);
     });
   };
 
   const deleteCurrentSection = async () => {
-    if (!test || !test.sections || !test.sections.length) return;
+    if (!practice || !practice.sections || !practice.sections.length) return;
     const result = await Swal.fire({
       title: 'Xóa phần này?',
       text: 'Hành động này sẽ xóa cả các câu hỏi thuộc phần. Bạn có chắc muốn xóa? ',
@@ -698,13 +700,13 @@ const EditTestPage: React.FC = () => {
     });
     if (!result.isConfirmed) return;
 
-    const sectionToDelete = test.sections[currentSectionIndex] as any;
+    const sectionToDelete = practice.sections[currentSectionIndex] as any;
     const sectionIdStr = normalizeId(sectionToDelete?._id);
     let newInvalidIndices: number[] | null = null;
 
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev) return prev;
-      const next = { ...prev } as PlacementTest;
+      const next = { ...prev } as Practice;
       const sections = next.sections || [];
       next.sections = sections.filter((_, i) => i !== currentSectionIndex);
       next.questions = (next.questions || []).filter((q: any) => {
@@ -720,7 +722,7 @@ const EditTestPage: React.FC = () => {
     });
 
     setCurrentSectionIndex((idx) => {
-      const newLen = (test?.sections?.length || 1) - 1;
+      const newLen = (practice?.sections?.length || 1) - 1;
       if (newLen <= 0) return 0;
       return Math.min(idx, newLen - 1);
     });
@@ -732,16 +734,16 @@ const EditTestPage: React.FC = () => {
   };
 
   const addQuestionToCurrentSection = () => {
-    if (!test) return;
+    if (!practice) return;
     const hasId = !!currentSection?._id;
     const sectionId = hasId ? (currentSection as any)._id : undefined;
     const sectionIdStr = normalizeId(sectionId);
     let newOpenIndex: number | null = null;
     let newInvalidIndices: number[] | null = null;
 
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as Practice;
       const questions = next.questions;
       const sections = next.sections || [];
       const currentIdx = currentSectionIndex;
@@ -811,12 +813,12 @@ const EditTestPage: React.FC = () => {
   };
 
   const deleteQuestion = (qIdx: number) => {
-    if (!test) return;
+    if (!practice) return;
     let newInvalidIndices: number[] | null = null;
     let newOpenIndex: number | null = openQuestionIdx;
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as Practice;
       next.questions.splice(qIdx, 1);
       updateQuestionNumbersInPlace(next.questions);
       newInvalidIndices = collectInvalidQuestionIndexes(next.questions);
@@ -849,9 +851,9 @@ const EditTestPage: React.FC = () => {
     let newInvalidIndices: number[] | null = null;
     let movedGlobalIndex: number | null = null;
 
-    setTest((prev) => {
+    setPractice((prev) => {
       if (!prev) return prev;
-      const next = { ...prev, questions: [...(prev.questions || [])] } as PlacementTest;
+      const next = { ...prev, questions: [...(prev.questions || [])] } as Practice;
       const questions = next.questions;
       const sections = next.sections || [];
 
@@ -896,13 +898,13 @@ const EditTestPage: React.FC = () => {
 
   // --- Auto-save: Basic Info ---
   useEffect(() => {
-    if (!testId) return;
+    if (!practiceId) return;
     const infoPayload = {
       title: title.trim(),
       description: description.trim(),
-      category,
-      timeLimit,
-      instructions: instructions.map((i) => i.trim()).filter((i) => i),
+      skill,
+      levelGroup,
+      estimatedTime: Number.isFinite(estimatedTime) ? Math.max(0, estimatedTime) : 0,
       isActive,
     };
     const sig = JSON.stringify(infoPayload);
@@ -916,7 +918,7 @@ const EditTestPage: React.FC = () => {
     infoDebounceRef.current = window.setTimeout(async () => {
       try {
         setInfoSaving(true);
-        await PlacementTestAPI.updateTestInfo(testId, infoPayload);
+  await PracticeAPI.updatePractice(practiceId, infoPayload);
         lastInfoSigRef.current = sig;
         setInfoSavedAt(Date.now());
       } catch (err: any) {
@@ -928,13 +930,13 @@ const EditTestPage: React.FC = () => {
     return () => {
       if (infoDebounceRef.current) window.clearTimeout(infoDebounceRef.current);
     };
-  }, [testId, title, description, category, timeLimit, instructions, isActive, autoSaveEnabled]);
+  }, [practiceId, title, description, skill, levelGroup, estimatedTime, isActive, autoSaveEnabled]);
 
   // --- Auto-save: Content (sections & questions) ---
   useEffect(() => {
-    if (!testId) return;
+    if (!practiceId) return;
     // Build a minimal signature to detect changes without saving excessively
-    const sanitizedSections = sanitizeSectionsForSave(test?.sections as any);
+    const sanitizedSections = sanitizeSectionsForSave(practice?.sections as any);
     const sectionsSig = sanitizedSections.map((s: any) => ({
       _id: s?._id?.toString ? s._id.toString() : s?._id || null,
       title: s?.title || '',
@@ -950,7 +952,7 @@ const EditTestPage: React.FC = () => {
         }))
         : [],
     }));
-    const questionsSig = (test?.questions || []).map((q: any) => ({
+    const questionsSig = (practice?.questions || []).map((q: any) => ({
       _id: q?._id?.toString ? q._id.toString() : q?._id || null,
       sectionId: q?.sectionId?.toString ? q.sectionId.toString() : q?.sectionId || null,
       sectionIndex: typeof q?.sectionIndex === 'number' ? q.sectionIndex : null,
@@ -971,7 +973,7 @@ const EditTestPage: React.FC = () => {
     if (lastContentSigRef.current === sig) return;
     if (contentDebounceRef.current) window.clearTimeout(contentDebounceRef.current);
     contentDebounceRef.current = window.setTimeout(async () => {
-      const currentQuestions = test?.questions || [];
+      const currentQuestions = practice?.questions || [];
       const invalidIndexes = collectInvalidQuestionIndexes(currentQuestions);
       if (invalidIndexes.length) {
         setInvalidQuestionIdxs(new Set(invalidIndexes));
@@ -981,7 +983,7 @@ const EditTestPage: React.FC = () => {
 
       try {
         setContentSaving(true);
-        await PlacementTestAPI.updateTestContent(testId, { sections: sanitizedSections, questions: currentQuestions });
+  await PracticeAPI.updatePracticeContent(practiceId, { sections: sanitizedSections, questions: currentQuestions });
         lastContentSigRef.current = sig;
         setContentSavedAt(Date.now());
         setInvalidQuestionIdxs((prev) => (prev.size ? new Set() : prev));
@@ -994,7 +996,7 @@ const EditTestPage: React.FC = () => {
     return () => {
       if (contentDebounceRef.current) window.clearTimeout(contentDebounceRef.current);
     };
-  }, [testId, test?.sections, test?.questions, autoSaveEnabled]);
+  }, [practiceId, practice?.sections, practice?.questions, autoSaveEnabled]);
 
   // Option-based types and defaults
   const optionTypeSet = new Set(['multi_choice', 'dropdown']);
@@ -1046,10 +1048,10 @@ const EditTestPage: React.FC = () => {
 
 
   const saveContent = async () => {
-    if (!testId || !test) return;
+    if (!practiceId || !practice) return;
     // Validate: no empty question content
     const empties: number[] = [];
-    (test.questions || []).forEach((q: any, idx: number) => {
+    (practice.questions || []).forEach((q: any, idx: number) => {
       const contentText = (q.content || '').trim();
       if (!contentText) empties.push(idx);
     });
@@ -1064,10 +1066,10 @@ const EditTestPage: React.FC = () => {
     }
     try {
       setSaving(true);
-      const payloadSections = sanitizeSectionsForSave(test.sections as any);
-      const payload = { sections: payloadSections, questions: test.questions || [] } as any;
-      await PlacementTestAPI.updateTestContent(testId, payload);
-      toast.success('Đã lưu nội dung bài test');
+      const payloadSections = sanitizeSectionsForSave(practice.sections as any);
+      const payload = { sections: payloadSections, questions: practice.questions || [] } as any;
+  await PracticeAPI.updatePracticeContent(practiceId, payload);
+  toast.success('Đã lưu nội dung bài ôn luyện');
       // Update signature to prevent immediate autosave
       const sectionsSig = (payload.sections || []).map((s: any) => ({
         _id: s?._id?.toString ? s._id.toString() : s?._id || null,
@@ -1108,13 +1110,20 @@ const EditTestPage: React.FC = () => {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!testId) return;
+    if (!practiceId) return;
     if (!title.trim() || !description.trim()) { toast.error('Vui lòng nhập tiêu đề và mô tả'); return; }
     try {
       setSaving(true);
-      const payload = { title: title.trim(), description: description.trim(), category, timeLimit, instructions: instructions.filter((i) => i.trim()), isActive };
-      await PlacementTestAPI.updateTestInfo(testId, payload);
-      toast.success('Đã lưu thông tin');
+      const payload = {
+        title: title.trim(),
+        description: description.trim(),
+        skill,
+        levelGroup,
+        estimatedTime: Number.isFinite(estimatedTime) ? Math.max(0, estimatedTime) : 0,
+        isActive,
+      };
+      await PracticeAPI.updatePractice(practiceId, payload);
+      toast.success('Đã lưu thông tin bài ôn luyện');
       // Update signature to prevent immediate autosave
       lastInfoSigRef.current = JSON.stringify(payload);
       setInfoSavedAt(Date.now());
@@ -1168,7 +1177,7 @@ const EditTestPage: React.FC = () => {
 
       <div className="space-y-6 -mb-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-slate-800">Chỉnh sửa bài test</h1>
+          <h1 className="text-2xl font-semibold text-slate-800">Chỉnh sửa bài ôn luyện</h1>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 text-sm">
               <span className="text-slate-500">Tự động lưu</span>
@@ -1194,8 +1203,10 @@ const EditTestPage: React.FC = () => {
                 <span className="inline-flex items-center text-slate-400" title="Tự động lưu đang tắt">Tắt</span>
               )}
             </div>
-            <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Xem</Link>
-            <Link to="/admin/placement-tests" className="px-4 py-2 rounded-lg bg-slate-800 text-white">Danh sách</Link>
+            {practiceId ? (
+              <Link to={`/admin/practice/${practiceId}/view`} className="px-4 py-2 rounded-lg border">Xem</Link>
+            ) : null}
+            <Link to="/admin/practice" className="px-4 py-2 rounded-lg bg-slate-800 text-white">Danh sách</Link>
           </div>
         </div>
 
@@ -1208,7 +1219,7 @@ const EditTestPage: React.FC = () => {
           >
             <div className="flex items-center gap-3">
               <Bars3Icon className="w-5 h-5 text-slate-700" />
-              <span className="font-medium text-slate-800">Thông tin bài test</span>
+              <span className="font-medium text-slate-800">Thông tin bài ôn luyện</span>
             </div>
             <span className="text-slate-500 text-sm">{showBasicInfo ? 'Ẩn' : 'Hiện'}</span>
           </button>
@@ -1222,43 +1233,58 @@ const EditTestPage: React.FC = () => {
                 <label className="block text-sm mb-1">Mô tả</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-3 py-2 border rounded-lg" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm mb-1">Loại bài test</label>
-                  <select value={category} onChange={(e) => setCategory(e.target.value as 'reading' | 'listening')} className="w-full px-3 py-2 border rounded-lg">
+                  <label className="block text-sm mb-1">Kỹ năng</label>
+                  <select
+                    value={skill}
+                    onChange={(e) => setSkill(e.target.value as PracticeSkill)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
                     <option value="reading">Reading</option>
                     <option value="listening">Listening</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm mb-1">Thời gian (phút)</label>
-                  <input type="number" min={1} value={timeLimit} onChange={(e) => setTimeLimit(parseInt(e.target.value || '0', 10))} className="w-full px-3 py-2 border rounded-lg" />
+                  <label className="block text-sm mb-1">Nhóm level</label>
+                  <select
+                    value={levelGroup}
+                    onChange={(e) => setLevelGroup(e.target.value as PracticeLevelGroup)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="AV1-AV3">AV1 - AV3</option>
+                    <option value="AV4-AV5">AV4 - AV5</option>
+                    <option value="AV6">AV6</option>
+                    <option value="AV7">AV7</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Thời lượng ước tính (phút)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={estimatedTime}
+                    onChange={(e) => setEstimatedTime(parseInt(e.target.value || '0', 10))}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm mb-1">Trạng thái</label>
                   <div className="w-full h-[42px] px-3 border rounded-lg flex items-center gap-2">
-                    <button type="button" onClick={() => setIsActive((v) => !v)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-slate-300'}`}>
+                    <button
+                      type="button"
+                      onClick={() => setIsActive((v) => !v)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isActive ? 'bg-green-500' : 'bg-slate-300'}`}
+                    >
                       <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-5' : 'translate-x-1'}`} />
                     </button>
                     <span className={`text-sm ${isActive ? 'text-green-700' : 'text-slate-600'}`}>{isActive ? 'Hoạt động' : 'Tạm ẩn'}</span>
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm mb-2">Hướng dẫn</label>
-                <div className="space-y-2">
-                  {instructions.map((inst, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <input value={inst} onChange={(e) => updateInstruction(idx, e.target.value)} className="flex-1 px-3 py-2 border rounded-lg" />
-                      <button type="button" onClick={() => removeInstruction(idx)} className="px-3 py-2 rounded-lg border">Xóa</button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={addInstruction} className="px-4 py-2 rounded-lg border">+ Thêm hướng dẫn</button>
-                </div>
-              </div>
               <div className="flex items-center gap-3">
                 <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg bg-blue-600 text-white disabled:opacity-50">Lưu ngay</button>
-                <Link to={`/admin/placement-tests/${testId}/view`} className="px-4 py-2 rounded-lg border">Hủy</Link>
+                <Link to="/admin/practice" className="px-4 py-2 rounded-lg border">Hủy</Link>
               </div>
             </form>
           )}
@@ -1294,9 +1320,9 @@ const EditTestPage: React.FC = () => {
                   </button>
                 )}
               </div>
-              {test?.sections && (
+              {practice?.sections && (
                 <div className="flex items-center gap-2 whitespace-nowrap">
-                  <span className="text-sm text-slate-500">{currentSectionIndex + 1} / {test.sections.length}</span>
+                  <span className="text-sm text-slate-500">{currentSectionIndex + 1} / {practice.sections.length}</span>
                   <span className="mx-1 text-slate-300">|</span>
                   <button type="button" onClick={addSection} className="px-2 py-1 rounded-lg border hover:bg-slate-50">+ Thêm phần</button>
                   <button type="button" onClick={deleteCurrentSection} className="px-2 py-1 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">Xóa phần</button>
@@ -1715,7 +1741,7 @@ const EditTestPage: React.FC = () => {
             <div className="h-12 border-t bg-slate-50 flex items-center justify-end p-3">
               <button
                 onClick={nextSection}
-                disabled={!!test?.sections && currentSectionIndex >= (test.sections?.length || 0) - 1}
+                disabled={!!practice?.sections && currentSectionIndex >= (practice.sections?.length || 0) - 1}
                 className="px-3 py-2 rounded-lg border disabled:opacity-50 inline-flex items-center gap-1"
               >
                 <span>Sau</span>
@@ -1729,4 +1755,4 @@ const EditTestPage: React.FC = () => {
   );
 };
 
-export default EditTestPage;
+export default EditPracticePage;

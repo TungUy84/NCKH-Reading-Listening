@@ -455,7 +455,6 @@ const createPlacementTest = async (req, res) => {
           type: question.type || 'multi_choice',
           allowMultiple: !!question.allowMultiple,
           content: question.content || question.text || '',
-          instructions: question.instructions || '',
           options: Array.isArray(question.options)
             ? question.options.map((op) => ({
               text: op?.text || '',
@@ -468,7 +467,6 @@ const createPlacementTest = async (req, res) => {
               correctOption: pair?.correctOption || ''
             })).filter((pair) => pair.prompt && pair.correctOption)
             : [],
-          wordBank: Array.isArray(question.wordBank) ? question.wordBank.filter(Boolean) : [],
           correctAnswers: Array.isArray(question.correctAnswers)
             ? question.correctAnswers.map((ans) => String(ans || '').trim()).filter(Boolean)
             : [],
@@ -620,9 +618,6 @@ const updateTestContent = async (req, res) => {
         if (!qq.sectionId && typeof qq.sectionIndex === 'number' && currentSections[qq.sectionIndex]?._id) {
           qq.sectionId = currentSections[qq.sectionIndex]._id;
         }
-        if (qq.skill !== undefined) {
-          delete qq.skill;
-        }
         return qq;
       });
       test.questions = normalized;
@@ -661,8 +656,6 @@ const uploadSectionMedia = async (req, res) => {
       type: file.mimetype.startsWith('audio/') ? 'audio' : 'image',
       url: `/uploads/tests/media/${path.basename(file.path)}`,
       originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
       transcript: ''
     }));
 

@@ -245,13 +245,6 @@ ${value}`
       case 'explanation':
         question.explanation = value;
         break;
-      case 'wordbank':
-      case 'word bank':
-        question.wordBank = String(value)
-          .split(/\||,|;/)
-          .map((entry) => entry.trim())
-          .filter(Boolean);
-        break;
       case 'mediaaudio':
       case 'audio':
         question.media = question.media || {};
@@ -821,13 +814,6 @@ const parseExcelBuffer = (buffer) => {
     if (row.MediaImage || row.Image) {
       question.media.imageUrl = String(row.MediaImage || row.Image).trim();
     }
-    if (row.WordBank) {
-      question.wordBank = String(row.WordBank)
-        .split(/\||,|;/)
-        .map((word) => word.trim())
-        .filter(Boolean);
-    }
-
     if (!question.content) {
       throw new Error(`Question ${question.questionNumber} thiếu nội dung Content`);
     }

@@ -19,14 +19,6 @@ const mediaBlockSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  mimeType: {
-    type: String,
-    default: ''
-  },
-  size: {
-    type: Number,
-    default: 0
-  },
   transcript: {
     type: String,
     default: ''
@@ -61,7 +53,7 @@ const sectionSchema = new mongoose.Schema({
 const questionSchema = new mongoose.Schema({
   sectionId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: false // Changed to false to allow creation without sectionId initially
+    required: false
   },
   questionNumber: {
     type: Number,
@@ -85,10 +77,6 @@ const questionSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Nội dung câu hỏi là bắt buộc']
   },
-  instructions: {
-    type: String, // Hướng dẫn làm bài cho nhóm câu hỏi
-    default: ''
-  },
   options: [{
     text: {
       type: String,
@@ -109,7 +97,6 @@ const questionSchema = new mongoose.Schema({
       required: true
     }
   }],
-  wordBank: [String], // Danh sách từ cho loại summary completion
   correctAnswers: [String], // Đáp án đúng
   explanation: {
     type: String,

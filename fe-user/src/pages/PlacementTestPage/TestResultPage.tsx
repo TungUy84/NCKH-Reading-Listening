@@ -18,7 +18,6 @@ type RawSectionMedia = Partial<SectionMedia> & {
   _id?: string;
   path?: string;
   name?: string;
-  mimetype?: string;
 };
 
 // Chuẩn hóa id để đồng bộ giữa dữ liệu backend và giao diện
@@ -64,8 +63,6 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
         type: candidate.type === 'audio' ? 'audio' : 'image',
         url: candidate.url || candidate.path || '',
         originalName: candidate.originalName || candidate.name || '',
-        mimeType: candidate.mimeType || candidate.mimetype,
-        size: candidate.size,
         transcript: typeof candidate.transcript === 'string' ? candidate.transcript : undefined,
       };
       return normalized;
@@ -85,7 +82,6 @@ const sanitizeSections = (sections: TestSection[] = []): TestSection[] => {
         type: 'audio',
         url: section.audio,
         originalName: section?.title ? `${section.title} audio` : 'Section audio',
-        mimeType: 'audio/mpeg',
       });
     }
 
@@ -146,7 +142,7 @@ const renderMediaBlock = (block: SectionMedia, key: React.Key): React.ReactNode 
           className="mt-3 w-full"
           onContextMenu={(event) => event.preventDefault()}
         >
-          <source src={block.url} type={block.mimeType ?? 'audio/mpeg'} />
+          <source src={block.url} />
           Your browser does not support audio playback.
         </audio>
         {block.transcript ? (
@@ -262,7 +258,6 @@ const renderQuestionMedia = (detail: DetailedResult): React.ReactNode => {
       url: media.audioUrl,
       originalName: media.audioName || `Question ${detail.questionNumber} audio`,
       transcript: typeof media.transcript === 'string' ? media.transcript : undefined,
-      mimeType: media.audioMimeType || 'audio/mpeg',
     });
   }
 
@@ -281,7 +276,7 @@ const renderQuestionMedia = (detail: DetailedResult): React.ReactNode => {
 
   return (
     <div className="space-y-3">
-      {blocks.map((block, index) => renderMediaBlock(block, `${detail.questionNumber}-${index}`))}
+  {blocks.map((block, index) => renderMediaBlock(block, `${detail.questionNumber}-${index}`))}
     </div>
   );
 };

@@ -23,6 +23,116 @@ export interface PlacementTest {
   updatedAt: string;
 }
 
+export type PracticeSkill = 'reading' | 'listening';
+export type PracticeLevelGroup = 'AV1-AV3' | 'AV4-AV5' | 'AV6' | 'AV7';
+
+export interface PracticeMediaBlock {
+  id: string;
+  type: 'image' | 'audio';
+  url: string;
+  originalName?: string;
+  transcript?: string;
+}
+
+export interface PracticeSection {
+  _id?: string;
+  title: string;
+  passage?: string;
+  audio?: string;
+  image?: string;
+  mediaBlocks?: PracticeMediaBlock[];
+}
+
+export interface PracticeQuestionOption {
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface PracticeMatchingPair {
+  prompt: string;
+  correctOption: string;
+}
+
+export interface PracticeQuestion {
+  _id?: string;
+  sectionId?: string;
+  sectionIndex?: number;
+  questionNumber: number;
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
+  allowMultiple?: boolean;
+  content: string;
+  passage?: string;
+  options?: PracticeQuestionOption[];
+  matchingPairs?: PracticeMatchingPair[];
+  correctAnswers?: string[];
+  explanation?: string;
+  points: number;
+}
+
+export interface Practice {
+  _id: string;
+  title: string;
+  description?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  estimatedTime?: number;
+  sections: PracticeSection[];
+  questions: PracticeQuestion[];
+  totalQuestions: number;
+  totalPoints: number;
+  isActive: boolean;
+  createdBy: string | AdminUser;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PracticePayload {
+  title: string;
+  description?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  estimatedTime?: number;
+  sections: PracticeSection[];
+  questions: PracticeQuestion[];
+  isActive?: boolean;
+}
+
+export interface PracticeImportPreview {
+  title: string;
+  description?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  estimatedTime: number;
+  sections: PracticeSection[];
+  questions: PracticeQuestion[];
+  totalPoints: number;
+  totalQuestions: number;
+  source?: string;
+}
+
+export type PracticeUpdatePayload = Partial<PracticePayload>;
+
+export interface PracticePagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PracticeListResult {
+  items: Practice[];
+  pagination: PracticePagination;
+}
+
+export interface PracticeQueryParams {
+  page?: number;
+  limit?: number;
+  skill?: PracticeSkill | '';
+  levelGroup?: PracticeLevelGroup | '';
+  keyword?: string;
+  status?: 'active' | 'inactive' | '';
+}
+
 export interface TestSection {
   _id?: string;
   sectionId?: number;
@@ -54,7 +164,6 @@ export interface Question {
   };
   options?: QuestionOption[];
   correctAnswers: string[];
-  wordBank?: string[];
   points: number;
   explanation?: string;
 }
@@ -79,8 +188,6 @@ export interface SectionMedia {
   type: 'image' | 'audio';
   url: string;
   originalName?: string;
-  mimeType?: string;
-  size?: number;
   transcript?: string;
 }
 
@@ -235,7 +342,6 @@ export interface QuestionFormData {
   options?: OptionFormData[];
   allowMultiple?: boolean;
   matchingPairs?: MatchingPair[];
-  wordBank?: string[];
   correctAnswers: string[];
   points: number;
   explanation?: string;

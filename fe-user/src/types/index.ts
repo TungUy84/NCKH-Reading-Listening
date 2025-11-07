@@ -28,8 +28,6 @@ export interface SectionMedia {
   type: 'image' | 'audio';
   url: string;
   originalName?: string;
-  mimeType?: string;
-  size?: number;
   transcript?: string;
 }
 
@@ -57,9 +55,7 @@ export interface TestQuestion {
   questionNumber: number;
   type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
   content: string;
-  instructions?: string;
   options?: Option[];
-  wordBank?: string[];
   correctAnswers?: string[];
   explanation?: string;
   points: number;

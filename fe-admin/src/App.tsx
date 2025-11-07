@@ -14,6 +14,10 @@ import CreateTestPage from './pages/PlacementTestPage/CreateTestPage';
 import ImportTestPage from './pages/PlacementTestPage/ImportTestPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
 import PracticePage from './pages/PracticePage/PracticePage';
+import CreatePracticePage from './pages/PracticePage/CreatePracticePage';
+import EditPracticePage from './pages/PracticePage/EditPracticePage';
+import ViewPracticePage from './pages/PracticePage/ViewPracticePage';
+import ImportPracticePage from './pages/PracticePage/ImportPracticePage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
 import MockExamPage from './pages/MockExamPage/MockExamPage';
 import BlogPage from './pages/BlogPage/BlogPage';
@@ -112,6 +116,10 @@ const App: React.FC = () => {
               {/* Additional Feature Sections */}
               <Route path="/admin/roadmap" element={<RoadmapPage />} />
               <Route path="/admin/practice" element={<PracticePage />} />
+              <Route path="/admin/practice/create" element={<CreatePracticePage />} />
+              <Route path="/admin/practice/import" element={<ImportPracticePage />} />
+              <Route path="/admin/practice/:practiceId/view" element={<ViewPracticePage />} />
+              <Route path="/admin/practice/:practiceId/edit" element={<EditPracticePage />} />
               <Route path="/admin/lessons" element={<LessonsPage />} />
               <Route path="/admin/mock-exams" element={<MockExamPage />} />
               <Route path="/admin/blog" element={<BlogPage />} />

@@ -1,10 +1,10 @@
 import axios from 'axios';
 import {
-  PlacementTest, 
-  TestFormData, 
-  AdminUser, 
-  LoginCredentials, 
-  AuthResponse, 
+  PlacementTest,
+  TestFormData,
+  AdminUser,
+  LoginCredentials,
+  AuthResponse,
   DashboardStats,
   AdminApiResponse,
   UsersListResult,
@@ -13,13 +13,20 @@ import {
   UpdateUserInput,
   UserStats,
   PlacementTestImportResponse,
-  SectionMedia
+  SectionMedia,
+  Practice,
+  PracticePayload,
+  PracticeUpdatePayload,
+  PracticeListResult,
+  PracticeQueryParams,
+  PracticeMediaBlock,
+  PracticeImportPreview
 } from '../types';
 
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 export const ASSET_BASE_URL = API_BASE_URL.replace(/\/?api\/?$/, '');
 
-// Create axios instance with auth
+// Tạo instance axios dùng chung với header mặc định
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
@@ -28,22 +35,22 @@ const api = axios.create({
   },
 });
 
-// Auth token management
+// Quản lý token đăng nhập admin
 export const authUtils = {
   setToken: (token: string) => {
     localStorage.setItem('adminToken', token);
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   },
-  
+
   getToken: (): string | null => {
     return localStorage.getItem('adminToken');
   },
-  
+
   removeToken: () => {
     localStorage.removeItem('adminToken');
     delete api.defaults.headers.common['Authorization'];
   },
-  
+
   initToken: () => {
     const token = authUtils.getToken();
     if (token) {
@@ -52,7 +59,7 @@ export const authUtils = {
   }
 };
 
-// Request interceptor to add auth token
+// Thêm token vào mọi request nếu có
 api.interceptors.request.use(
   (config) => {
     const token = authUtils.getToken();
@@ -64,7 +71,7 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for error handling
+// Xử lý lỗi chung và tự động đăng xuất khi 401
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -76,16 +83,16 @@ api.interceptors.response.use(
   }
 );
 
-// Authentication API
+// API xác thực admin
 export class AuthAPI {
   static async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
       const response = await api.post('/auth/login', credentials);
       const authData = response.data;
-      
-      // Set token for future requests
+
+      // Ghi nhớ token cho những request sau
       authUtils.setToken(authData.token);
-      
+
       return authData;
     } catch (error) {
       console.error('Login error:', error);
@@ -105,8 +112,8 @@ export class AuthAPI {
 
   static async getCurrentUser(): Promise<AdminUser> {
     try {
-  const response = await api.get('/auth/profile');
-  return response.data.user;
+      const response = await api.get('/auth/profile');
+      return response.data.user;
     } catch (error) {
       console.error('Get current user error:', error);
       throw new Error('Không thể lấy thông tin người dùng');
@@ -114,7 +121,7 @@ export class AuthAPI {
   }
 }
 
-// Dashboard API
+// API thống kê dashboard
 export class DashboardAPI {
   static async getStats(): Promise<DashboardStats> {
     try {
@@ -127,9 +134,9 @@ export class DashboardAPI {
   }
 }
 
-// Tests Management API
+// API quản lý bài kiểm tra đầu vào
 export class TestsAPI {
-  // Get all tests (simplified method for TestsPage)
+  // Lấy toàn bộ bài kiểm tra (dùng nội bộ)
   static async getAll(): Promise<PlacementTest[]> {
     try {
       const response = await api.get('/placement-tests', { params: { scope: 'admin' } });
@@ -140,7 +147,7 @@ export class TestsAPI {
     }
   }
 
-  // Update test (simplified method)
+  // Cập nhật nhanh bài kiểm tra
   static async update(testId: string, updateData: Partial<PlacementTest>): Promise<PlacementTest> {
     try {
       const response = await api.put(`/placement-tests/${testId}`, updateData);
@@ -151,7 +158,7 @@ export class TestsAPI {
     }
   }
 
-  // Delete test (simplified method)
+  // Xóa bài kiểm tra nhanh
   static async delete(testId: string): Promise<void> {
     try {
       await api.delete(`/placement-tests/${testId}`);
@@ -161,7 +168,7 @@ export class TestsAPI {
     }
   }
 
-  // Get all tests with pagination
+  // Lấy danh sách bài kiểm tra có phân trang
   static async getTests(params?: {
     page?: number;
     limit?: number;
@@ -182,7 +189,7 @@ export class TestsAPI {
     }
   }
 
-  // Get single test with full details (including answers)
+  // Lấy chi tiết bài kiểm tra (kèm đáp án)
   static async getTest(testId: string): Promise<PlacementTest> {
     try {
       const response = await api.get(`/placement-tests/${testId}/details`);
@@ -193,7 +200,7 @@ export class TestsAPI {
     }
   }
 
-  // Create new test
+  // Tạo mới bài kiểm tra
   static async createTest(testData: TestFormData): Promise<PlacementTest> {
     try {
       const response = await api.post('/placement-tests', testData);
@@ -204,7 +211,7 @@ export class TestsAPI {
     }
   }
 
-  // Update existing test
+  // Cập nhật bài kiểm tra hiện có
   static async updateTest(testId: string, testData: Partial<TestFormData>): Promise<PlacementTest> {
     try {
       const response = await api.put(`/placement-tests/${testId}`, testData);
@@ -215,7 +222,7 @@ export class TestsAPI {
     }
   }
 
-  // Delete test
+  // Xóa bài kiểm tra
   static async deleteTest(testId: string): Promise<void> {
     try {
       await api.delete(`/placement-tests/${testId}`);
@@ -225,7 +232,7 @@ export class TestsAPI {
     }
   }
 
-  // Bulk operations
+  // Xóa nhiều bài kiểm tra cùng lúc
   static async bulkDelete(testIds: string[]): Promise<void> {
     try {
       await api.post('/placement-tests/bulk-delete', { testIds });
@@ -235,6 +242,7 @@ export class TestsAPI {
     }
   }
 
+  // Cập nhật trạng thái hàng loạt
   static async bulkUpdateStatus(testIds: string[], isActive: boolean): Promise<void> {
     try {
       await api.post('/placement-tests/bulk-update-status', { testIds, isActive });
@@ -245,7 +253,7 @@ export class TestsAPI {
   }
 }
 
-// File Upload API
+// API upload tệp
 export class FileAPI {
   static async uploadFile(file: File, type: 'audio' | 'image'): Promise<string> {
     try {
@@ -266,14 +274,14 @@ export class FileAPI {
     }
   }
 
-  // Upload Word file for test import
+  // Upload file Word để import bài kiểm tra
   static async uploadTestFile(formData: FormData): Promise<PlacementTestImportResponse> {
     try {
       const response = await api.post('/placement-tests/import', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 60000, // 1 minute timeout for file processing
+        timeout: 60000, // Giới hạn 1 phút xử lý file
       });
 
       return response.data;
@@ -284,9 +292,9 @@ export class FileAPI {
   }
 }
 
-// Placement Tests API - Updated with new functions
+// API bài kiểm tra đầu vào nâng cao
 export class PlacementTestAPI {
-  // Get all tests with pagination and filters
+  // Lấy danh sách bài kiểm tra (có lọc)
   static async getTests(params: {
     page?: number;
     limit?: number;
@@ -300,7 +308,7 @@ export class PlacementTestAPI {
       if (params.limit !== undefined) queryParams.limit = params.limit;
       if (params.category) queryParams.category = params.category;
       if (params.search) queryParams.search = params.search;
-  if (params.status) queryParams.status = params.status;
+      if (params.status) queryParams.status = params.status;
 
       const response = await api.get('/placement-tests', { params: queryParams });
       return {
@@ -315,10 +323,10 @@ export class PlacementTestAPI {
     }
   }
 
-  // Get single test by ID
+  // Lấy bài kiểm tra theo id
   static async getTestById(testId: string): Promise<PlacementTest> {
     try {
-  const response = await api.get(`/placement-tests/${testId}/details`);
+      const response = await api.get(`/placement-tests/${testId}/details`);
       return response.data.test;
     } catch (error) {
       console.error('Get test error:', error);
@@ -326,10 +334,10 @@ export class PlacementTestAPI {
     }
   }
 
-  // Create new test
+  // Tạo bài kiểm tra mới
   static async createTest(testData: TestFormData): Promise<PlacementTest> {
     try {
-  const response = await api.post('/placement-tests', testData);
+      const response = await api.post('/placement-tests', testData);
       return response.data.test;
     } catch (error) {
       console.error('Create test error:', error);
@@ -337,40 +345,40 @@ export class PlacementTestAPI {
     }
   }
 
-  // Update test
+  // Cập nhật bài kiểm tra
   static async updateTest(testId: string, testData: TestFormData): Promise<PlacementTest> {
     try {
-  const response = await api.put(`/placement-tests/${testId}`, testData);
+      const response = await api.put(`/placement-tests/${testId}`, testData);
       return response.data.test;
     } catch (error) {
       throw new Error('Không thể cập nhật bài test');
     }
   }
 
-  // Update test metadata only (without questions)
+  // Cập nhật thông tin tổng quát bài kiểm tra
   static async updateTestInfo(testId: string, testData: any): Promise<PlacementTest> {
     try {
-  const response = await api.put(`/placement-tests/${testId}`, testData);
+      const response = await api.put(`/placement-tests/${testId}`, testData);
       return response.data.test;
     } catch (error) {
       throw new Error('Không thể cập nhật bài test');
     }
   }
 
-  // Delete test
+  // Xóa bài kiểm tra
   static async deleteTest(testId: string): Promise<void> {
     try {
-  await api.delete(`/placement-tests/${testId}`);
+      await api.delete(`/placement-tests/${testId}`);
     } catch (error) {
       console.error('Delete test error:', error);
       throw new Error('Không thể xóa bài test');
     }
   }
 
-  // Get dashboard stats
+  // Lấy thống kê dashboard
   static async getStats(): Promise<DashboardStats> {
     try {
-  const response = await api.get('/placement-tests/stats');
+      const response = await api.get('/placement-tests/stats');
       return response.data.stats;
     } catch (error) {
       console.error('Get stats error:', error);
@@ -378,32 +386,33 @@ export class PlacementTestAPI {
     }
   }
 
-  // Bulk operations
+  // Xóa hàng loạt bài kiểm tra
   static async bulkDelete(testIds: string[]): Promise<void> {
     try {
-  await api.post('/placement-tests/bulk-delete', { testIds });
+      await api.post('/placement-tests/bulk-delete', { testIds });
     } catch (error) {
       console.error('Bulk delete error:', error);
       throw new Error('Không thể xóa các bài test đã chọn');
     }
   }
 
+  // Bật tắt trạng thái hàng loạt
   static async bulkUpdateStatus(testIds: string[], isActive: boolean): Promise<void> {
     try {
-  await api.post('/placement-tests/bulk-update-status', { testIds, isActive });
+      await api.post('/placement-tests/bulk-update-status', { testIds, isActive });
     } catch (error) {
       console.error('Bulk update status error:', error);
       throw new Error('Không thể cập nhật trạng thái các bài test');
     }
   }
 
-  // Upload media files (images, audio)
+  // Upload media cho section
   static async uploadSectionMedia(files: File[]): Promise<SectionMedia[]> {
     try {
       const formData = new FormData();
       files.forEach((file) => formData.append('files', file));
 
-  const response = await api.post('/placement-tests/media', formData, {
+      const response = await api.post('/placement-tests/media', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -416,10 +425,10 @@ export class PlacementTestAPI {
     }
   }
 
-  // Update full test content including sections and questions
+  // Cập nhật toàn bộ nội dung bài kiểm tra
   static async updateTestContent(testId: string, data: Partial<PlacementTest>): Promise<PlacementTest> {
     try {
-  const response = await api.put(`/placement-tests/${testId}/content`, data);
+      const response = await api.put(`/placement-tests/${testId}/content`, data);
       return response.data.test;
     } catch (error) {
       throw new Error('Không thể cập nhật nội dung bài test');
@@ -427,11 +436,138 @@ export class PlacementTestAPI {
   }
 }
 
-// Users Management API
+// API quản lý bài ôn luyện
+export class PracticeAPI {
+  // Lấy danh sách bài ôn luyện (admin)
+  static async getPractices(params: PracticeQueryParams = {}): Promise<PracticeListResult> {
+    try {
+      const queryParams: Record<string, any> = {
+        scope: 'admin',
+      };
+
+      if (params.page !== undefined) queryParams.page = params.page;
+      if (params.limit !== undefined) queryParams.limit = params.limit;
+      if (params.skill) queryParams.skill = params.skill;
+      if (params.levelGroup) queryParams.levelGroup = params.levelGroup;
+      if (params.keyword) queryParams.keyword = params.keyword;
+      if (params.status === 'active') queryParams.isActive = 'true';
+      if (params.status === 'inactive') queryParams.isActive = 'false';
+
+      const response = await api.get('/practices', { params: queryParams });
+      const payload = response.data?.data || {};
+      const pagination = payload.pagination || {};
+
+      return {
+        items: payload.items || [],
+        pagination: {
+          page: pagination.page || queryParams.page || 1,
+          limit: pagination.limit || queryParams.limit || 10,
+          total: pagination.total || (payload.items ? payload.items.length : 0),
+          totalPages: pagination.totalPages || 1,
+        },
+      };
+    } catch (error) {
+  console.error('Get practices error:', error);
+  throw new Error('Không thể tải danh sách bài ôn luyện');
+    }
+  }
+
+  // Lấy chi tiết bài ôn luyện (admin)
+  static async getPractice(practiceId: string): Promise<Practice> {
+    try {
+      const response = await api.get(`/practices/${practiceId}/details`);
+      return response.data.practice;
+    } catch (error) {
+  console.error('Get practice detail error:', error);
+  throw new Error('Không thể tải chi tiết bài ôn luyện');
+    }
+  }
+
+  // Tạo bài ôn luyện mới
+  static async createPractice(payload: PracticePayload): Promise<Practice> {
+    try {
+      const response = await api.post('/practices', payload);
+      return response.data.practice;
+    } catch (error) {
+  console.error('Create practice error:', error);
+  throw new Error('Không thể tạo bài ôn luyện mới');
+    }
+  }
+
+  // Cập nhật bài ôn luyện
+  static async updatePractice(practiceId: string, payload: PracticeUpdatePayload): Promise<Practice> {
+    try {
+      const response = await api.put(`/practices/${practiceId}`, payload);
+      return response.data.practice;
+    } catch (error) {
+  console.error('Update practice error:', error);
+  throw new Error('Không thể cập nhật bài ôn luyện');
+    }
+  }
+
+  // Cập nhật nội dung bài ôn luyện
+  static async updatePracticeContent(practiceId: string, payload: Partial<Practice>): Promise<Practice> {
+    try {
+      const response = await api.put(`/practices/${practiceId}/content`, payload);
+      return response.data.practice;
+    } catch (error) {
+      console.error('Update practice content error:', error);
+      throw new Error('Không thể cập nhật nội dung bài ôn luyện');
+    }
+  }
+
+  // Upload media cho section bài ôn luyện
+  static async uploadPracticeMedia(files: File[]): Promise<PracticeMediaBlock[]> {
+    try {
+      const formData = new FormData();
+      files.forEach((file) => formData.append('files', file));
+
+      const response = await api.post('/practices/media', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data.files || [];
+    } catch (error) {
+      console.error('Upload practice media error:', error);
+      throw new Error('Không thể tải media cho bài ôn luyện');
+    }
+  }
+
+  // Import bài ôn luyện từ file Word/PDF/Excel
+  static async importPracticeFile(formData: FormData): Promise<PracticeImportPreview> {
+    try {
+      const response = await api.post('/practices/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 60000,
+      });
+
+      return response.data.previewPractice;
+    } catch (error) {
+      console.error('Import practice file error:', error);
+      throw new Error('Không thể xử lý file. Vui lòng kiểm tra định dạng (Word/PDF/Excel) và thử lại.');
+    }
+  }
+
+  // Xóa bài ôn luyện
+  static async deletePractice(practiceId: string): Promise<void> {
+    try {
+      await api.delete(`/practices/${practiceId}`);
+    } catch (error) {
+      console.error('Delete practice error:', error);
+      throw new Error('Không thể xóa bài ôn luyện');
+    }
+  }
+}
+
+// API quản lý người dùng
 export class UsersAPI {
   static async getUsers(params: UserQueryParams = {}): Promise<UsersListResult> {
     try {
-      // Clean params to avoid sending empty string which backend treats as false
+      // Làm sạch tham số để tránh gửi chuỗi rỗng
       const cleaned: Record<string, any> = {};
       if (params.page !== undefined) cleaned.page = params.page;
       if (params.limit !== undefined) cleaned.limit = params.limit;
@@ -450,6 +586,7 @@ export class UsersAPI {
     }
   }
 
+  // Lấy thông tin người dùng theo ID
   static async getUserById(userId: string): Promise<AdminUser> {
     try {
       const response = await api.get(`/users/${userId}`);
@@ -460,6 +597,7 @@ export class UsersAPI {
     }
   }
 
+  // Tạo người dùng mới
   static async createUser(data: CreateUserInput): Promise<AdminUser> {
     try {
       const response = await api.post('/users', data);
@@ -476,6 +614,7 @@ export class UsersAPI {
     }
   }
 
+  // Cập nhật người dùng
   static async updateUser(userId: string, data: UpdateUserInput): Promise<AdminUser> {
     try {
       const response = await api.put(`/users/${userId}`, data);
@@ -495,6 +634,7 @@ export class UsersAPI {
     }
   }
 
+  // Bật/tắt trạng thái người dùng
   static async toggleUserStatus(userId: string, nextStatus: boolean): Promise<AdminUser> {
     try {
       const response = await api.put(`/users/${userId}`, { isActive: nextStatus });
@@ -506,6 +646,7 @@ export class UsersAPI {
     }
   }
 
+  // Cập nhật quyền người dùng
   static async updateUserRole(userId: string, role: 'admin' | 'user'): Promise<AdminUser> {
     try {
       const response = await api.put(`/users/${userId}`, { role });
@@ -527,7 +668,7 @@ export class UsersAPI {
     }
   }
 }
-
+// Các hàm để import
 export const getUsers = UsersAPI.getUsers;
 export const getUserById = UsersAPI.getUserById;
 export const createUser = UsersAPI.createUser;
@@ -537,7 +678,7 @@ export const toggleUserStatus = UsersAPI.toggleUserStatus;
 export const updateUserRole = UsersAPI.updateUserRole;
 export const getUserStats = UsersAPI.getStats;
 
-// Export convenient wrapper functions
+// Các hàm tiện ích để import nhanh
 export const getPlacementTests = PlacementTestAPI.getTests;
 export const getPlacementTestById = PlacementTestAPI.getTestById;
 export const createPlacementTest = PlacementTestAPI.createTest;
@@ -549,7 +690,7 @@ export const getTestStats = PlacementTestAPI.getStats;
 export const uploadTestFile = FileAPI.uploadTestFile;
 export const importPlacementTest = FileAPI.uploadTestFile;
 
-// Utility functions
+// Nhóm xử lý lỗi API
 export const adminApiUtils = {
   handleError: (error: any): string => {
     if (error.response?.data?.error) {
@@ -571,7 +712,7 @@ export const adminApiUtils = {
   },
 };
 
-// Initialize auth token on app start
+// Khởi tạo token khi app load
 authUtils.initToken();
 
 export default api;

@@ -154,7 +154,6 @@ const ImportTestPage: React.FC = () => {
           isCorrect: Boolean(option.isCorrect)
         })),
         matchingPairs: question.matchingPairs || [],
-        wordBank: question.wordBank || [],
         correctAnswers: question.correctAnswers || [],
         explanation: question.explanation || '',
         points: question.points || 1

@@ -2,12 +2,12 @@ import React, { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import { PlacementTestAPI } from '../../services/api';
-import { PlacementTest, SectionMedia } from '../../types';
+import { PracticeAPI } from '../../services/api';
+import { Practice, PracticeMediaBlock, PracticeQuestion } from '../../types';
 
 const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
 
-// Sinh ID dự phòng khi backend không trả về.
+// Tạo định danh ngẫu nhiên cho media khi dữ liệu trả về chưa có sẵn khóa id.
 const generateMediaId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -19,8 +19,8 @@ const generateMediaId = (): string => {
   return Math.random().toString(36).slice(2, 10);
 };
 
-// Chuẩn hóa media block để đảm bảo luôn có id, url và thông tin hiển thị.
-const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
+// Chuẩn hóa danh sách media để đảm bảo đầy đủ id, url và metadata cần thiết cho việc render.
+const normalizeMediaBlocks = (blocks: unknown): PracticeMediaBlock[] => {
   if (!Array.isArray(blocks)) return [];
   return blocks
     .filter(Boolean)
@@ -32,31 +32,21 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       originalName: block?.originalName || block?.name || '',
       transcript: block?.transcript || '',
     }))
-    .filter((block: SectionMedia) => !!block.id);
+    .filter((block: PracticeMediaBlock) => !!block.id);
 };
 
-// Chuẩn hóa danh sách section trước khi render.
-const sanitizeSections = (sections: any[] | undefined) => {
-  return (sections || []).map((section: any) => ({
-    ...section,
-    mediaBlocks: normalizeMediaBlocks(section?.mediaBlocks),
-  }));
+// Chuẩn hóa danh sách media để đảm bảo đầy đủ id, url và metadata cần thiết cho việc render.
+const normalizeId = (value: unknown): string => {
+  if (!value) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number') return String(value);
+  if (value && typeof (value as any).toString === 'function') {
+    return (value as any).toString();
+  }
+  return '';
 };
 
-// Bản đồ nhãn hiển thị cho từng loại câu hỏi.
-const questionTypeLabelMap = {
-  multi_choice: 'Trắc nghiệm',
-  short_answer: 'Tự luận ngắn',
-  matching: 'Nối cặp',
-  dropdown: 'Chọn đáp án',
-} as const;
-
-// Lấy nhãn hiển thị phù hợp với loại câu hỏi.
-const getQuestionTypeLabel = (type: keyof typeof questionTypeLabelMap): string => {
-  return questionTypeLabelMap[type] || 'Khác';
-};
-
-// Định dạng chuỗi thời gian ISO sang tiếng Việt, tránh lỗi khi thiếu dữ liệu.
+// Chuẩn hóa chuỗi thời gian ISO sang định dạng dễ đọc, fallback khi dữ liệu không hợp lệ.
 const formatDateTime = (value?: string): string => {
   if (!value) return '—';
   const date = new Date(value);
@@ -66,122 +56,40 @@ const formatDateTime = (value?: string): string => {
   return date.toLocaleString('vi-VN');
 };
 
-// Chuyển thông tin người tạo thành chuỗi dễ đọc.
+// Chuyển thông tin người tạo thành chuỗi hiển thị thân thiện.
 const formatUserDisplay = (value: unknown): string => {
   if (!value) return '—';
   if (typeof value === 'string') return value;
   if (typeof value === 'object') {
     const user = value as Record<string, any>;
-    const nameCandidates = [user.fullName, [user.firstName, user.lastName].filter(Boolean).join(' ')].filter(
-      (candidate) => !!candidate && candidate.trim().length > 0
+    const candidateNames = [user.fullName, [user.firstName, user.lastName].filter(Boolean).join(' ')].filter(
+      (candidate) => typeof candidate === 'string' && candidate.trim().length > 0
     );
-    if (nameCandidates.length > 0) {
-      return nameCandidates[0];
+    if (candidateNames.length > 0) {
+      return candidateNames[0];
     }
-    if (user.email) {
-      return user.email;
-    }
-    if (user.username) {
-      return user.username;
-    }
-    if (user._id || user.id) {
-      return String(user._id || user.id);
-    }
+    if (user.email) return String(user.email);
+    if (user.username) return String(user.username);
+    if (user._id || user.id) return String(user._id || user.id);
   }
   return String(value);
 };
 
-type MatchingPairDisplay = { key: string; prompt: string; answer: string };
-
-const collectAnswerStrings = (value: unknown): string[] => {
-  if (value == null) return [];
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return trimmed ? [trimmed] : [];
-  }
-  if (typeof value === 'number' || typeof value === 'boolean') return [String(value)];
-  if (Array.isArray(value)) {
-    return value.flatMap((item) => collectAnswerStrings(item));
-  }
-  if (typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    const preferredKeys = ['text', 'answer', 'value', 'label', 'content'];
-    for (const key of preferredKeys) {
-      if (key in record) {
-        const nested = collectAnswerStrings(record[key]);
-        if (nested.length) return nested;
-      }
-    }
-    const nestedValues = Object.values(record).flatMap((item) => collectAnswerStrings(item));
-    if (nestedValues.length) return nestedValues;
-  }
-  return [];
+// Bản đồ nhãn hiển thị cho từng loại câu hỏi.
+const questionTypeLabelMap: Record<PracticeQuestion['type'], string> = {
+  multi_choice: 'Trắc nghiệm',
+  short_answer: 'Tự luận ngắn',
+  matching: 'Nối cặp',
+  dropdown: 'Chọn đáp án',
 };
 
-const formatAnswerText = (value: unknown): string => {
-  const normalized = collectAnswerStrings(value);
-  if (normalized.length) return normalized.join(', ');
-  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return trimmed || '—';
-  }
-  return '—';
+// Lấy nhãn hiển thị dành cho loại câu hỏi.
+const getQuestionTypeLabel = (type: PracticeQuestion['type']): string => {
+  return questionTypeLabelMap[type] || 'Khác';
 };
 
-const getMatchingPairs = (question: any): MatchingPairDisplay[] => {
-  const pairsSource = Array.isArray(question?.matchingPairs)
-    ? question.matchingPairs
-    : Array.isArray(question?.pairs)
-      ? question.pairs
-      : [];
-
-  return pairsSource.map((pair: any, index: number) => ({
-    key: pair?._id ? String(pair._id) : `${question?._id || 'pair'}-${index}`,
-    prompt: formatAnswerText(pair?.prompt ?? pair?.question ?? pair?.stem ?? pair?.left),
-    answer: formatAnswerText(
-      pair?.correctOption ?? pair?.match ?? pair?.answer ?? pair?.response ?? pair?.value ?? pair?.right
-    ),
-  }));
-};
-
-const getQuestionAnswers = (question: any): string[] => {
-  if (!question) return [];
-  const type = question.type as keyof typeof questionTypeLabelMap;
-
-  if (Array.isArray(question.options) && question.options.length) {
-    return question.options
-      .filter((option: any) => option?.isCorrect)
-      .map((option: any) => option?.text || '—');
-  }
-
-  if (type === 'matching') {
-    const pairs = getMatchingPairs(question);
-    if (pairs.length) {
-      return pairs.map((pair) => `${pair.prompt} → ${pair.answer}`);
-    }
-  }
-
-  const sources = [
-    question.correctAnswers,
-    question.correctAnswer,
-    question.answer,
-    question.answers,
-    question.answerKey,
-  ];
-
-  for (const source of sources) {
-    const normalized = collectAnswerStrings(source);
-    if (normalized.length) {
-      return normalized;
-    }
-  }
-
-  return [];
-};
-
-// Hiển thị media tương ứng với placeholder trong đề bài.
-const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode => {
+// Render khối media (ảnh hoặc audio) cùng các thông tin đi kèm.
+const renderMediaBlock = (block: PracticeMediaBlock, key: string | number): ReactNode => {
   if (block.type === 'audio') {
     return (
       <div key={`media-audio-${key}`} className="my-4">
@@ -215,16 +123,23 @@ const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode 
   );
 };
 
-// Phân tách đoạn văn và chèn media dựa trên placeholder [[media:ID]].
-const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
+// Phân tích đoạn văn và thay thế placeholder [[media:ID]] bằng media tương ứng.
+const renderPassageContent = (passage: string, mediaBlocks: PracticeMediaBlock[] = []): ReactNode => {
   if (!passage) return null;
   mediaPlaceholderRegex.lastIndex = 0;
   const nodes: ReactNode[] = [];
-  const mediaMap = new Map<string, SectionMedia>();
+  const mediaMap = new Map<string, PracticeMediaBlock>();
+
   mediaBlocks.forEach((block) => {
-    if (block?.id) {
-      mediaMap.set(String(block.id), block);
-    }
+    const addKey = (value: unknown) => {
+      const key = normalizeId(value);
+      if (key) {
+        mediaMap.set(key, block);
+      }
+    };
+
+    addKey(block?.id);
+    addKey((block as any)?._id);
   });
 
   let lastIndex = 0;
@@ -243,7 +158,8 @@ const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = [])
 
     const mediaId = match[1]?.trim();
     if (mediaId) {
-      const block = mediaMap.get(mediaId);
+      const normalizedKey = normalizeId(mediaId);
+      const block = mediaMap.get(mediaId) || mediaMap.get(normalizedKey);
       if (block) {
         nodes.push(renderMediaBlock(block, key++));
       } else {
@@ -270,16 +186,36 @@ const renderPassageContent = (passage: string, mediaBlocks: SectionMedia[] = [])
   return nodes;
 };
 
-// Component xem chi tiết bài kiểm tra đầu vào.
-const ViewTestPage: React.FC = () => {
-  const { testId } = useParams();
+// Gom đáp án của câu hỏi theo từng loại để hiển thị rõ ràng cho admin.
+const getQuestionAnswers = (question: PracticeQuestion): string[] => {
+  if (!question) return [];
+  const { type, options, correctAnswers, matchingPairs } = question;
+
+  if ((type === 'multi_choice' || type === 'dropdown') && Array.isArray(options)) {
+    return options.filter((option: any) => option?.isCorrect).map((option: any) => option?.text || '—');
+  }
+
+  if (type === 'matching' && Array.isArray(matchingPairs)) {
+    return matchingPairs.map((pair: any) => `${pair?.prompt || '—'} → ${pair?.correctOption || '—'}`);
+  }
+
+  if (Array.isArray(correctAnswers) && correctAnswers.length) {
+    return correctAnswers.map((answer) => String(answer || '—'));
+  }
+
+  return [];
+};
+
+// Component hiển thị giao diện xem chi tiết bài ôn luyện với bố cục hai cột.
+const ViewPracticePage: React.FC = () => {
+  const { practiceId } = useParams();
   const [loading, setLoading] = useState(true);
-  const [test, setTest] = useState<PlacementTest | null>(null);
+  const [practice, setPractice] = useState<Practice | null>(null);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const gridRef = useRef<HTMLDivElement>(null);
   const [panelHeight, setPanelHeight] = useState<number>(0);
 
-  // Tính chiều cao panel để hai cột cân bằng.
+  // Tính toán chiều cao panel dựa trên vị trí hiện tại để đồng bộ giữa hai cột.
   useEffect(() => {
     const updateHeight = () => {
       const top = gridRef.current?.getBoundingClientRect().top ?? 0;
@@ -292,78 +228,88 @@ const ViewTestPage: React.FC = () => {
     return () => window.removeEventListener('resize', updateHeight);
   }, []);
 
-  // Nạp dữ liệu bài test và chuẩn hóa media trước khi hiển thị.
+  // Nạp dữ liệu bài ôn luyện từ API và chuẩn hóa media trước khi hiển thị.
   useEffect(() => {
     const load = async () => {
-      if (!testId) return;
+      if (!practiceId) return;
       try {
         setLoading(true);
-        const data = await PlacementTestAPI.getTestById(testId);
-        setTest({
+        const data = await PracticeAPI.getPractice(practiceId);
+        setPractice({
           ...data,
-          sections: sanitizeSections(data.sections) as any,
+          sections: (data.sections || []).map((section: any) => ({
+            ...section,
+            mediaBlocks: normalizeMediaBlocks(section?.mediaBlocks),
+          })),
         });
       } catch (error: any) {
         console.error(error);
-        toast.error(error?.message || 'Không thể tải bài kiểm tra');
+        toast.error(error?.message || 'Không thể tải bài ôn luyện');
       } finally {
         setLoading(false);
       }
     };
 
     load();
-  }, [testId]);
+  }, [practiceId]);
 
   const currentSection = useMemo(() => {
-    if (!test?.sections || test.sections.length === 0) return undefined;
-    return test.sections[Math.min(currentSectionIndex, test.sections.length - 1)];
-  }, [test, currentSectionIndex]);
+    if (!practice?.sections || practice.sections.length === 0) return undefined;
+    return practice.sections[Math.min(currentSectionIndex, practice.sections.length - 1)];
+  }, [practice, currentSectionIndex]);
 
   const sectionQuestions = useMemo(() => {
-    if (!test?.questions || !test.sections || !test.sections.length) return [];
-    if (!currentSection?._id) return [];
+    if (!practice?.questions) return [] as PracticeQuestion[];
+    if (!practice.sections || !practice.sections.length) {
+      return [...practice.questions].sort((a, b) => (a.questionNumber || 0) - (b.questionNumber || 0));
+    }
 
-    const currentId = (currentSection as any)?._id?.toString
-      ? (currentSection as any)._id.toString()
-      : String(currentSection._id);
+    if (!currentSection) return [] as PracticeQuestion[];
 
-    return test.questions
-      .filter((question) => {
-        const sectionId = (question as any)?.sectionId?.toString
-          ? (question as any).sectionId.toString()
-          : question.sectionId
-            ? String(question.sectionId)
-            : '';
-        return sectionId === currentId;
+    const hasSectionId = !!(currentSection as any)?._id;
+    const sectionId = hasSectionId ? normalizeId((currentSection as any)?._id) : '';
+
+    return practice.questions
+      .filter((question: any) => {
+        if (hasSectionId) {
+          return normalizeId(question?.sectionId) === sectionId;
+        }
+        const sectionIndex = typeof question?.sectionIndex === 'number' ? question.sectionIndex : null;
+        return sectionIndex !== null ? sectionIndex === currentSectionIndex : false;
       })
       .sort((a, b) => (a.questionNumber || 0) - (b.questionNumber || 0));
-  }, [test, currentSection]);
+  }, [practice, currentSection, currentSectionIndex]);
 
-  const totalSections = test?.sections?.length || 0;
-  const totalQuestions = test?.totalQuestions ?? test?.questions?.length ?? 0;
+  const totalSections = practice?.sections?.length || 0;
+  const totalQuestions = practice?.totalQuestions ?? practice?.questions?.length ?? 0;
 
-  // Thống kê nhanh cho phần đầu trang.
+  // Hiển thị đoạn mã ID ngắn giúp dễ nhận diện thực thể trên giao diện.
+  const practiceIdSuffix = practice?._id ? practice._id.slice(-8) : '—';
+
+  // Tổng hợp số liệu header để hiển thị dạng thống kê nhanh.
   const headerStats = useMemo(
     () => [
-      { label: 'Danh mục', value: test?.category ? test.category.toUpperCase() : '—' },
-      { label: 'Thời lượng', value: test?.timeLimit ? `${test.timeLimit} phút` : '—' },
+      { label: 'Kỹ năng', value: practice?.skill ? practice.skill.toUpperCase() : '—' },
+      { label: 'Nhóm trình độ', value: practice?.levelGroup || '—' },
+      { label: 'Thời lượng ước tính', value: practice?.estimatedTime ? `${practice.estimatedTime} phút` : '—' },
       { label: 'Số phần', value: `${totalSections} phần` },
       { label: 'Tổng câu hỏi', value: `${totalQuestions} câu` },
-      { label: 'Tổng điểm', value: `${test?.totalPoints ?? 0} điểm` },
-      { label: 'Người tạo', value: formatUserDisplay(test?.createdBy) },
-      { label: 'Ngày tạo', value: formatDateTime(test?.createdAt) },
-      { label: 'Cập nhật', value: formatDateTime(test?.updatedAt) },
+      { label: 'Tổng điểm', value: `${practice?.totalPoints ?? 0} điểm` },
+      { label: 'Người tạo', value: formatUserDisplay(practice?.createdBy) },
+      { label: 'Cập nhật', value: formatDateTime(practice?.updatedAt) },
     ],
-    [test, totalSections, totalQuestions]
+    [practice, totalSections, totalQuestions]
   );
 
-  // Rút gọn ID để hiển thị trong phần header.
-  const testIdSuffix = test?._id ? test._id.slice(-8) : '—';
+  // Chuyển sang phần được chọn khi người dùng bấm nút điều hướng.
+  const handleSelectSection = (index: number) => {
+    setCurrentSectionIndex(index);
+  };
 
-  // Điều hướng đến phần kế tiếp.
+  // Điều hướng sang phần kế tiếp.
   const nextSection = () => {
-    if (!test?.sections) return;
-    setCurrentSectionIndex((index) => Math.min(test.sections!.length - 1, index + 1));
+    if (!practice?.sections) return;
+    setCurrentSectionIndex((index) => Math.min(practice.sections!.length - 1, index + 1));
   };
 
   // Điều hướng về phần trước đó.
@@ -371,17 +317,12 @@ const ViewTestPage: React.FC = () => {
     setCurrentSectionIndex((index) => Math.max(0, index - 1));
   };
 
-  // Cho phép chọn phần thông qua thanh điều hướng nhanh.
-  const handleSelectSection = (index: number) => {
-    setCurrentSectionIndex(index);
-  };
-
   if (loading) {
-    return <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500">Đang tải thông tin bài kiểm tra...</div>;
+    return <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500">Đang tải thông tin bài ôn luyện...</div>;
   }
 
-  if (!test) {
-    return <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500">Không tìm thấy bài kiểm tra.</div>;
+  if (!practice) {
+    return <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-500">Không tìm thấy bài ôn luyện.</div>;
   }
 
   return (
@@ -390,32 +331,34 @@ const ViewTestPage: React.FC = () => {
         <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 py-8 text-white">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0 space-y-2 pr-4">
-              <p className="text-xs uppercase tracking-[0.25rem] text-slate-400">Placement Test Preview</p>
-              <h1 className="truncate text-3xl font-semibold">{test.title}</h1>
+              <p className="text-xs uppercase tracking-[0.25rem] text-slate-400">Practice Preview</p>
+              <h1 className="truncate text-3xl font-semibold">{practice.title}</h1>
               <div className="text-sm text-slate-300">
-                {test.category.toUpperCase()} • {test.timeLimit} phút • {totalQuestions} câu hỏi
+                {practice.skill.toUpperCase()} • {practice.levelGroup}
+                {practice.estimatedTime ? ` • ${practice.estimatedTime} phút` : ''}
+                {' • '}
+                {totalSections} phần • {totalQuestions} câu hỏi
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-white/70">
-                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
-                  test.isActive ? 'bg-emerald-500/20 text-emerald-200' : 'bg-amber-500/20 text-amber-200'
-                }`}>
+                <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${practice.isActive ? 'bg-emerald-500/20 text-emerald-200' : 'bg-amber-500/20 text-amber-200'
+                  }`}>
                   <span className="h-2 w-2 rounded-full bg-current" />
-                  {test.isActive ? 'Đang hoạt động' : 'Tạm ẩn'}
+                  {practice.isActive ? 'Đang hoạt động' : 'Tạm ẩn'}
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-medium">
-                  ID: {testIdSuffix}
+                  ID: {practiceIdSuffix}
                 </span>
               </div>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link
-                to={`/admin/placement-tests/${test._id}/edit`}
+                to={`/admin/practice/${practice._id}/edit`}
                 className="inline-flex items-center justify-center rounded-xl border border-slate-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-white hover:text-slate-900"
               >
                 Chỉnh sửa bài
               </Link>
               <Link
-                to="/admin/placement-tests"
+                to="/admin/practice"
                 className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
               >
                 Quay lại danh sách
@@ -423,28 +366,15 @@ const ViewTestPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="px-6 py-6 space-y-6">
-          {test.description ? (
-            <p className="text-sm text-slate-600 whitespace-pre-wrap">{test.description}</p>
+        <div className="px-6 py-6">
+          {practice.description ? (
+            <p className="text-sm text-slate-600 whitespace-pre-wrap">
+              {practice.description}
+            </p>
           ) : (
-            <p className="text-sm italic text-slate-400">Chưa có mô tả cho bài kiểm tra này.</p>
+            <p className="text-sm italic text-slate-400">Chưa có mô tả cho bài ôn luyện này.</p>
           )}
-
-          {Array.isArray(test.instructions) && test.instructions.length ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Hướng dẫn</p>
-              <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                {test.instructions.map((instruction, index) => (
-                  <li key={index} className="flex gap-2">
-                    <span className="mt-0.5 text-xs font-semibold text-slate-400">{index + 1}.</span>
-                    <span className="flex-1">{instruction}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
             {headerStats.map((stat) => (
               <div key={stat.label} className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{stat.label}</p>
@@ -457,14 +387,15 @@ const ViewTestPage: React.FC = () => {
 
       {totalSections === 0 ? (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">
-          Bài kiểm tra chưa có phần nội dung nào. Vui lòng thêm phần trong trang chỉnh sửa để xem tại đây.
+          Bài ôn luyện chưa có phần nội dung nào. Hãy bổ sung ở trang chỉnh sửa để xem tại đây.
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-6 py-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-800">Cấu trúc bài kiểm tra</h2>
+                <h2 className="text-lg font-semibold text-slate-800">Nội dung bài ôn luyện</h2>
+                <p className="text-sm text-slate-500">Chọn phần để xem đoạn văn, media và danh sách câu hỏi tương ứng.</p>
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-500">
                 <span>Đang xem phần</span>
@@ -474,18 +405,17 @@ const ViewTestPage: React.FC = () => {
               </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {(test.sections || []).map((section, index) => {
+              {(practice.sections || []).map((section, index) => {
                 const isActive = currentSectionIndex === index;
                 return (
                   <button
                     key={section?._id || index}
                     type="button"
                     onClick={() => handleSelectSection(index)}
-                    className={`group flex items-center gap-2 rounded-2xl border px-4 py-2 text-left transition ${
-                      isActive
-                        ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
-                        : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-slate-300 hover:bg-slate-200'
-                    }`}
+                    className={`group flex items-center gap-2 rounded-2xl border px-4 py-2 text-left transition ${isActive
+                      ? 'border-slate-900 bg-slate-900 text-white shadow-sm'
+                      : 'border-slate-200 bg-slate-100 text-slate-600 hover:border-slate-300 hover:bg-slate-200'
+                      }`}
                   >
                     <span className="text-xs font-semibold uppercase tracking-wide">Phần {index + 1}</span>
                     <span className="line-clamp-1 text-sm font-medium">
@@ -509,36 +439,20 @@ const ViewTestPage: React.FC = () => {
                     {currentSection?.title || `Phần ${currentSectionIndex + 1}`}
                   </h3>
                 </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                  {sectionQuestions.length} câu hỏi
+                </span>
               </div>
-              <div className="flex-1 overflow-auto px-6 py-5 space-y-4">
+              <div className="flex-1 overflow-auto px-6 py-5">
                 {currentSection?.passage ? (
                   <div className="prose prose-slate max-w-none text-sm">
-                    {renderPassageContent(currentSection.passage || '', (currentSection.mediaBlocks || []) as SectionMedia[])}
+                    {renderPassageContent(currentSection.passage, currentSection.mediaBlocks as PracticeMediaBlock[])}
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
-                    Phần này chưa có đoạn văn. Bạn có thể bổ sung trong trang chỉnh sửa.
+                    Phần này chưa có đoạn văn. Bạn có thể thêm nội dung tại trang chỉnh sửa.
                   </div>
                 )}
-
-                {currentSection?.audio ? (
-                  <audio
-                    controls
-                    controlsList="nodownload"
-                    preload="auto"
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-                    onContextMenu={(event) => event.preventDefault()}
-                  >
-                    <source src={currentSection.audio} />
-                    Trình duyệt không hỗ trợ audio.
-                  </audio>
-                ) : null}
-
-                {currentSection?.image ? (
-                  <figure className="overflow-hidden rounded-2xl border border-slate-200">
-                    <img src={currentSection.image} alt="Section" className="w-full object-cover" />
-                  </figure>
-                ) : null}
               </div>
               <div className="border-t border-slate-100 bg-slate-50/60 px-6 py-4">
                 <button
@@ -574,10 +488,10 @@ const ViewTestPage: React.FC = () => {
                 ) : (
                   <div className="space-y-4">
                     {sectionQuestions.map((question, index) => {
-                      const options = Array.isArray(question.options) ? question.options : [];
                       const answers = getQuestionAnswers(question);
-                      const typeLabel = getQuestionTypeLabel(question.type as keyof typeof questionTypeLabelMap);
-                      const matchingPairs = getMatchingPairs(question);
+                      const options = Array.isArray(question.options) ? question.options : [];
+                      const matchingPairs = Array.isArray(question.matchingPairs) ? question.matchingPairs : [];
+                      const typeLabel = getQuestionTypeLabel(question.type);
 
                       return (
                         <div
@@ -590,7 +504,7 @@ const ViewTestPage: React.FC = () => {
                                 Câu {question.questionNumber ?? index + 1}
                               </div>
                               <p className="font-medium text-slate-800 whitespace-pre-wrap">
-                                {question.content || question.text || '—'}
+                                {question.content || '—'}
                               </p>
                             </div>
                             <span className="inline-flex shrink-0 rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
@@ -603,11 +517,10 @@ const ViewTestPage: React.FC = () => {
                               {options.map((option, optionIdx) => (
                                 <div
                                   key={`${optionIdx}-${option.text || optionIdx}`}
-                                  className={`flex items-start gap-2 rounded-xl border px-3 py-2 ${
-                                    option.isCorrect
-                                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                                      : 'border-transparent bg-white text-slate-700'
-                                  }`}
+                                  className={`flex items-start gap-2 rounded-xl border px-3 py-2 ${option.isCorrect
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                    : 'border-transparent bg-white text-slate-700'
+                                    }`}
                                 >
                                   <span className="mt-0.5 text-xs font-semibold text-slate-500">
                                     {String.fromCharCode(65 + optionIdx)}.
@@ -620,18 +533,17 @@ const ViewTestPage: React.FC = () => {
 
                           {matchingPairs.length > 0 && (
                             <div className="mt-3 grid gap-2">
-                              {matchingPairs.map((pair) => (
+                              {matchingPairs.map((pair, pairIdx) => (
                                 <div
-                                  key={pair.key}
+                                  key={`${pairIdx}-${pair?.prompt || pairIdx}`}
                                   className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
                                 >
-                                  <div className="font-medium">{pair.prompt}</div>
-                                  <div className="text-xs text-slate-500">Đáp án: {pair.answer}</div>
+                                  <div className="font-medium">{pair?.prompt || '—'}</div>
+                                  <div className="text-xs text-slate-500">Đáp án: {pair?.correctOption || '—'}</div>
                                 </div>
                               ))}
                             </div>
                           )}
-
                           <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                             <span className="font-semibold">Đáp án:</span>{' '}
                             {answers.length ? answers.join(', ') : '—'}
@@ -678,4 +590,4 @@ const ViewTestPage: React.FC = () => {
   );
 };
 
-export default ViewTestPage;
+export default ViewPracticePage;
