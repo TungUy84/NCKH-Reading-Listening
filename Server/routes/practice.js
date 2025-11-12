@@ -12,7 +12,11 @@ const {
   updatePracticeContent,
   uploadPracticeMedia,
   updatePracticeInfo,
-  importPractice
+  importPractice,
+  submitPracticeAttempt,
+  getMyPracticeAttempts,
+  getPracticeAttemptsForAdmin,
+  getPracticeAttemptDetails
 } = require('../controllers/practiceController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -103,8 +107,12 @@ router.post('/import', protect, isAdmin, practiceImportUpload.single('practiceFi
 router.put('/:practiceId/content', protect, isAdmin, updatePracticeContent);
 router.put('/:practiceId', protect, isAdmin, updatePracticeInfo);
 router.delete('/:practiceId', protect, isAdmin, deletePractice);
+router.get('/:practiceId/attempts', protect, isAdmin, getPracticeAttemptsForAdmin);
 
 // ====== ROUTE CHO NGƯỜI HỌC ======
+router.post('/:practiceId/submit', protect, submitPracticeAttempt);
+router.get('/:practiceId/attempts/mine', protect, getMyPracticeAttempts);
+router.get('/attempts/:attemptId', protect, getPracticeAttemptDetails);
 router.get('/:practiceId', getPracticeForLearner);
 
 module.exports = router;

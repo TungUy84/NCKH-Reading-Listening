@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 const Practice = require('../models/Practice');
+const PracticeAttempt = require('../models/PracticeAttempt');
 const {parsePracticeDocxFile, parsePracticeExcelBuffer} = require('../utils/practiceImport');
 
 // Import các hàm từ practiceHelper.js
@@ -15,9 +16,15 @@ const {
   ensureMediaDir,
   deletePracticeMediaFiles
 } = require('../utils/practiceHelper');
+const {
+  scorePracticeSubmission,
+  sanitizeDuration,
+  parseDateValue,
+  validatePracticeSubmissionPayload
+} = require('../utils/practiceAttemptHelper');
 
 // === controllers ===
-// Lấy danh sách bài ôn luyện cho người học (chỉ trả về bài đang hoạt động)
+// Hàm lấy danh sách bài ôn luyện công khai cho người học (chỉ trả về bài đang hoạt động).
 const getPublicPractices = async (req, res) => {
   try {
     const { page, limit } = parsePagination(req.query);
@@ -52,7 +59,7 @@ const getPublicPractices = async (req, res) => {
   }
 };
 
-// Lấy danh sách bài ôn luyện dành cho admin (bao gồm cả bản nháp và ngừng hoạt động)
+// Hàm lấy danh sách bài ôn luyện dành cho admin (bao gồm cả bản nháp và ngừng hoạt động).
 const getAdminPractices = async (req, res) => {
   try {
     const { page, limit } = parsePagination(req.query);
@@ -87,7 +94,7 @@ const getAdminPractices = async (req, res) => {
   }
 };
 
-// Tạo mới bài ôn luyện dựa trên dữ liệu admin gửi lên
+// Hàm tạo mới bài ôn luyện dựa trên dữ liệu admin gửi lên.
 const createPractice = async (req, res) => {
   try {
     const payload = {
@@ -124,7 +131,7 @@ const createPractice = async (req, res) => {
   }
 };
 
-// Lấy chi tiết bài ôn luyện cho học viên làm bài (ẩn đáp án)
+// Hàm lấy chi tiết bài ôn luyện cho học viên làm bài (ẩn đáp án).
 const getPracticeForLearner = async (req, res) => {
   try {
     const { practiceId } = req.params;
@@ -152,7 +159,7 @@ const getPracticeForLearner = async (req, res) => {
   }
 };
 
-// Lấy chi tiết đầy đủ của bài ôn luyện (bao gồm đáp án) dành cho admin
+// Hàm lấy chi tiết đầy đủ của bài ôn luyện (bao gồm đáp án) dành cho admin.
 const getPracticeDetails = async (req, res) => {
   try {
     const { practiceId } = req.params;
@@ -176,7 +183,7 @@ const getPracticeDetails = async (req, res) => {
   }
 };
 
-// Upload media cho passage trong bài ôn luyện
+// Hàm upload media cho passage trong bài ôn luyện.
 const uploadPracticeMedia = async (req, res) => {
   try {
     const files = req.files || [];
@@ -204,7 +211,7 @@ const uploadPracticeMedia = async (req, res) => {
   }
 };
 
-// Import bài ôn luyện từ file Word/Excel
+// Hàm import bài ôn luyện từ file Word/Excel.
 const importPractice = async (req, res) => {
   try {
     if (!req.file) {
@@ -241,7 +248,7 @@ const importPractice = async (req, res) => {
   }
 };
 
-// Cập nhật nội dung (sections + questions) của bài ôn luyện
+// Hàm cập nhật nội dung (sections + questions) của bài ôn luyện.
 const updatePracticeContent = async (req, res) => {
   try {
     const { practiceId } = req.params;
@@ -339,7 +346,7 @@ const updatePracticeContent = async (req, res) => {
   }
 };
 
-// Cập nhật thông tin cơ bản bài ôn luyện
+// Hàm cập nhật thông tin cơ bản bài ôn luyện.
 const updatePracticeInfo = async (req, res) => {
   try {
     const { practiceId } = req.params;
@@ -393,7 +400,7 @@ const updatePracticeInfo = async (req, res) => {
   }
 };
 
-// Xóa bài ôn luyện khỏi hệ thống
+// Hàm xóa bài ôn luyện khỏi hệ thống.
 const deletePractice = async (req, res) => {
   try {
     const { practiceId } = req.params;
@@ -425,6 +432,261 @@ const deletePractice = async (req, res) => {
   }
 };
 
+// Hàm nộp bài ôn luyện, chấm điểm và lưu lịch sử làm bài.
+const submitPracticeAttempt = async (req, res) => {
+  try {
+    const { practiceId } = req.params;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Chưa đăng nhập' });
+    }
+
+    const practice = await Practice.findById(practiceId).lean();
+
+    if (!practice) {
+      return res.status(404).json({ message: 'Không tìm thấy bài ôn luyện' });
+    }
+
+    if (!practice.isActive) {
+      return res.status(400).json({ message: 'Bài ôn luyện này đang bị vô hiệu hóa' });
+    }
+
+  // Kiểm tra và chuẩn hóa dữ liệu nộp bài trước khi chấm điểm.
+  let submissionPayload;
+    try {
+      submissionPayload = validatePracticeSubmissionPayload(req.body);
+    } catch (validationError) {
+      return res.status(400).json({
+        message: validationError.message || 'Dữ liệu nộp bài không hợp lệ'
+      });
+    }
+
+    const scoring = scorePracticeSubmission(practice, submissionPayload.answers);
+
+    const durationSeconds = sanitizeDuration(req.body?.durationSeconds);
+    const providedStartedAt = parseDateValue(req.body?.startedAt);
+    const providedCompletedAt = parseDateValue(req.body?.completedAt);
+    const completedAt = providedCompletedAt || new Date();
+    let startedAt = providedStartedAt;
+
+    if (!startedAt && durationSeconds > 0) {
+      startedAt = new Date(completedAt.getTime() - durationSeconds * 1000);
+    }
+
+    const attemptDoc = await PracticeAttempt.create({
+      practiceId: practice._id,
+      userId,
+      skill: practice.skill,
+      levelGroup: practice.levelGroup,
+      totalQuestions: scoring.totalQuestions,
+      totalPoints: scoring.totalPoints,
+      earnedPoints: scoring.earnedPoints,
+      percentage: scoring.percentage,
+      correctCount: scoring.correctCount,
+      incorrectCount: scoring.incorrectCount,
+      skippedCount: scoring.skippedCount,
+      durationSeconds,
+      startedAt,
+      completedAt,
+      answers: scoring.answers
+    });
+
+    const attempt = attemptDoc.toObject();
+
+    return res.status(201).json({
+      message: 'Nộp bài ôn luyện thành công',
+      data: {
+        attempt,
+        practice: {
+          id: String(practice._id),
+          title: practice.title,
+          skill: practice.skill,
+          levelGroup: practice.levelGroup,
+          totalQuestions: scoring.totalQuestions,
+          totalPoints: scoring.totalPoints
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[practiceController][submitPracticeAttempt] Lỗi nộp bài ôn luyện', error);
+    return res.status(500).json({ message: 'Không thể nộp bài ôn luyện' });
+  }
+};
+
+// Hàm lấy lịch sử làm bài của người học cho một bài ôn luyện.
+const getMyPracticeAttempts = async (req, res) => {
+  try {
+    const { practiceId } = req.params;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Chưa đăng nhập' });
+    }
+
+    const { page, limit } = parsePagination(req.query);
+    const query = {
+      practiceId,
+      userId
+    };
+
+    const [items, total] = await Promise.all([
+      PracticeAttempt.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select('-answers')
+        .populate('practiceId', 'title skill levelGroup totalQuestions totalPoints')
+        .lean(),
+      PracticeAttempt.countDocuments(query)
+    ]);
+
+    return res.status(200).json({
+      message: 'Lấy lịch sử làm bài thành công',
+      data: {
+        items,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[practiceController][getMyPracticeAttempts] Lỗi lấy lịch sử', error);
+    return res.status(500).json({ message: 'Không thể lấy lịch sử làm bài' });
+  }
+};
+
+// Hàm lấy danh sách lịch sử làm bài cho admin theo từng bài ôn luyện.
+const getPracticeAttemptsForAdmin = async (req, res) => {
+  try {
+    const { practiceId } = req.params;
+    const { page, limit } = parsePagination(req.query);
+    const query = { practiceId };
+
+    if (req.query.userId && mongoose.Types.ObjectId.isValid(req.query.userId)) {
+      query.userId = req.query.userId;
+    }
+
+    const [items, total] = await Promise.all([
+      PracticeAttempt.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select('-answers')
+        .populate('practiceId', 'title skill levelGroup totalQuestions totalPoints')
+        .populate('userId', 'firstName lastName email username role')
+        .lean(),
+      PracticeAttempt.countDocuments(query)
+    ]);
+
+    return res.status(200).json({
+      message: 'Lấy danh sách lịch sử làm bài thành công',
+      data: {
+        items,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[practiceController][getPracticeAttemptsForAdmin] Lỗi lấy lịch sử admin', error);
+    return res.status(500).json({ message: 'Không thể lấy danh sách lịch sử làm bài' });
+  }
+};
+
+// Hàm lấy chi tiết một lần làm bài, bao gồm thông tin bài và người dùng.
+const getPracticeAttemptDetails = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const attemptDoc = await PracticeAttempt.findById(attemptId)
+      .populate('practiceId', 'title skill levelGroup totalQuestions totalPoints sections questions')
+      .populate('userId', 'firstName lastName email username role');
+
+    if (!attemptDoc) {
+      return res.status(404).json({ message: 'Không tìm thấy lịch sử làm bài' });
+    }
+
+    const isAdmin = req.user?.role === 'admin';
+    const ownerId = attemptDoc.userId?._id || attemptDoc.userId;
+    const requesterId = req.user?._id || req.user?.id;
+
+    if (!isAdmin && String(ownerId) !== String(requesterId)) {
+      return res.status(403).json({ message: 'Không có quyền truy cập lịch sử này' });
+    }
+
+    const attempt = attemptDoc.toObject();
+    const practiceDoc = attempt.practiceId && typeof attempt.practiceId === 'object' ? attempt.practiceId : null;
+    const userDoc = attempt.userId && typeof attempt.userId === 'object' ? attempt.userId : null;
+
+    const practice = practiceDoc ? {
+      id: String(practiceDoc._id),
+      title: practiceDoc.title,
+      skill: practiceDoc.skill,
+      levelGroup: practiceDoc.levelGroup,
+      totalQuestions: practiceDoc.totalQuestions,
+      totalPoints: practiceDoc.totalPoints,
+      sections: (practiceDoc.sections || []).map((section) => ({
+        _id: section._id,
+        title: section.title,
+        passage: section.passage,
+        audio: section.audio,
+        image: section.image,
+        mediaBlocks: section.mediaBlocks
+      })),
+      questions: (practiceDoc.questions || []).map((question) => ({
+        _id: question._id,
+        questionNumber: question.questionNumber,
+        type: question.type,
+        allowMultiple: question.allowMultiple,
+        content: question.content,
+        options: question.options,
+        matchingPairs: question.matchingPairs,
+        correctAnswers: question.correctAnswers,
+        explanation: question.explanation,
+        points: question.points
+      }))
+    } : null;
+
+    const user = userDoc ? {
+      id: String(userDoc._id),
+      firstName: userDoc.firstName,
+      lastName: userDoc.lastName,
+      email: userDoc.email,
+      username: userDoc.username,
+      role: userDoc.role
+    } : null;
+
+    attempt.practiceId = practice ? practice.id : attempt.practiceId;
+    attempt.userId = user ? user.id : attempt.userId;
+
+    if (!practice && attempt.practiceId) {
+      attempt.practiceId = String(attempt.practiceId);
+    }
+
+    if (!user && attempt.userId) {
+      attempt.userId = String(attempt.userId);
+    }
+
+    return res.status(200).json({
+      message: 'Lấy chi tiết lịch sử làm bài thành công',
+      data: {
+        attempt,
+        practice,
+        user
+      }
+    });
+  } catch (error) {
+    console.error('[practiceController][getPracticeAttemptDetails] Lỗi lấy chi tiết lịch sử', error);
+    return res.status(500).json({ message: 'Không thể lấy chi tiết lịch sử làm bài' });
+  }
+};
+
 // === exports ===
 module.exports = {
   getPublicPractices,
@@ -435,6 +697,10 @@ module.exports = {
   updatePracticeContent,
   updatePracticeInfo,
   deletePractice,
+  submitPracticeAttempt,
+  getMyPracticeAttempts,
+  getPracticeAttemptsForAdmin,
+  getPracticeAttemptDetails,
   uploadPracticeMedia,
   importPractice
 };

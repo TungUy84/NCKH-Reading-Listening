@@ -17,7 +17,10 @@ import RegisterPage from './pages/UserPage/RegisterPage';
 import ProfilePage from './pages/UserPage/ProfilePage';
 import ForgotPasswordPage from './pages/UserPage/ForgotPasswordPage';
 import ResetPasswordPage from './pages/UserPage/ResetPasswordPage';
-import PracticePage from './pages/PracticePage/PracticePage';
+import PracticeListPage from './pages/PracticePage/PracticeListPage';
+import PracticeDetailPage from './pages/PracticePage/PracticeDetailPage';
+import PracticeTakePage from './pages/PracticePage/PracticeTakePage';
+import PracticeResultPage from './pages/PracticePage/PracticeResultPage';
 import MockTestPage from './pages/MockTestPage/MockTestPage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
 import BlogPage from './pages/BlogPage/BlogPage';
@@ -36,12 +39,14 @@ declare global {
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
   const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname);
+  const isPracticeTakingPage = /^\/practice\/[^/]+\/take$/.test(pathname);
+  const hideLayoutChrome = isTestTakingPage || isPracticeTakingPage;
 
   return (
-    <div className={`min-h-screen flex flex-col overflow-x-hidden${isTestTakingPage ? ' bg-gray-50' : ''}`}>
-      {!isTestTakingPage && <Header />}
+    <div className={`min-h-screen flex flex-col overflow-x-hidden${hideLayoutChrome ? ' bg-gray-50' : ''}`}>
+      {!hideLayoutChrome && <Header />}
 
-      <main className={`flex-1 ${isTestTakingPage ? '' : 'pt-16'}`}>
+      <main className={`flex-1 ${hideLayoutChrome ? '' : 'pt-16'}`}>
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/tests" element={<TestsPage />} />
@@ -59,7 +64,31 @@ const AppShell: React.FC = () => {
           />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-          <Route path="/practice" element={<PracticePage />} />
+          <Route path="/practice" element={<PracticeListPage />} />
+          <Route
+            path="/practice/:practiceId"
+            element={
+              <ProtectedRoute>
+                <PracticeDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/:practiceId/take"
+            element={
+              <ProtectedRoute>
+                <PracticeTakePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/practice/attempts/:attemptId"
+            element={
+              <ProtectedRoute>
+                <PracticeResultPage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/mock-test" element={<MockTestPage />} />
           <Route path="/lessons" element={<LessonsPage />} />
           <Route path="/blog" element={<BlogPage />} />
@@ -80,7 +109,7 @@ const AppShell: React.FC = () => {
         </Routes>
       </main>
 
-      {!isTestTakingPage && <Footer />}
+      {!hideLayoutChrome && <Footer />}
     </div>
   );
 };

@@ -230,6 +230,128 @@ export interface ScoreDisplayProps {
   levelDescription: string;
 }
 
+// ===== LOẠI DỮ LIỆU CHO ÔN LUYỆN =====
+
+export type PracticeSkill = 'reading' | 'listening';
+
+export type PracticeLevelGroup = 'AV1-AV3' | 'AV4-AV5' | 'AV6' | 'AV7';
+
+export interface PracticeSummary {
+  _id: string;
+  title: string;
+  description?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  estimatedTime?: number;
+  totalQuestions: number;
+  totalPoints: number;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PracticeSection {
+  _id?: string;
+  title: string;
+  passage?: string;
+  audio?: string;
+  image?: string;
+  mediaBlocks?: SectionMedia[];
+}
+
+export interface PracticeQuestion {
+  _id?: string;
+  sectionId?: string;
+  questionNumber: number;
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
+  allowMultiple?: boolean;
+  content: string;
+  options?: Option[];
+  matchingPairs?: MatchingPair[];
+  points: number;
+  passage?: string;
+}
+
+export interface PracticeDetail extends PracticeSummary {
+  sections: PracticeSection[];
+  questions: PracticeQuestion[];
+}
+
+export interface PracticeAnswerInput {
+  questionId?: string;
+  questionNumber?: number;
+  selectedOptions?: string[];
+  userAnswer?: string;
+  matchingAnswers?: { prompt: string; selected: string }[];
+}
+
+export interface PracticeAttemptAnswer {
+  questionId?: string;
+  questionNumber: number;
+  type: PracticeQuestion['type'];
+  allowMultiple?: boolean;
+  selectedOptions: string[];
+  userAnswer: string;
+  matchingAnswers?: { prompt: string; selected: string }[];
+  correctAnswers?: string[];
+  earnedPoints: number;
+  points: number;
+  isCorrect: boolean;
+  isSkipped?: boolean;
+}
+
+export interface PracticeAttemptSummary {
+  _id: string;
+  practiceId: PracticeSummary | string;
+  userId: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  totalQuestions: number;
+  totalPoints: number;
+  earnedPoints: number;
+  percentage: number;
+  correctCount: number;
+  incorrectCount: number;
+  skippedCount: number;
+  durationSeconds?: number;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PracticeAttemptDetail extends PracticeAttemptSummary {
+  answers: PracticeAttemptAnswer[];
+}
+
+export interface PracticeSubmissionPayload {
+  answers: PracticeAnswerInput[];
+  durationSeconds?: number;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+export interface PracticeSubmissionResponse {
+  message: string;
+  data: {
+    attempt: PracticeAttemptDetail;
+    practice: PracticeSummary;
+  };
+}
+
+export interface PracticeHistoryResponse {
+  message: string;
+  data: {
+    items: PracticeAttemptSummary[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
 // Dữ liệu form liên hệ/feedback
 export interface ContactFormData {
   name: string;

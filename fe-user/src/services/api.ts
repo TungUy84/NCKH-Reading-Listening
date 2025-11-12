@@ -1,4 +1,7 @@
 import axios from 'axios';
+import {
+  PracticeSubmissionPayload
+} from '../types';
 
 // Khởi tạo axios với cấu hình mặc định
 const apiService = axios.create({
@@ -272,6 +275,65 @@ export const testConnection = async () => {
   } catch {
     return false;
   }
+};
+
+// ========== NHÓM API CHO ÔN LUYỆN ==========
+
+/**
+ * Lấy danh sách bài ôn luyện công khai cho người học.
+ * Backend: GET /api/practices
+ */
+export const getPublicPractices = async (params?: {
+  skill?: 'reading' | 'listening';
+  levelGroup?: string;
+  keyword?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await apiService.get('/practices', { params });
+  return response.data;
+};
+
+/**
+ * Lấy chi tiết bài ôn luyện dành cho người học (không bao gồm đáp án).
+ * Backend: GET /api/practices/:practiceId
+ */
+export const getPracticeForLearner = async (practiceId: string) => {
+  const response = await apiService.get(`/practices/${practiceId}`);
+  return response.data;
+};
+
+/**
+ * Nộp bài ôn luyện và nhận lại kết quả chấm điểm.
+ * Backend: POST /api/practices/:practiceId/submit
+ */
+export const submitPracticeAttempt = async (
+  practiceId: string,
+  payload: PracticeSubmissionPayload
+) => {
+  const response = await apiService.post(`/practices/${practiceId}/submit`, payload);
+  return response.data;
+};
+
+/**
+ * Lấy lịch sử làm bài của chính học viên cho một bài ôn luyện.
+ * Backend: GET /api/practices/:practiceId/attempts/mine
+ */
+export const getMyPracticeAttempts = async (
+  practiceId: string,
+  params?: { page?: number; limit?: number }
+) => {
+  const response = await apiService.get(`/practices/${practiceId}/attempts/mine`, { params });
+  return response.data;
+};
+
+/**
+ * Lấy chi tiết một lần làm bài ôn luyện.
+ * Backend: GET /api/practices/attempts/:attemptId
+ */
+export const getPracticeAttemptDetail = async (attemptId: string) => {
+  const response = await apiService.get(`/practices/attempts/${attemptId}`);
+  return response.data;
 };
 
 // Export the axios instance as default for direct use

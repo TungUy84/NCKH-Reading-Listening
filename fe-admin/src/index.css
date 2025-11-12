@@ -20,7 +20,6 @@
   }
   
   html {
-    /* Scale UI to ~90% similar to browser zoom 90% by reducing root font-size. */
     font-size: 90%;
     scroll-behavior: smooth;
     overflow-x: hidden;
@@ -34,7 +33,6 @@
   }
 }
 
-/* Prevent Edge from rendering its built-in password reveal control */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
   display: none;
