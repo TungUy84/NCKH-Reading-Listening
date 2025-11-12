@@ -20,7 +20,11 @@ import {
   PracticeListResult,
   PracticeQueryParams,
   PracticeMediaBlock,
-  PracticeImportPreview
+  PracticeImportPreview,
+  Lesson,
+  LessonPayload,
+  LessonQueryParams,
+  LessonListResult
 } from '../types';
 
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -559,6 +563,83 @@ export class PracticeAPI {
     } catch (error) {
       console.error('Delete practice error:', error);
       throw new Error('Không thể xóa bài ôn luyện');
+    }
+  }
+}
+
+// API quản lý bài học lý thuyết
+export class LessonAPI {
+  // Lấy danh sách bài học cho admin (kèm phân trang và bộ lọc)
+  static async getLessons(params: LessonQueryParams = {}): Promise<LessonListResult> {
+    try {
+      const queryParams: Record<string, any> = {};
+
+      if (params.page !== undefined) queryParams.page = params.page;
+      if (params.limit !== undefined) queryParams.limit = params.limit;
+      if (params.keyword) queryParams.keyword = params.keyword;
+      if (params.skill) queryParams.skill = params.skill;
+      if (params.levelGroup) queryParams.levelGroup = params.levelGroup;
+      if (params.status) queryParams.status = params.status;
+
+      const response = await api.get('/lessons/admin', { params: queryParams });
+      const payload = response.data?.data || {};
+      const pagination = payload.pagination || {};
+
+      return {
+        items: payload.items || [],
+        pagination: {
+          page: pagination.page || Number(queryParams.page) || 1,
+          limit: pagination.limit || Number(queryParams.limit) || 10,
+          total: pagination.total || 0,
+          totalPages: pagination.totalPages || 1
+        }
+      };
+    } catch (error) {
+      console.error('Get lessons error:', error);
+      throw new Error('Không thể tải danh sách bài học');
+    }
+  }
+
+  // Lấy chi tiết bài học phục vụ chỉnh sửa
+  static async getLesson(lessonId: string): Promise<Lesson> {
+    try {
+  const response = await api.get(`/lessons/admin/${lessonId}`);
+      return response.data.lesson;
+    } catch (error) {
+      console.error('Get lesson detail error:', error);
+      throw new Error('Không thể tải chi tiết bài học');
+    }
+  }
+
+  // Tạo mới bài học
+  static async createLesson(payload: LessonPayload): Promise<Lesson> {
+    try {
+  const response = await api.post('/lessons/admin', payload);
+      return response.data.lesson;
+    } catch (error) {
+      console.error('Create lesson error:', error);
+      throw new Error('Không thể tạo bài học mới');
+    }
+  }
+
+  // Cập nhật bài học hiện có
+  static async updateLesson(lessonId: string, payload: Partial<LessonPayload>): Promise<Lesson> {
+    try {
+  const response = await api.put(`/lessons/admin/${lessonId}`, payload);
+      return response.data.lesson;
+    } catch (error) {
+      console.error('Update lesson error:', error);
+      throw new Error('Không thể cập nhật bài học');
+    }
+  }
+
+  // Xóa bài học khỏi hệ thống
+  static async deleteLesson(lessonId: string): Promise<void> {
+    try {
+  await api.delete(`/lessons/admin/${lessonId}`);
+    } catch (error) {
+      console.error('Delete lesson error:', error);
+      throw new Error('Không thể xóa bài học');
     }
   }
 }

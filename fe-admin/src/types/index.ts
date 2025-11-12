@@ -133,6 +133,45 @@ export interface PracticeQueryParams {
   status?: 'active' | 'inactive' | '';
 }
 
+export interface Lesson {
+  _id: string;
+  title: string;
+  summary?: string;
+  content: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  coverImage?: string;
+  isActive: boolean;
+  viewCount: number;
+  createdBy?: string | AdminUser;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LessonPayload {
+  title: string;
+  summary?: string;
+  content: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  coverImage?: string;
+  isActive?: boolean;
+}
+
+export interface LessonQueryParams {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+  skill?: PracticeSkill | '';
+  levelGroup?: PracticeLevelGroup | '';
+  status?: 'active' | 'inactive' | '';
+}
+
+export interface LessonListResult {
+  items: Lesson[];
+  pagination: PracticePagination;
+}
+
 export interface TestSection {
   _id?: string;
   sectionId?: number;

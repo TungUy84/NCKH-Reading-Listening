@@ -23,6 +23,7 @@ import PracticeTakePage from './pages/PracticePage/PracticeTakePage';
 import PracticeResultPage from './pages/PracticePage/PracticeResultPage';
 import MockTestPage from './pages/MockTestPage/MockTestPage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
+import LessonDetailPage from './pages/LessonsPage/LessonDetailPage';
 import BlogPage from './pages/BlogPage/BlogPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
 
@@ -91,6 +92,7 @@ const AppShell: React.FC = () => {
           />
           <Route path="/mock-test" element={<MockTestPage />} />
           <Route path="/lessons" element={<LessonsPage />} />
+          <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
           <Route path="/blog" element={<BlogPage />} />
           <Route path="/roadmap" element={<RoadmapPage />} />
 

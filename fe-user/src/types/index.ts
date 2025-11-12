@@ -352,6 +352,24 @@ export interface PracticeHistoryResponse {
   };
 }
 
+// ===== LOẠI DỮ LIỆU CHO BÀI HỌC =====
+
+export interface LessonSummary {
+  _id: string;
+  title: string;
+  summary?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  coverImage?: string;
+  viewCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LessonDetail extends LessonSummary {
+  content: string;
+}
+
 // Dữ liệu form liên hệ/feedback
 export interface ContactFormData {
   name: string;

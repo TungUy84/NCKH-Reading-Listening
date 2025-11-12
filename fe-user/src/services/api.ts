@@ -1,6 +1,8 @@
 import axios from 'axios';
 import {
-  PracticeSubmissionPayload
+  PracticeSubmissionPayload,
+  LessonSummary,
+  LessonDetail
 } from '../types';
 
 // Khởi tạo axios với cấu hình mặc định
@@ -334,6 +336,43 @@ export const getMyPracticeAttempts = async (
 export const getPracticeAttemptDetail = async (attemptId: string) => {
   const response = await apiService.get(`/practices/attempts/${attemptId}`);
   return response.data;
+};
+
+// ========== NHÓM API CHO BÀI HỌC ==========
+
+/**
+ * Lấy danh sách bài học công khai cho người học.
+ * Backend: GET /api/lessons
+ */
+export const getPublicLessons = async (params?: {
+  keyword?: string;
+  skill?: 'reading' | 'listening';
+  levelGroup?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await apiService.get('/lessons', { params });
+  return response.data as {
+    message: string;
+    data: {
+      items: LessonSummary[];
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    };
+  };
+};
+
+/**
+ * Lấy chi tiết một bài học đã xuất bản.
+ * Backend: GET /api/lessons/:lessonId
+ */
+export const getLessonDetail = async (lessonId: string) => {
+  const response = await apiService.get(`/lessons/${lessonId}`);
+  return response.data as { message: string; lesson: LessonDetail };
 };
 
 // Export the axios instance as default for direct use
