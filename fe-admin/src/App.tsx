@@ -13,19 +13,29 @@ import EditTestPage from './pages/PlacementTestPage/EditTestPage';
 import CreateTestPage from './pages/PlacementTestPage/CreateTestPage';
 import ImportTestPage from './pages/PlacementTestPage/ImportTestPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
+import EditRoadmapPage from './pages/RoadmapPage/EditRoadmapPage';
 import PracticePage from './pages/PracticePage/PracticePage';
+import CreatePracticePage from './pages/PracticePage/CreatePracticePage';
+import EditPracticePage from './pages/PracticePage/EditPracticePage';
+import ViewPracticePage from './pages/PracticePage/ViewPracticePage';
+import ImportPracticePage from './pages/PracticePage/ImportPracticePage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
+import CreateLessonPage from './pages/LessonsPage/CreateLessonPage';
+import EditLessonPage from './pages/LessonsPage/EditLessonPage';
+import ViewLessonPage from './pages/LessonsPage/ViewLessonPage';
 import MockExamPage from './pages/MockExamPage/MockExamPage';
 import BlogPage from './pages/BlogPage/BlogPage';
 import UsersPage from './pages/UsersPage/UsersPage';
 import CreateUserPage from './pages/UsersPage/CreateUserPage';
 import EditUserPage from './pages/UsersPage/EditUserPage';
 
+// Ứng dụng quản trị chính của hệ thống, điều phối layout và định tuyến
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  // Kiểm tra token mỗi khi ứng dụng khởi động để khôi phục phiên đăng nhập
   useEffect(() => {
     // Check if user is already logged in
     const token = localStorage.getItem('adminToken');
@@ -35,11 +45,13 @@ const App: React.FC = () => {
     setLoading(false);
   }, []);
 
+  // Lưu token admin sau khi đăng nhập thành công
   const handleLogin = (token: string) => {
     localStorage.setItem('adminToken', token);
     setIsAuthenticated(true);
   };
 
+  // Xóa token và reset trạng thái khi đăng xuất
   const handleLogout = () => {
     localStorage.removeItem('adminToken');
     setIsAuthenticated(false);
@@ -60,13 +72,13 @@ const App: React.FC = () => {
     return (
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
-          <Route 
-            path="/admin/login" 
-            element={<LoginPage onLogin={handleLogin} />} 
+          <Route
+            path="/admin/login"
+            element={<LoginPage onLogin={handleLogin} />}
           />
-          <Route 
-            path="*" 
-            element={<Navigate to="/admin/login" replace />} 
+          <Route
+            path="*"
+            element={<Navigate to="/admin/login" replace />}
           />
         </Routes>
       </Router>
@@ -77,18 +89,17 @@ const App: React.FC = () => {
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50">
         {/* Sidebar */}
-        <Sidebar 
+        <Sidebar
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
         {/* Main Content Area */}
-        <div className={`transition-all duration-300 ${
-          sidebarCollapsed ? 'ml-20' : 'ml-64'
-        }`}>
+        <div className={`transition-all duration-300 ${sidebarCollapsed ? 'ml-20' : 'ml-64'
+          }`}>
           {/* Header */}
-          <AdminHeader 
-            onLogout={handleLogout} 
+          <AdminHeader
+            onLogout={handleLogout}
             onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
             sidebarCollapsed={sidebarCollapsed}
           />
@@ -98,7 +109,7 @@ const App: React.FC = () => {
             <Routes>
               {/* Dashboard */}
               <Route path="/admin/dashboard" element={<DashboardPage />} />
-              
+
               {/* Placement Tests Management */}
               <Route path="/admin/placement-tests" element={<PlacementTestsPage />} />
               <Route path="/admin/placement-tests/create" element={<CreateTestPage />} />
@@ -108,8 +119,19 @@ const App: React.FC = () => {
 
               {/* Additional Feature Sections */}
               <Route path="/admin/roadmap" element={<RoadmapPage />} />
+              <Route path="/admin/roadmap/edit/:id" element={<EditRoadmapPage />} />
               <Route path="/admin/practice" element={<PracticePage />} />
+              <Route path="/admin/practice/create" element={<CreatePracticePage />} />
+              <Route path="/admin/practice/import" element={<ImportPracticePage />} />
+              <Route path="/admin/practice/:practiceId/view" element={<ViewPracticePage />} />
+              <Route path="/admin/practice/:practiceId/edit" element={<EditPracticePage />} />
+              
+              {/* Lessons Management */}
               <Route path="/admin/lessons" element={<LessonsPage />} />
+              <Route path="/admin/lessons/create" element={<CreateLessonPage />} />
+              <Route path="/admin/lessons/:lessonId" element={<ViewLessonPage />} />
+              <Route path="/admin/lessons/edit/:lessonId" element={<EditLessonPage />} />
+              
               <Route path="/admin/mock-exams" element={<MockExamPage />} />
               <Route path="/admin/blog" element={<BlogPage />} />
               {/* Users Management */}
@@ -117,7 +139,7 @@ const App: React.FC = () => {
               <Route path="/admin/users/create" element={<CreateUserPage />} />
               <Route path="/admin/users/:userId/edit" element={<EditUserPage />} />
 
-              
+
               {/* Default redirect */}
               <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
               <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
@@ -126,7 +148,7 @@ const App: React.FC = () => {
           </main>
         </div>
       </div>
-      
+
       {/* Toast Container */}
       <ToastContainer
         position="top-right"

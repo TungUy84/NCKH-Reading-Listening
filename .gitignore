@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# VS Code settings
+.vscode/
+
+# GitHub settings
+.github/

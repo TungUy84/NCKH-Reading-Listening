@@ -2,19 +2,24 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AuthAPI } from '../services/api';
+import { ArrowPathIcon, EyeIcon, EyeSlashIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
 
 interface LoginPageProps {
   onLogin: (token: string) => void;
 }
 
+// Trang đăng nhập cho quản trị viên với form và xử lý hiển thị mật khẩu
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
-    email: '',
+    identifier: '',
     password: ''
   });
   const [loading, setLoading] = useState(false);
+  // Luôn render nút xem/ẩn để admin có thể xem mật khẩu bất cứ lúc nào
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
+  // Gửi thông tin đăng nhập lên server và lưu token nếu thành công
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -33,6 +38,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     }
   };
 
+  // Cập nhật state khi admin nhập email hoặc mật khẩu
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials({
       ...credentials,
@@ -46,9 +52,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-white rounded-full flex items-center justify-center mb-4">
-            <svg className="h-8 w-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
+            <Squares2X2Icon className="h-8 w-8 text-primary-600" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
             Admin Portal
@@ -71,19 +75,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+              <label htmlFor="identifier" className="block text-sm font-medium text-gray-700 mb-2">
+                Email hoặc tên đăng nhập
               </label>
               <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
+                id="identifier"
+                name="identifier"
+                type="text"
+                autoComplete="username"
                 required
-                value={credentials.email}
+                value={credentials.identifier}
                 onChange={handleChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
-                placeholder="admin@vanlang.edu.vn"
+                placeholder="Email hoặc tên đăng nhập"
                 disabled={loading}
               />
             </div>
@@ -92,18 +96,32 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Mật khẩu
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={credentials.password}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
-                placeholder="••••••••"
-                disabled={loading}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  value={credentials.password}
+                  onChange={handleChange}
+                  className="w-full px-4 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                  placeholder="••••••••"
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(prev => !prev)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition hover:text-primary-600"
+                  aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+                >
+                  {showPassword ? (
+                    <EyeSlashIcon className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">
@@ -136,10 +154,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <ArrowPathIcon className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" />
                   Đang đăng nhập...
                 </>
               ) : (
@@ -149,19 +164,19 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           </form>
 
           {/* Demo credentials info */}
-          <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-900 mb-2">Thông tin đăng nhập demo:</h4>
-            <div className="text-sm text-blue-700 space-y-1">
-              <p><strong>Email:</strong> admin@vanlang.edu.vn</p>
-              <p><strong>Mật khẩu:</strong> admin123</p>
-            </div>
-          </div>
+          {/* <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">Thông tin đăng nhập demo:</h4>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p><strong>Email/Tên đăng nhập:</strong> admin@vanlang.edu.vn hoặc admin</p>
+                <p><strong>Mật khẩu:</strong> admin123</p>
+              </div>
+            </div> */}
         </div>
 
         {/* Footer */}
         <div className="text-center">
           <p className="text-primary-100 text-sm">
-            © 2024 Đại học Văn Lang. Tất cả quyền được bảo lưu.
+            © 2025 Đại học Văn Lang. Nghiên cứu khoa học.
           </p>
         </div>
       </div>

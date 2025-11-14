@@ -57,7 +57,26 @@ const validateRegister = [
 
 // Validation đăng nhập
 const validateLogin = [
+  body('identifier')
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (!value) {
+        return true;
+      }
+
+      const isEmail = /\S+@\S+\.\S+/.test(value);
+      const isUsername = /^[a-zA-Z0-9_]{3,30}$/.test(value);
+
+      if (!isEmail && !isUsername) {
+        throw new Error('Vui lòng nhập email hợp lệ hoặc tên đăng nhập từ 3-30 ký tự');
+      }
+      return true;
+    }),
+
   body('email')
+    .optional()
+    .trim()
     .isEmail()
     .withMessage('Email không hợp lệ')
     .normalizeEmail(),
@@ -65,6 +84,14 @@ const validateLogin = [
   body('password')
     .notEmpty()
     .withMessage('Mật khẩu là bắt buộc'),
+
+  body()
+    .custom(({ identifier, email }) => {
+      if (!identifier && !email) {
+        throw new Error('Email hoặc tên đăng nhập là bắt buộc');
+      }
+      return true;
+    }),
     
   handleValidationErrors
 ];

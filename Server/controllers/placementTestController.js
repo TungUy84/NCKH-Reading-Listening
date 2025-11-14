@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const { PlacementTest } = require('../models/PlacementTest');
 const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/placementTestImport');
 
+// Xóa các tệp media cũ để tránh rác khi admin cập nhật bài thi
 const deleteMediaFiles = async (blocks = []) => {
   if (!Array.isArray(blocks) || !blocks.length) return;
 
@@ -82,7 +83,7 @@ const getPlacementTestForTaking = async (req, res) => {
 // Chấm điểm bài test ngay lập tức (Public - không lưu database)
 const checkPlacementTest = async (req, res) => {
   try {
-    const { answers } = req.body || {};
+  const { answers } = req.body || {};
     const testId = req.params.testId || req.body?.testId;
 
     if (!testId) {
@@ -236,7 +237,8 @@ const checkPlacementTest = async (req, res) => {
     const percentage = Math.round((earnedPoints / test.totalPoints) * 100);
 
     // Tính điểm IELTS và level AV (không cần lưu database)
-    const getIELTSAndLevel = (percentage) => {
+  // Quy đổi phần trăm sang thang điểm nội bộ để gợi ý lộ trình học
+  const getIELTSAndLevel = (percentage) => {
       let ieltsScore, avLevel, recommendation;
 
       if (percentage >= 95) {
@@ -453,7 +455,6 @@ const createPlacementTest = async (req, res) => {
           type: question.type || 'multi_choice',
           allowMultiple: !!question.allowMultiple,
           content: question.content || question.text || '',
-          instructions: question.instructions || '',
           options: Array.isArray(question.options)
             ? question.options.map((op) => ({
               text: op?.text || '',
@@ -466,7 +467,6 @@ const createPlacementTest = async (req, res) => {
               correctOption: pair?.correctOption || ''
             })).filter((pair) => pair.prompt && pair.correctOption)
             : [],
-          wordBank: Array.isArray(question.wordBank) ? question.wordBank.filter(Boolean) : [],
           correctAnswers: Array.isArray(question.correctAnswers)
             ? question.correctAnswers.map((ans) => String(ans || '').trim()).filter(Boolean)
             : [],
@@ -618,9 +618,6 @@ const updateTestContent = async (req, res) => {
         if (!qq.sectionId && typeof qq.sectionIndex === 'number' && currentSections[qq.sectionIndex]?._id) {
           qq.sectionId = currentSections[qq.sectionIndex]._id;
         }
-        if (qq.skill !== undefined) {
-          delete qq.skill;
-        }
         return qq;
       });
       test.questions = normalized;
@@ -659,8 +656,6 @@ const uploadSectionMedia = async (req, res) => {
       type: file.mimetype.startsWith('audio/') ? 'audio' : 'image',
       url: `/uploads/tests/media/${path.basename(file.path)}`,
       originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
       transcript: ''
     }));
 
@@ -811,7 +806,6 @@ const getPlacementTestStats = async (req, res) => {
         totalTests,
         activeTests,
         categoryStats,
-        note: 'Kết quả test không được lưu trong database nên không có thống kê kết quả người dùng'
       }
     });
   } catch (error) {

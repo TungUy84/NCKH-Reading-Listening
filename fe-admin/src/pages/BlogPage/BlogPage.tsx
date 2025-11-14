@@ -1,5 +1,6 @@
 import React from 'react';
 
+// Placeholder cho trang quản lý bài viết blog
 const BlogPage: React.FC = () => {
   return (
     <div className="space-y-4">

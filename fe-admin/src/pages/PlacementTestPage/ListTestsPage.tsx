@@ -15,6 +15,7 @@ const categoryLabel: Record<string, string> = {
 
 const statusLabel = (isActive: boolean) => (isActive ? 'Hoạt động' : 'Tạm ẩn');
 
+// Trang quản lý danh sách bài kiểm tra đầu vào
 const PlacementTestsPage: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,7 @@ const PlacementTestsPage: React.FC = () => {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
+  // Lấy dữ liệu bài test theo trang và bộ lọc hiện tại
   const load = async () => {
     try {
       setLoading(true);
@@ -40,7 +42,7 @@ const PlacementTestsPage: React.FC = () => {
         status: status as any,
       });
       setTests(res.data || []);
-  setTotal(res.pagination?.totalItems || (res.data?.length ?? 0));
+      setTotal(res.pagination?.totalItems || (res.data?.length ?? 0));
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || 'Không thể tải danh sách');
@@ -49,7 +51,7 @@ const PlacementTestsPage: React.FC = () => {
     }
   };
 
-  // Debounce search input to avoid calling API on every keystroke
+  // Độ trễ mỗi khi người dùng gõ tìm kiếm
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearch(search);
@@ -68,6 +70,7 @@ const PlacementTestsPage: React.FC = () => {
     setPage(1);
   }, [category, status, debouncedSearch]);
 
+  // Đưa bộ lọc về trạng thái ban đầu và tải lại dữ liệu
   const clearFilters = () => {
     setSearch('');
     setCategory('');
@@ -76,6 +79,7 @@ const PlacementTestsPage: React.FC = () => {
     load();
   };
 
+  // Bật/tắt trạng thái hoạt động của từng bài test
   const onToggleStatus = async (test: PlacementTest) => {
     if (togglingId) return; // prevent parallel toggles
     setTogglingId(test._id);
@@ -93,6 +97,7 @@ const PlacementTestsPage: React.FC = () => {
     }
   };
 
+  // Xác nhận trước khi xóa hẳn bài test khỏi hệ thống
   const remove = async (test: PlacementTest) => {
     const result = await Swal.fire({
       title: 'Bạn có chắc muốn xóa?',

@@ -19,10 +19,21 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (userData: any) => Promise<boolean>;
+  login: (identifier: string, password: string) => Promise<boolean>;
+  register: (userData: RegisterPayload) => Promise<boolean>;
   logout: () => void;
   checkAuth: () => Promise<boolean>;
+}
+
+interface RegisterPayload {
+  username: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
+  studentId?: string;
+  dateOfBirth?: string;
 }
 
 // Chia sẻ trạng thái đăng nhập trên toàn ứng dụng
@@ -37,6 +48,7 @@ export const useAuth = () => {
   return context;
 };
 
+// Cung cấp context xác thực cho toàn bộ ứng dụng và xử lý đăng nhập/đăng ký
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,10 +83,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Đăng nhập và lưu token + thông tin người dùng vào bộ nhớ
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (identifier: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      const response = await apiLogin({ email, password });
+      const response = await apiLogin({ identifier, password });
 
       if (response.token && response.user) {
         localStorage.setItem('token', response.token);
@@ -83,9 +95,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         return false;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login failed:', error);
-      // Don't throw the error, just return false to let the component handle the display
+      // Không ném lỗi lên component, trả false để component tự xử lý hiển thị
       return false;
     } finally {
       setIsLoading(false);
@@ -93,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Đăng ký tài khoản mới rồi đăng nhập ngay nếu thành công
-  const register = async (userData: any): Promise<boolean> => {
+  const register = async (userData: RegisterPayload): Promise<boolean> => {
     try {
       setIsLoading(true);
       const response = await apiRegister(userData);
@@ -107,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
         return false;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Registration failed:', error);
       setIsLoading(false);
       return false;

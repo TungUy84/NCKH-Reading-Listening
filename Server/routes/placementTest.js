@@ -22,10 +22,10 @@ const {
 
 const { protect, authorize } = require('../middleware/auth');
 
-// Middleware chỉ dành cho admin
+// Middleware tái sử dụng để đảm bảo chỉ admin được phép
 const isAdmin = authorize('admin');
 
-// Configure multer for placement test import files (Word/PDF/Excel)
+// Cấu hình multer cho thao tác import bài test (Word/PDF/Excel)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dest = 'uploads/tests/';
@@ -50,7 +50,7 @@ const allowedMimeTypes = {
 const upload = multer({ 
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024 // Giới hạn 10MB
   },
   fileFilter: function (req, file, cb) {
     if (allowedMimeTypes[file.mimetype]) {
@@ -61,7 +61,7 @@ const upload = multer({
   }
 });
 
-// Media upload (images/audios) for placement test sections
+// Upload media (hình ảnh/audio) cho các section của bài test
 const mediaStorage = multer.diskStorage({
   destination: function (req, file, cb) {
     const dest = 'uploads/tests/media/';
@@ -80,7 +80,7 @@ const mediaStorage = multer.diskStorage({
 const mediaUpload = multer({
   storage: mediaStorage,
   limits: {
-    fileSize: 20 * 1024 * 1024 // 20MB
+    fileSize: 20 * 1024 * 1024 // Giới hạn 20MB
   },
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('audio/')) {
@@ -91,7 +91,7 @@ const mediaUpload = multer({
   }
 });
 
-// ======= PUBLIC ROUTES =======
+// ======= ROUTE CÔNG KHAI =======
 
 // Lấy danh sách bài test đang hoạt động (filter qua query category)
 router.get('/', (req, res, next) => {
@@ -101,7 +101,7 @@ router.get('/', (req, res, next) => {
   return getActivePlacementTests(req, res, next);
 });
 
-// ======= ADMIN ROUTES (Yêu cầu đăng nhập admin) =======
+// ======= ROUTE ADMIN (Yêu cầu đăng nhập admin) =======
 
 // Lấy thống kê tổng quan bài test
 router.get('/stats', protect, isAdmin, getPlacementTestStats);
@@ -109,11 +109,11 @@ router.get('/stats', protect, isAdmin, getPlacementTestStats);
 // Import bài test từ file (Word/PDF/Excel)
 router.post('/import', protect, isAdmin, upload.single('testFile'), importPlacementTest);
 
-// Bulk operations cho bài test
+// Xử lý hàng loạt các bài test
 router.post('/bulk-delete', protect, isAdmin, bulkDeletePlacementTests);
 router.post('/bulk-update-status', protect, isAdmin, bulkUpdatePlacementTestStatus);
 
-// Upload media cho passage (cho phép upload trước khi lưu test)
+// Upload media cho passage (cho phép tải lên trước khi lưu bài test)
 router.post('/media', protect, isAdmin, mediaUpload.array('files', 10), uploadSectionMedia);
 
 // Lấy danh sách đầy đủ bài test (bao gồm cả chưa active)
