@@ -1,29 +1,29 @@
 import React, { useEffect, useState } from "react";
 import BlogForm from "./BlogForm";
-import BlogList from "./BlogList";
+import BlogList, { Blog } from "./BlogList";
 
 const BlogPage: React.FC = () => {
-  const [blogs, setBlogs] = useState<any[]>([]);
-  const [filteredBlogs, setFilteredBlogs] = useState<any[]>([]);
-  const [editingBlog, setEditingBlog] = useState<any | null>(null);
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "form">("list");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Bộ lọc và tìm kiếm
+  // Bộ lọc & tìm kiếm
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
 
+  // Lấy dữ liệu từ API
   const fetchBlogs = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${process.env.REACT_APP_API_URL}/blogs`);
-      const data = await res.json();
+      const data: Blog[] = await res.json();
       setBlogs(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError("Không thể tải dữ liệu blog");
+      console.error("Lỗi tải blog:", err);
+      alert("Không thể tải dữ liệu blog");
     } finally {
       setLoading(false);
     }
@@ -33,30 +33,40 @@ const BlogPage: React.FC = () => {
     fetchBlogs();
   }, []);
 
-  // Lọc + tìm kiếm
-  useEffect(() => {
-    let list = blogs;
-    if (search.trim()) {
-      list = list.filter(
-        (b) =>
-          b.title.toLowerCase().includes(search.toLowerCase()) ||
-          b.description.toLowerCase().includes(search.toLowerCase())
-      );
-    }
+  // Lọc & tìm kiếm
+  const filteredBlogs = blogs.filter((b) => {
+    const matchesSearch =
+      b.title.toLowerCase().includes(search.toLowerCase()) ||
+      b.description.toLowerCase().includes(search.toLowerCase());
 
-    if (statusFilter !== "all") {
-      list = list.filter((b) =>
-        statusFilter === "draft" ? !b.published : b.published
-      );
-    }
+    const matchesStatus =
+      statusFilter === "all"
+        ? true
+        : statusFilter === "published"
+        ? b.published
+        : !b.published;
 
-    setFilteredBlogs(list);
-  }, [search, statusFilter, blogs]);
+    return matchesSearch && matchesStatus;
+  });
 
   // Phân trang
   const totalPages = Math.ceil(filteredBlogs.length / limit);
   const startIndex = (page - 1) * limit;
   const paginated = filteredBlogs.slice(startIndex, startIndex + limit);
+
+  // Xóa bài viết
+  const handleDeleted = async (id: string) => {
+    if (!window.confirm("Bạn có chắc muốn xóa bài viết này?")) return;
+    try {
+      await fetch(`${process.env.REACT_APP_API_URL}/blogs/${id}`, {
+        method: "DELETE",
+      });
+      setBlogs(blogs.filter((b) => b._id !== id));
+    } catch (err) {
+      console.error(err);
+      alert("Xóa bài viết thất bại, vui lòng thử lại");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -77,7 +87,11 @@ const BlogPage: React.FC = () => {
 
       {viewMode === "form" ? (
         <BlogForm
-          editingBlog={editingBlog}
+          editingBlog={
+            editingBlog
+              ? { ...editingBlog, content: editingBlog.content || "" } // <-- fix content
+              : undefined
+          }
           onCreated={() => {
             fetchBlogs();
             setViewMode("list");
@@ -99,7 +113,7 @@ const BlogPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="select select-bordered"
               >
                 <option value="all">Tất cả</option>
@@ -121,18 +135,13 @@ const BlogPage: React.FC = () => {
             </div>
           </div>
 
-          {loading ? (
-            <p>Đang tải dữ liệu...</p>
-          ) : (
-            <BlogList
-              blogs={paginated}
-              onEdit={(b: any) => {
-                setEditingBlog(b);
-                setViewMode("form");
-              }}
-              onDeleted={fetchBlogs}
-            />
-          )}
+          {/* Danh sách bài viết */}
+          <BlogList
+            onEdit={(b) => {
+              setEditingBlog(b);
+              setViewMode("form");
+            }}
+          />
 
           {/* Phân trang */}
           <div className="flex justify-between items-center mt-4">
@@ -163,4 +172,3 @@ const BlogPage: React.FC = () => {
 };
 
 export default BlogPage;
-

@@ -46,11 +46,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />,
     },
     {
-      label: 'Lộ trình',
-      href: '/admin/roadmap',
-      icon: <MapIcon className="w-5 h-5" />,
-    },
-    {
       label: 'Ôn luyện',
       href: '/admin/practice',
       icon: <AcademicCapIcon className="w-5 h-5" />,
@@ -59,6 +54,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       label: 'Bài học',
       href: '/admin/lessons',
       icon: <BookOpenIcon className="w-5 h-5" />,
+    },
+    {
+      label: 'Lộ trình',
+      href: '/admin/roadmap',
+      icon: <MapIcon className="w-5 h-5" />,
     },
     {
       label: 'Thi thử',
@@ -125,8 +125,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
         key={item.href}
         to={item.href!}
         className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${isActive
-            ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform'
-            : 'text-slate-300 hover:text-white hover:bg-slate-700'
+          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform'
+          : 'text-slate-300 hover:text-white hover:bg-slate-700'
           } ${isCollapsed ? 'justify-center' : ''} ${level > 0 ? 'text-sm ml-3' : ''}`}
         title={isCollapsed ? item.label : undefined}
       >

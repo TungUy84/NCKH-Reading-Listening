@@ -48,10 +48,10 @@ const Header: React.FC = () => {
   const navigationItems = [
     { label: 'Trang chủ', href: '/', icon: HomeIcon },
     { label: 'Kiểm tra đầu vào', href: '/tests', icon: ClipboardDocumentCheckIcon },
-    { label: 'Lộ trình học', href: '/roadmap', icon: MapIcon },
     { label: 'Ôn luyện', href: '/practice', icon: AcademicCapIcon },
-    { label: 'Thi thử', href: '/mock-test', icon: CheckBadgeIcon },
     { label: 'Bài học', href: '/lessons', icon: BookOpenIcon },
+    { label: 'Lộ trình học', href: '/roadmap', icon: MapIcon },
+    { label: 'Thi thử', href: '/mock-test', icon: CheckBadgeIcon },
     { label: 'Blog', href: '/blog', icon: NewspaperIcon },
   ];
 
@@ -91,7 +91,7 @@ const Header: React.FC = () => {
   };
   return (
     <header className="fixed inset-x-0 top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
-      <div className="max-w-[1300px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 h-16">
           {/* Logo thương hiệu */}
           <Link to="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors">

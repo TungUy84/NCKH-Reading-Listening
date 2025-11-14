@@ -13,8 +13,16 @@ import EditTestPage from './pages/PlacementTestPage/EditTestPage';
 import CreateTestPage from './pages/PlacementTestPage/CreateTestPage';
 import ImportTestPage from './pages/PlacementTestPage/ImportTestPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
+import EditRoadmapPage from './pages/RoadmapPage/EditRoadmapPage';
 import PracticePage from './pages/PracticePage/PracticePage';
+import CreatePracticePage from './pages/PracticePage/CreatePracticePage';
+import EditPracticePage from './pages/PracticePage/EditPracticePage';
+import ViewPracticePage from './pages/PracticePage/ViewPracticePage';
+import ImportPracticePage from './pages/PracticePage/ImportPracticePage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
+import CreateLessonPage from './pages/LessonsPage/CreateLessonPage';
+import EditLessonPage from './pages/LessonsPage/EditLessonPage';
+import ViewLessonPage from './pages/LessonsPage/ViewLessonPage';
 import MockExamPage from './pages/MockExamPage/MockExamPage';
 import BlogPage from './pages/BlogPage/BlogPage';
 import UsersPage from './pages/UsersPage/UsersPage';
@@ -111,8 +119,19 @@ const App: React.FC = () => {
 
               {/* Additional Feature Sections */}
               <Route path="/admin/roadmap" element={<RoadmapPage />} />
+              <Route path="/admin/roadmap/edit/:id" element={<EditRoadmapPage />} />
               <Route path="/admin/practice" element={<PracticePage />} />
+              <Route path="/admin/practice/create" element={<CreatePracticePage />} />
+              <Route path="/admin/practice/import" element={<ImportPracticePage />} />
+              <Route path="/admin/practice/:practiceId/view" element={<ViewPracticePage />} />
+              <Route path="/admin/practice/:practiceId/edit" element={<EditPracticePage />} />
+              
+              {/* Lessons Management */}
               <Route path="/admin/lessons" element={<LessonsPage />} />
+              <Route path="/admin/lessons/create" element={<CreateLessonPage />} />
+              <Route path="/admin/lessons/:lessonId" element={<ViewLessonPage />} />
+              <Route path="/admin/lessons/edit/:lessonId" element={<EditLessonPage />} />
+              
               <Route path="/admin/mock-exams" element={<MockExamPage />} />
               
               {/* Blog Management */}

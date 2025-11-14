@@ -8,6 +8,8 @@ import {
   ArrowUpTrayIcon,
   Bars3Icon,
   CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   EllipsisVerticalIcon,
   PauseCircleIcon,
   PlayCircleIcon,
@@ -16,6 +18,7 @@ import {
 import { PlacementTestAPI } from '../../services/api';
 import { PlacementTest, SectionMedia } from '../../types';
 
+// Sinh ID ngẫu nhiên để tránh va chạm khi thiếu dữ liệu media
 const generateMediaId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -27,6 +30,7 @@ const generateMediaId = (): string => {
   return Math.random().toString(36).slice(2, 10);
 };
 
+// Đổi số giây thành chuỗi mm:ss cho giao diện
 const formatDuration = (seconds?: number): string => {
   if (!seconds || Number.isNaN(seconds) || seconds <= 0) {
     return '00:00';
@@ -38,6 +42,7 @@ const formatDuration = (seconds?: number): string => {
 };
 
 
+// Chuẩn hóa danh sách media của phần kiểm tra
 const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
   if (!Array.isArray(blocks)) return [];
   return blocks
@@ -48,13 +53,12 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       type: block?.type === 'audio' ? 'audio' : 'image',
       url: block?.url || block?.path || '',
       originalName: block?.originalName || block?.name || '',
-      mimeType: block?.mimeType || block?.mimetype || '',
-      size: block?.size,
       transcript: block?.transcript || '',
     }))
     .filter((block: SectionMedia) => !!block.id);
 };
 
+// Dọn dữ liệu phần trước khi gọi API lưu
 const sanitizeSectionsForSave = (sections: any[] | undefined) => {
   return (sections || []).map((section: any) => {
     if (!section) return { mediaBlocks: [] };
@@ -414,7 +418,7 @@ const EditTestPage: React.FC = () => {
   const insertMediaAtBeginning = (mediaId: string) => {
     const placeholder = `[[media:${mediaId}]]`;
     const currentPassage = (currentSection as any)?.passage || '';
-    const delimiter = currentPassage ? '\n\n' : '';
+    const delimiter = currentPassage ? '\n' : '';
     updateSectionField('passage', `${placeholder}${delimiter}${currentPassage}`);
     toast.success('Đã chèn media vào đầu đoạn văn');
   };
@@ -422,7 +426,7 @@ const EditTestPage: React.FC = () => {
   const insertMediaAtEnd = (mediaId: string) => {
     const placeholder = `[[media:${mediaId}]]`;
     const currentPassage = (currentSection as any)?.passage || '';
-    const delimiter = currentPassage ? '\n\n' : '';
+    const delimiter = currentPassage ? '\n' : '';
     updateSectionField('passage', currentPassage ? `${currentPassage}${delimiter}${placeholder}` : placeholder);
     toast.success('Đã chèn media vào cuối đoạn văn');
   };
@@ -1531,9 +1535,10 @@ const EditTestPage: React.FC = () => {
               <button
                 onClick={prevSection}
                 disabled={currentSectionIndex === 0}
-                className="px-3 py-2 rounded-lg border disabled:opacity-50"
+                className="px-3 py-2 rounded-lg border disabled:opacity-50 inline-flex items-center gap-1"
               >
-                ◀ Trước
+                <ChevronLeftIcon className="h-4 w-4" aria-hidden="true" />
+                <span>Trước</span>
               </button>
             </div>
           </div>
@@ -1585,9 +1590,7 @@ const EditTestPage: React.FC = () => {
                                       className={`px-2 py-3 flex items-center text-slate-400 ${dragSnapshot.isDragging ? 'cursor-grabbing' : 'cursor-grab'} select-none border-r border-slate-200 ${openQuestionIdx === idx ? 'bg-blue-50' : invalidQuestionIdxs.has(idx) ? 'bg-red-50/40' : 'bg-white'} rounded-l-lg`}
                                       aria-label="Giữ để di chuyển câu hỏi"
                                     >
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path d="M7 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM11 4a1 1 0 112 0v1a1 1 0 11-2 0V4zM7 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM11 9a1 1 0 112 0v1a1 1 0 11-2 0V9zM7 14a1 1 0 112 0v1a1 1 0 11-2 0v-1zM11 14a1 1 0 112 0v1a1 1 0 11-2 0v-1z" />
-                                      </svg>
+                                      <Bars3Icon className="h-4 w-4" aria-hidden="true" />
                                     </span>
                                     <button
                                       type="button"
@@ -1713,9 +1716,10 @@ const EditTestPage: React.FC = () => {
               <button
                 onClick={nextSection}
                 disabled={!!test?.sections && currentSectionIndex >= (test.sections?.length || 0) - 1}
-                className="px-3 py-2 rounded-lg border disabled:opacity-50"
+                className="px-3 py-2 rounded-lg border disabled:opacity-50 inline-flex items-center gap-1"
               >
-                Sau ▶
+                <span>Sau</span>
+                <ChevronRightIcon className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
           </div>

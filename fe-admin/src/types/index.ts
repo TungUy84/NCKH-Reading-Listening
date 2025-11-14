@@ -22,6 +22,165 @@ export interface PlacementTest {
   createdAt: string;
   updatedAt: string;
 }
+export interface Blog {
+  _id: string;
+  title: string;
+  description: string;
+  content?: string;
+  thumbnail?: string;
+  published: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type PracticeSkill = 'reading' | 'listening';
+export type PracticeLevelGroup = 'AV1-AV3' | 'AV4-AV5' | 'AV6' | 'AV7';
+
+export interface PracticeMediaBlock {
+  id: string;
+  type: 'image' | 'audio';
+  url: string;
+  originalName?: string;
+  transcript?: string;
+}
+
+export interface PracticeSection {
+  _id?: string;
+  title: string;
+  passage?: string;
+  audio?: string;
+  image?: string;
+  mediaBlocks?: PracticeMediaBlock[];
+}
+
+export interface PracticeQuestionOption {
+  text: string;
+  isCorrect: boolean;
+}
+
+export interface PracticeMatchingPair {
+  prompt: string;
+  correctOption: string;
+}
+
+export interface PracticeQuestion {
+  _id?: string;
+  sectionId?: string;
+  sectionIndex?: number;
+  questionNumber: number;
+  type: 'multi_choice' | 'short_answer' | 'matching' | 'dropdown';
+  allowMultiple?: boolean;
+  content: string;
+  passage?: string;
+  options?: PracticeQuestionOption[];
+  matchingPairs?: PracticeMatchingPair[];
+  correctAnswers?: string[];
+  explanation?: string;
+  points: number;
+}
+
+export interface Practice {
+  _id: string;
+  title: string;
+  description?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  estimatedTime?: number;
+  sections: PracticeSection[];
+  questions: PracticeQuestion[];
+  totalQuestions: number;
+  totalPoints: number;
+  isActive: boolean;
+  createdBy: string | AdminUser;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PracticePayload {
+  title: string;
+  description?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  estimatedTime?: number;
+  sections: PracticeSection[];
+  questions: PracticeQuestion[];
+  isActive?: boolean;
+}
+
+export interface PracticeImportPreview {
+  title: string;
+  description?: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  estimatedTime: number;
+  sections: PracticeSection[];
+  questions: PracticeQuestion[];
+  totalPoints: number;
+  totalQuestions: number;
+  source?: string;
+}
+
+export type PracticeUpdatePayload = Partial<PracticePayload>;
+
+export interface PracticePagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PracticeListResult {
+  items: Practice[];
+  pagination: PracticePagination;
+}
+
+export interface PracticeQueryParams {
+  page?: number;
+  limit?: number;
+  skill?: PracticeSkill | '';
+  levelGroup?: PracticeLevelGroup | '';
+  keyword?: string;
+  status?: 'active' | 'inactive' | '';
+}
+
+export interface Lesson {
+  _id: string;
+  title: string;
+  summary?: string;
+  content: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  coverImage?: string;
+  isActive: boolean;
+  viewCount: number;
+  createdBy?: string | AdminUser;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LessonPayload {
+  title: string;
+  summary?: string;
+  content: string;
+  skill: PracticeSkill;
+  levelGroup: PracticeLevelGroup;
+  coverImage?: string;
+  isActive?: boolean;
+}
+
+export interface LessonQueryParams {
+  page?: number;
+  limit?: number;
+  keyword?: string;
+  skill?: PracticeSkill | '';
+  levelGroup?: PracticeLevelGroup | '';
+  status?: 'active' | 'inactive' | '';
+}
+
+export interface LessonListResult {
+  items: Lesson[];
+  pagination: PracticePagination;
+}
 
 export interface TestSection {
   _id?: string;
@@ -54,7 +213,6 @@ export interface Question {
   };
   options?: QuestionOption[];
   correctAnswers: string[];
-  wordBank?: string[];
   points: number;
   explanation?: string;
 }
@@ -79,8 +237,6 @@ export interface SectionMedia {
   type: 'image' | 'audio';
   url: string;
   originalName?: string;
-  mimeType?: string;
-  size?: number;
   transcript?: string;
 }
 
@@ -235,7 +391,6 @@ export interface QuestionFormData {
   options?: OptionFormData[];
   allowMultiple?: boolean;
   matchingPairs?: MatchingPair[];
-  wordBank?: string[];
   correctAnswers: string[];
   points: number;
   explanation?: string;
@@ -376,3 +531,132 @@ export interface ActivityData {
   hour: number;
   count: number;
 }
+
+// ============================================================================
+// ROADMAP TYPES
+// ============================================================================
+
+export type RoadmapLevelGroup = 'AV1-AV3' | 'AV4-AV5' | 'AV6' | 'AV7';
+
+export interface RoadmapContent {
+  reading: {
+    lessons: string[] | Lesson[];
+    practices: string[] | Practice[];
+  };
+  listening: {
+    lessons: string[] | Lesson[];
+    practices: string[] | Practice[];
+  };
+}
+
+export interface RoadmapRequirements {
+  passingScore: number;
+}
+
+export interface Roadmap {
+  _id: string;
+  levelGroup: RoadmapLevelGroup;
+  title: string;
+  description: string;
+  estimatedDuration: number;
+  requirements: RoadmapRequirements;
+  content: RoadmapContent;
+  checkpointTest?: string | PlacementTest;
+  createdBy?: string | AdminUser;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapPayload {
+  title: string;
+  description: string;
+  estimatedDuration: number;
+  requirements: RoadmapRequirements;
+  content: RoadmapContent;
+  checkpointTest?: string;
+}
+
+export interface RoadmapUpdatePayload extends Partial<RoadmapPayload> {}
+
+// User Roadmap types
+export interface StageProgress {
+  reading: {
+    completedLessons: string[];
+    completedPractices: string[];
+  };
+  listening: {
+    completedLessons: string[];
+    completedPractices: string[];
+  };
+  overallPercentage: number;
+}
+
+export interface CheckpointResult {
+  attemptId: string;
+  score: number;
+  passed: boolean;
+  attemptedAt: string;
+}
+
+export interface RoadmapStage {
+  _id: string;
+  levelGroup: RoadmapLevelGroup;
+  roadmapId: string | Roadmap;
+  status: 'locked' | 'in-progress' | 'checkpoint-ready' | 'completed';
+  startedAt?: string;
+  completedAt?: string;
+  content: {
+    reading: {
+      lessons: string[];
+      practices: string[];
+    };
+    listening: {
+      lessons: string[];
+      practices: string[];
+    };
+  };
+  progress: StageProgress;
+  checkpointTestId?: string;
+  checkpointResult?: CheckpointResult;
+}
+
+export interface UserRoadmap {
+  _id: string;
+  userId: string;
+  currentLevel: RoadmapLevelGroup;
+  targetLevel: RoadmapLevelGroup;
+  stages: RoadmapStage[];
+  status: 'active' | 'paused' | 'completed' | 'abandoned';
+  lastActivityAt: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserRoadmapPayload {
+  currentLevel: RoadmapLevelGroup;
+  targetLevel: RoadmapLevelGroup;
+}
+
+export interface UpdateProgressPayload {
+  type: 'lesson' | 'practice';
+  itemId: string;
+  skill: 'reading' | 'listening';
+}
+
+export interface SubmitCheckpointPayload {
+  stageIndex: number;
+  resultId: string;
+}
+
+export interface SuggestedLevelResponse {
+  hasSuggestion: boolean;
+  data?: {
+    suggestedLevel: RoadmapLevelGroup;
+    avLevel: string;
+    ieltsRange: { min: number; max: number };
+    category: string;
+    score: { percentage: number };
+  };
+}
+

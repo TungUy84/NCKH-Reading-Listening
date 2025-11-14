@@ -3,9 +3,18 @@ import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { API_BASE_URL } from "../../services/api";
 
+interface Blog {
+  _id?: string;
+  title: string;
+  description: string;
+  content: string;
+  thumbnail?: string;
+  published?: boolean;
+}
+
 interface Props {
   onCreated: () => void;
-  editingBlog?: any | null;
+  editingBlog?: Blog | null;
   onCancel: () => void;
 }
 
@@ -13,42 +22,27 @@ const BlogForm: React.FC<Props> = ({ onCreated, editingBlog, onCancel }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [content, setContent] = useState("");
-  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [published, setPublished] = useState(false);
-  const [thumbnailPreview, setThumbnailPreview] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Khởi tạo giá trị từ editingBlog
   useEffect(() => {
     if (editingBlog) {
       setTitle(editingBlog.title);
       setDescription(editingBlog.description);
-      setContent(editingBlog.content);
+      setContent(editingBlog.content || "");
       setPublished(editingBlog.published ?? false);
-      setThumbnailPreview(editingBlog.thumbnail || "");
+      setThumbnailUrl(editingBlog.thumbnail ?? "");
     } else {
       setTitle("");
       setDescription("");
       setContent("");
       setPublished(false);
-      setThumbnailPreview("");
+      setThumbnailUrl("");
     }
   }, [editingBlog]);
-
-  const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setThumbnail(file);
-
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setThumbnailPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setThumbnailPreview("");
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,16 +55,16 @@ const BlogForm: React.FC<Props> = ({ onCreated, editingBlog, onCancel }) => {
       formData.append("description", description);
       formData.append("content", content);
       formData.append("published", String(published));
-      if (thumbnail) formData.append("thumbnail", thumbnail);
+      formData.append("thumbnail", thumbnailUrl); // gửi URL trực tiếp
 
       const method = editingBlog ? "PUT" : "POST";
       const url = editingBlog
         ? `${API_BASE_URL}/blogs/${editingBlog._id}`
         : `${API_BASE_URL}/blogs`;
 
-      const response = await fetch(url, { 
-        method, 
-        body: formData 
+      const response = await fetch(url, {
+        method,
+        body: formData,
       });
 
       if (!response.ok) {
@@ -80,7 +74,6 @@ const BlogForm: React.FC<Props> = ({ onCreated, editingBlog, onCancel }) => {
       await response.json();
       onCreated();
       onCancel();
-      
     } catch (err: any) {
       setError(err.message || "Có lỗi xảy ra khi lưu bài viết");
     } finally {
@@ -99,7 +92,7 @@ const BlogForm: React.FC<Props> = ({ onCreated, editingBlog, onCancel }) => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-6 bg-white rounded-xl border shadow-sm space-y-12"
+      className="p-6 bg-white rounded-xl border shadow-sm space-y-6"
     >
       {error && (
         <div className="alert alert-error">
@@ -125,36 +118,35 @@ const BlogForm: React.FC<Props> = ({ onCreated, editingBlog, onCancel }) => {
       />
 
       {/* Content */}
-      <div className="mb-4">
-        <ReactQuill
-          theme="snow"
-          value={content}
-          onChange={setContent}
-          placeholder="Nội dung bài viết..."
-          className="h-[300px]"
-        />
-      </div>
+      <ReactQuill
+        theme="snow"
+        value={content}
+        onChange={setContent}
+        placeholder="Nội dung bài viết..."
+        className="h-[300px]"
+      />
 
-      {/* Thumbnail */}
-      <div className="form-control mb-4">
+      {/* Thumbnail URL */}
+      <div className="form-control">
         <label className="label">
-          <span className="label-text">Ảnh thumbnail</span>
+          <span className="label-text">URL thumbnail</span>
         </label>
-        {thumbnailPreview && (
-          <div className="mb-3">
-            <img
-              src={thumbnailPreview}
-              alt="Preview"
-              className="w-32 h-32 object-cover rounded-lg border"
-            />
-          </div>
-        )}
         <input
-          type="file"
-          className="file-input file-input-bordered w-full"
-          accept="image/*"
-          onChange={handleThumbnailChange}
+          type="text"
+          placeholder="Dán link ảnh ở đây"
+          value={thumbnailUrl}
+          onChange={(e) => setThumbnailUrl(e.target.value)}
+          className="input input-bordered w-full"
         />
+        {thumbnailUrl && (
+          <img
+            src={thumbnailUrl}
+            alt="Preview"
+            className="w-32 h-32 object-cover rounded-lg border mt-2"
+            crossOrigin="anonymous"
+            onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.png"; }}
+          />
+        )}
       </div>
 
       {/* Published Switch */}
@@ -173,23 +165,13 @@ const BlogForm: React.FC<Props> = ({ onCreated, editingBlog, onCancel }) => {
 
       {/* Buttons */}
       <div className="flex gap-2 justify-end pt-4 border-t">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="btn btn-ghost"
-          disabled={loading}
-        >
+        <button type="button" onClick={onCancel} className="btn btn-ghost" disabled={loading}>
           Hủy
         </button>
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={loading}
-        >
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? (
             <>
-              <span className="loading loading-spinner"></span>
-              Đang lưu...
+              <span className="loading loading-spinner"></span> Đang lưu...
             </>
           ) : (
             getSubmitButtonText()
