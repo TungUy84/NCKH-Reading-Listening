@@ -26,6 +26,8 @@ import LessonsPage from './pages/LessonsPage/LessonsPage';
 import LessonDetailPage from './pages/LessonsPage/LessonDetailPage';
 import BlogPage from './pages/BlogPage/BlogPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
+import RoadmapSetupPage from './pages/RoadmapPage/RoadmapSetupPage';
+import StageDetailPage from './pages/RoadmapPage/StageDetailPage';
 
 import 'react-toastify/dist/ReactToastify.css';
 import 'aos/dist/aos.css';
@@ -94,7 +96,30 @@ const AppShell: React.FC = () => {
           <Route path="/lessons" element={<LessonsPage />} />
           <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
           <Route path="/blog" element={<BlogPage />} />
-          <Route path="/roadmap" element={<RoadmapPage />} />
+          <Route
+            path="/roadmap"
+            element={
+              <ProtectedRoute>
+                <RoadmapPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/roadmap/setup"
+            element={
+              <ProtectedRoute>
+                <RoadmapSetupPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/roadmap/stage/:levelGroup"
+            element={
+              <ProtectedRoute>
+                <StageDetailPage />
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="*"

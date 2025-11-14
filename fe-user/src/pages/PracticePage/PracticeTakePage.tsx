@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { Clock, Check, XCircle, ArrowLeft } from 'lucide-react';
-import { getPracticeForLearner, submitPracticeAttempt } from '../../services/api';
+import { getPracticeForLearner, submitPracticeAttempt, updateRoadmapProgress } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import {
   PracticeAnswerInput,
@@ -998,6 +998,17 @@ const PracticeTakePage: React.FC = () => {
 
         if (!attemptId) {
           throw new Error('The server did not return a valid attempt identifier.');
+        }
+
+        // Cập nhật tiến độ roadmap sau khi hoàn thành practice
+        try {
+          await updateRoadmapProgress({
+            type: 'practice',
+            itemId: practiceId
+          });
+        } catch (err) {
+          // Không hiển thị lỗi nếu user không có roadmap
+          console.log('Không cập nhật roadmap progress:', err);
         }
 
         if (isAutoSubmit) {

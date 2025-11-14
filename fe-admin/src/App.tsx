@@ -13,6 +13,7 @@ import EditTestPage from './pages/PlacementTestPage/EditTestPage';
 import CreateTestPage from './pages/PlacementTestPage/CreateTestPage';
 import ImportTestPage from './pages/PlacementTestPage/ImportTestPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
+import EditRoadmapPage from './pages/RoadmapPage/EditRoadmapPage';
 import PracticePage from './pages/PracticePage/PracticePage';
 import CreatePracticePage from './pages/PracticePage/CreatePracticePage';
 import EditPracticePage from './pages/PracticePage/EditPracticePage';
@@ -118,6 +119,7 @@ const App: React.FC = () => {
 
               {/* Additional Feature Sections */}
               <Route path="/admin/roadmap" element={<RoadmapPage />} />
+              <Route path="/admin/roadmap/edit/:id" element={<EditRoadmapPage />} />
               <Route path="/admin/practice" element={<PracticePage />} />
               <Route path="/admin/practice/create" element={<CreatePracticePage />} />
               <Route path="/admin/practice/import" element={<ImportPracticePage />} />

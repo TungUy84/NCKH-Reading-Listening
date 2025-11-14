@@ -521,3 +521,132 @@ export interface ActivityData {
   hour: number;
   count: number;
 }
+
+// ============================================================================
+// ROADMAP TYPES
+// ============================================================================
+
+export type RoadmapLevelGroup = 'AV1-AV3' | 'AV4-AV5' | 'AV6' | 'AV7';
+
+export interface RoadmapContent {
+  reading: {
+    lessons: string[] | Lesson[];
+    practices: string[] | Practice[];
+  };
+  listening: {
+    lessons: string[] | Lesson[];
+    practices: string[] | Practice[];
+  };
+}
+
+export interface RoadmapRequirements {
+  passingScore: number;
+}
+
+export interface Roadmap {
+  _id: string;
+  levelGroup: RoadmapLevelGroup;
+  title: string;
+  description: string;
+  estimatedDuration: number;
+  requirements: RoadmapRequirements;
+  content: RoadmapContent;
+  checkpointTest?: string | PlacementTest;
+  createdBy?: string | AdminUser;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoadmapPayload {
+  title: string;
+  description: string;
+  estimatedDuration: number;
+  requirements: RoadmapRequirements;
+  content: RoadmapContent;
+  checkpointTest?: string;
+}
+
+export interface RoadmapUpdatePayload extends Partial<RoadmapPayload> {}
+
+// User Roadmap types
+export interface StageProgress {
+  reading: {
+    completedLessons: string[];
+    completedPractices: string[];
+  };
+  listening: {
+    completedLessons: string[];
+    completedPractices: string[];
+  };
+  overallPercentage: number;
+}
+
+export interface CheckpointResult {
+  attemptId: string;
+  score: number;
+  passed: boolean;
+  attemptedAt: string;
+}
+
+export interface RoadmapStage {
+  _id: string;
+  levelGroup: RoadmapLevelGroup;
+  roadmapId: string | Roadmap;
+  status: 'locked' | 'in-progress' | 'checkpoint-ready' | 'completed';
+  startedAt?: string;
+  completedAt?: string;
+  content: {
+    reading: {
+      lessons: string[];
+      practices: string[];
+    };
+    listening: {
+      lessons: string[];
+      practices: string[];
+    };
+  };
+  progress: StageProgress;
+  checkpointTestId?: string;
+  checkpointResult?: CheckpointResult;
+}
+
+export interface UserRoadmap {
+  _id: string;
+  userId: string;
+  currentLevel: RoadmapLevelGroup;
+  targetLevel: RoadmapLevelGroup;
+  stages: RoadmapStage[];
+  status: 'active' | 'paused' | 'completed' | 'abandoned';
+  lastActivityAt: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateUserRoadmapPayload {
+  currentLevel: RoadmapLevelGroup;
+  targetLevel: RoadmapLevelGroup;
+}
+
+export interface UpdateProgressPayload {
+  type: 'lesson' | 'practice';
+  itemId: string;
+  skill: 'reading' | 'listening';
+}
+
+export interface SubmitCheckpointPayload {
+  stageIndex: number;
+  resultId: string;
+}
+
+export interface SuggestedLevelResponse {
+  hasSuggestion: boolean;
+  data?: {
+    suggestedLevel: RoadmapLevelGroup;
+    avLevel: string;
+    ieltsRange: { min: number; max: number };
+    category: string;
+    score: { percentage: number };
+  };
+}
+

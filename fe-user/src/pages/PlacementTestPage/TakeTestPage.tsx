@@ -1,9 +1,9 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState, } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, UserAnswer } from '../../types';
-import { getTestForTaking, submitTest } from '../../services/api';
+import { getTestForTaking, submitTest, submitCheckpoint } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { Clock, Check, XCircle, ArrowLeft } from 'lucide-react';
 
@@ -614,6 +614,10 @@ const QuestionPanel: React.FC<QuestionPanelProps> = ({
 const TakeTestPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if this test is a checkpoint test from roadmap
+  const checkpointInfo = location.state as { isCheckpoint?: boolean; levelGroup?: string; testId?: string } | undefined;
 
   const [test, setTest] = useState<PlacementTest | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -790,20 +794,41 @@ const TakeTestPage: React.FC = () => {
           answers: payload,
         });
 
+        // If this is a checkpoint test, submit to roadmap system
+        if (checkpointInfo?.isCheckpoint && checkpointInfo.levelGroup && response?.result) {
+          try {
+            await submitCheckpoint({
+              levelGroup: checkpointInfo.levelGroup as any,
+              testId: test._id,
+              score: response.result.score
+            });
+            toast.success('🎉 Checkpoint test submitted! Checking if you passed...');
+          } catch (err: any) {
+            console.error('Failed to submit checkpoint:', err);
+            // Don't block navigation, just log the error
+            toast.warning('Test submitted but roadmap update failed. Please check your roadmap.');
+          }
+        }
+
         if (isAutoSubmit) {
           toast.info('Time is up. The system submitted your test automatically.');
         } else {
           toast.success('Test submitted successfully!');
         }
 
-        navigate(`/test/${test._id}/result`, { state: { result: response?.result } });
+        navigate(`/test/${test._id}/result`, { 
+          state: { 
+            result: response?.result,
+            fromCheckpoint: checkpointInfo?.isCheckpoint
+          } 
+        });
       } catch (error: unknown) {
         console.error('Unable to submit test:', error);
         toast.error('An error occurred while submitting. Please try again.');
         setIsSubmitting(false);
       }
     },
-    [answers, isSubmitting, navigate, test]
+    [answers, isSubmitting, navigate, test, checkpointInfo]
   );
 
   useEffect(() => {

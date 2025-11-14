@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { BookOpen, Headphones, BarChart3 } from 'lucide-react';
 import { LessonDetail } from '../../types';
-import { getLessonDetail } from '../../services/api';
+import { getLessonDetail, updateRoadmapProgress } from '../../services/api';
 
 const LessonDetailPage: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +24,17 @@ const LessonDetailPage: React.FC = () => {
       try {
         const response = await getLessonDetail(lessonId);
         setLesson(response.lesson);
+        
+        // Cập nhật tiến độ roadmap nếu user đang học theo lộ trình
+        try {
+          await updateRoadmapProgress({
+            type: 'lesson',
+            itemId: lessonId
+          });
+        } catch (err) {
+          // Không hiển thị lỗi nếu user không có roadmap, chỉ log
+          console.log('Không cập nhật roadmap progress:', err);
+        }
       } catch (error: any) {
         console.error('Load lesson detail error:', error);
         toast.error(error.message || 'Không lấy được thông tin bài học.');

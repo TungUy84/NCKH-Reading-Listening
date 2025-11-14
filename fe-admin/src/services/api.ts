@@ -24,7 +24,10 @@ import {
   Lesson,
   LessonPayload,
   LessonQueryParams,
-  LessonListResult
+  LessonListResult,
+  Roadmap,
+  RoadmapPayload,
+  RoadmapUpdatePayload
 } from '../types';
 
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
@@ -749,6 +752,57 @@ export class UsersAPI {
     }
   }
 }
+
+// ============================================================================
+// ROADMAP API - Quản lý lộ trình học tập
+// ============================================================================
+
+export class RoadmapAPI {
+  /**
+   * Lấy danh sách tất cả roadmap templates (Admin)
+   */
+  static async getAdminRoadmaps(): Promise<{ success: boolean; data: Roadmap[] }> {
+    const response = await api.get('/roadmap/admin');
+    return response.data;
+  }
+
+  /**
+   * Lấy chi tiết một roadmap template (Admin)
+   */
+  static async getRoadmapDetail(id: string): Promise<{ success: boolean; data: Roadmap }> {
+    const response = await api.get(`/roadmap/admin/${id}`);
+    return response.data;
+  }
+
+  /**
+   * Cập nhật roadmap template (Admin)
+   */
+  static async updateRoadmap(
+    id: string,
+    payload: RoadmapUpdatePayload
+  ): Promise<{ success: boolean; message: string; data: Roadmap }> {
+    const response = await api.put(`/roadmap/admin/${id}`, payload);
+    return response.data;
+  }
+
+  /**
+   * Lấy danh sách lessons/practices có thể thêm vào roadmap
+   */
+  static async getAvailableContent(params?: {
+    skill?: 'reading' | 'listening';
+    levelGroup?: string;
+  }): Promise<{
+    success: boolean;
+    data: {
+      lessons: Lesson[];
+      practices: Practice[];
+    };
+  }> {
+    const response = await api.get('/roadmap/admin/content/available', { params });
+    return response.data;
+  }
+}
+
 // Các hàm để import
 export const getUsers = UsersAPI.getUsers;
 export const getUserById = UsersAPI.getUserById;

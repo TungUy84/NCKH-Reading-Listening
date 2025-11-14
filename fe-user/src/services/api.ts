@@ -2,7 +2,14 @@ import axios from 'axios';
 import {
   PracticeSubmissionPayload,
   LessonSummary,
-  LessonDetail
+  LessonDetail,
+  UserRoadmap,
+  CreateUserRoadmapPayload,
+  UpdateProgressPayload,
+  SubmitCheckpointPayload,
+  SuggestedLevelResponse,
+  StageDetailResponse,
+  RoadmapLevelGroup
 } from '../types';
 
 // Khởi tạo axios với cấu hình mặc định
@@ -375,5 +382,119 @@ export const getLessonDetail = async (lessonId: string) => {
   return response.data as { message: string; lesson: LessonDetail };
 };
 
+// ========== NHÓM API CHO ROADMAP (LỘ TRÌNH HỌC TẬP) ==========
+
+/**
+ * Tạo lộ trình cá nhân cho user
+ * Backend: POST /api/roadmap/user/create
+ */
+export const createUserRoadmap = async (payload: CreateUserRoadmapPayload) => {
+  const response = await apiService.post('/roadmap/user/create', payload);
+  return response.data as {
+    success: boolean;
+    message: string;
+    data: UserRoadmap;
+  };
+};
+
+/**
+ * Lấy lộ trình hiện tại của user
+ * Backend: GET /api/roadmap/user/current
+ */
+export const getCurrentUserRoadmap = async (): Promise<{
+  success: boolean;
+  hasRoadmap: boolean;
+  message?: string;
+  data?: UserRoadmap;
+}> => {
+  try {
+    const response = await apiService.get('/roadmap/user/current');
+    return response.data;
+  } catch (error: any) {
+    // Nếu 404 = chưa có roadmap, return hasRoadmap: false thay vì throw
+    if (error.response?.status === 404) {
+      return {
+        success: false,
+        hasRoadmap: false,
+        message: error.response?.data?.message || 'Bạn chưa có lộ trình học tập',
+        data: undefined
+      };
+    }
+    // Các lỗi khác thì throw
+    throw error;
+  }
+};
+
+/**
+ * Lấy chi tiết một stage cụ thể với full content
+ * Backend: GET /api/roadmap/user/stage/:levelGroup
+ */
+export const getStageDetail = async (levelGroup: RoadmapLevelGroup) => {
+  const response = await apiService.get(`/roadmap/user/stage/${levelGroup}`);
+  return response.data as {
+    success: boolean;
+    data: StageDetailResponse;
+  };
+};
+
+/**
+ * Cập nhật progress khi user hoàn thành lesson/practice
+ * Backend: POST /api/roadmap/user/progress
+ */
+export const updateRoadmapProgress = async (payload: UpdateProgressPayload) => {
+  const response = await apiService.post('/roadmap/user/progress', payload);
+  return response.data as {
+    success: boolean;
+    message: string;
+    data: {
+      stage: any;
+      overallProgress: number;
+    };
+  };
+};
+
+/**
+ * Đồng bộ content từ template (sau khi admin cập nhật roadmap)
+ * Backend: POST /api/roadmap/user/sync-content
+ */
+export const syncRoadmapContent = async () => {
+  const response = await apiService.post('/roadmap/user/sync-content');
+  return response.data as {
+    success: boolean;
+    message: string;
+    data: any;
+  };
+};
+
+/**
+ * Submit checkpoint test result và unlock stage tiếp theo
+ * Backend: POST /api/roadmap/user/checkpoint
+ */
+export const submitCheckpoint = async (payload: SubmitCheckpointPayload) => {
+  const response = await apiService.post('/roadmap/user/checkpoint', payload);
+  return response.data as {
+    success: boolean;
+    passed: boolean;
+    message: string;
+    data: {
+      currentStage: any;
+      nextStage: any;
+      score: number;
+      passingScore: number;
+      roadmapCompleted: boolean;
+    };
+  };
+};
+
+/**
+ * Lấy gợi ý level dựa trên placement test gần nhất
+ * Backend: GET /api/roadmap/user/suggested-level
+ */
+export const getSuggestedLevel = async () => {
+  const response = await apiService.get('/roadmap/user/suggested-level');
+  return response.data as SuggestedLevelResponse;
+};
+
 // Export the axios instance as default for direct use
 export default apiService;
+

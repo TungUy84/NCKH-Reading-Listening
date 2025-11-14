@@ -510,6 +510,7 @@ const TestResultPage: React.FC = () => {
   const navigate = useNavigate();
 
   const result = location.state?.result as TestResult | undefined;
+  const fromCheckpoint = location.state?.fromCheckpoint as boolean | undefined;
 
   const [sections, setSections] = useState<TestSection[]>([]);
   const [isFetchingSections, setIsFetchingSections] = useState<boolean>(false);
@@ -725,7 +726,15 @@ const TestResultPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="mt-12 flex justify-center">
+        <div className="mt-12 flex justify-center gap-4">
+          {fromCheckpoint && (
+            <button
+              onClick={() => navigate('/roadmap')}
+              className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 px-8 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-green-600 hover:to-emerald-600"
+            >
+              ← Quay lại lộ trình
+            </button>
+          )}
           <button
             onClick={() => navigate('/tests')}
             className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 px-8 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-blue-600 hover:to-indigo-600"
