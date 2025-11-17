@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { ArrowRight, CheckCircle, Clock, FileText, HeadphonesIcon } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, FileText, HeadphonesIcon, Target, FileCheck } from 'lucide-react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import { PlacementTest } from '../../types';
@@ -14,6 +14,24 @@ type PlacementTestSummary = Pick<PlacementTest, '_id' | 'title' | 'description' 
   Partial<Pick<PlacementTest, 'timeLimit' | 'totalQuestions'>>;
 
 const CATEGORY_ORDER: PlacementCategory[] = ['listening', 'reading'];
+
+const TEST_TYPE_META: Record<string, { label: string; icon: JSX.Element; colorClass: string }> = {
+  placement: {
+    label: 'Kiểm tra đầu vào',
+    icon: <Target className="w-4 h-4" />,
+    colorClass: 'bg-blue-100 text-blue-700 border-blue-200'
+  },
+  'mock-exam': {
+    label: 'Thi thử',
+    icon: <FileCheck className="w-4 h-4" />,
+    colorClass: 'bg-purple-100 text-purple-700 border-purple-200'
+  },
+  checkpoint: {
+    label: 'Checkpoint',
+    icon: <CheckCircle className="w-4 h-4" />,
+    colorClass: 'bg-green-100 text-green-700 border-green-200'
+  }
+};
 
 const CATEGORY_META: Record<PlacementCategory, {
   label: string;
@@ -319,8 +337,7 @@ const TestsPage: React.FC = () => {
               className="bg-white rounded-2xl shadow-xl overflow-hidden mb-12"
               data-aos="fade-up"
             >
-              <div
-                className={`bg-gradient-to-r ${CATEGORY_META[activeTab].gradient} p-8 text-white`}
+              <div className={`bg-gradient-to-r ${CATEGORY_META[activeTab].gradient} p-8 text-white`}
                 data-aos="fade-up"
                 data-aos-delay="50"
               >
@@ -330,6 +347,12 @@ const TestsPage: React.FC = () => {
                     <div>
                       <p className="text-sm uppercase tracking-wide text-white/70">Danh mục</p>
                       <h2 className="text-3xl font-bold">{CATEGORY_META[activeTab].label}</h2>
+                      {previewDetail?.testType && TEST_TYPE_META[previewDetail.testType] && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-sm border border-white/30">
+                          {TEST_TYPE_META[previewDetail.testType].icon}
+                          <span>{TEST_TYPE_META[previewDetail.testType].label}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-3 justify-center md:justify-end">

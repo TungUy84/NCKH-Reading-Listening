@@ -18,6 +18,12 @@ const categoryLabel: Record<'listening' | 'reading', string> = {
   reading: 'Reading'
 };
 
+const testTypeLabel: Record<'placement' | 'mock-exam' | 'checkpoint', string> = {
+  placement: 'Kiểm tra đầu vào',
+  'mock-exam': 'Thi thử',
+  checkpoint: 'Checkpoint'
+};
+
 // Trang import bài test từ file Word/PDF/Excel và xem trước nội dung
 const ImportTestPage: React.FC = () => {
   const navigate = useNavigate();
@@ -30,6 +36,7 @@ const ImportTestPage: React.FC = () => {
     title: '',
     description: '',
     category: 'reading' as 'listening' | 'reading',
+    testType: 'placement' as 'placement' | 'mock-exam' | 'checkpoint',
     timeLimit: 60,
     instructionsText: '',
     isActive: true,
@@ -59,6 +66,7 @@ const ImportTestPage: React.FC = () => {
       title: '',
       description: '',
       category: 'reading',
+      testType: 'placement',
       timeLimit: 60,
       instructionsText: '',
       isActive: true
@@ -97,6 +105,7 @@ const ImportTestPage: React.FC = () => {
         title: previewTest.title,
         description: previewTest.description,
         category: previewTest.category,
+        testType: (previewTest as any).testType || meta.testType || 'placement',
         timeLimit: previewTest.timeLimit,
         instructionsText: (previewTest.instructions || []).join('\n'),
         isActive: true
@@ -138,6 +147,7 @@ const ImportTestPage: React.FC = () => {
       title: meta.title.trim(),
       description: meta.description.trim(),
       category: meta.category,
+      testType: meta.testType,
       instructions,
       timeLimit: meta.timeLimit,
       isActive: meta.isActive,
@@ -267,6 +277,18 @@ const ImportTestPage: React.FC = () => {
                     <option value="listening">Listening</option>
                   </select>
                 </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium text-slate-700">Loại bài</span>
+                  <select
+                    value={meta.testType}
+                    onChange={(e) => setMeta((prev) => ({ ...prev, testType: e.target.value as typeof prev.testType }))}
+                    className="rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="placement">Kiểm tra đầu vào</option>
+                    <option value="mock-exam">Thi thử</option>
+                    <option value="checkpoint">Bài kiểm tra Checkpoint</option>
+                  </select>
+                </label>
                 <label className="md:col-span-2 flex flex-col gap-1 text-sm">
                   <span className="font-medium text-slate-700">Mô tả</span>
                   <textarea
@@ -325,7 +347,8 @@ const ImportTestPage: React.FC = () => {
                     <div className="text-sm font-semibold text-slate-700">Thông tin chung</div>
                     <ul className="mt-2 space-y-1 text-sm text-slate-600">
                       <li><span className="font-medium text-slate-700">Tiêu đề:</span> {meta.title}</li>
-                      <li><span className="font-medium text-slate-700">Loại:</span> {categoryLabel[meta.category]}</li>
+                      <li><span className="font-medium text-slate-700">Kỹ năng:</span> {categoryLabel[meta.category]}</li>
+                      <li><span className="font-medium text-slate-700">Loại bài:</span> {testTypeLabel[meta.testType]}</li>
                       <li><span className="font-medium text-slate-700">Thời gian:</span> {meta.timeLimit} phút</li>
                       <li><span className="font-medium text-slate-700">Tổng điểm:</span> {summary.totalPoints}</li>
                     </ul>

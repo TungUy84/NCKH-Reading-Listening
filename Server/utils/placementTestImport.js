@@ -445,6 +445,7 @@ const parseKeyValueFormat = (lines) => {
     title: '',
     description: '',
     category: '',
+    testType: 'placement',
     timeLimit: 0,
     instructions: []
   };
@@ -474,6 +475,15 @@ const parseKeyValueFormat = (lines) => {
         break;
       case 'category':
         metadata.category = ensureCategory(value);
+        break;
+      case 'testtype':
+      case 'test type':
+      case 'loại bài':
+      case 'loai bai':
+        const normalizedType = value.toLowerCase().trim();
+        if (['placement', 'mock-exam', 'checkpoint'].includes(normalizedType)) {
+          metadata.testType = normalizedType;
+        }
         break;
       case 'time limit':
       case 'timelimit':
@@ -635,6 +645,7 @@ const finalizePreview = (metadata, questions) => {
     title: metadata.title,
     description: metadata.description,
     category: metadata.category,
+    testType: metadata.testType || 'placement',
     timeLimit: metadata.timeLimit,
     instructions: Array.isArray(metadata.instructions) ? metadata.instructions : [],
     sections: resolvedSections,
@@ -697,6 +708,7 @@ const parseExcelBuffer = (buffer) => {
     title: '',
     description: '',
     category: '',
+    testType: 'placement',
     timeLimit: 0,
     instructions: [],
     sections: []
@@ -715,6 +727,15 @@ const parseExcelBuffer = (buffer) => {
         break;
       case 'category':
         metadata.category = ensureCategory(value);
+        break;
+      case 'testtype':
+      case 'test type':
+      case 'loại bài':
+      case 'loai bai':
+        const normalizedType = value.toLowerCase().trim();
+        if (['placement', 'mock-exam', 'checkpoint'].includes(normalizedType)) {
+          metadata.testType = normalizedType;
+        }
         break;
       case 'time limit':
       case 'timelimit':

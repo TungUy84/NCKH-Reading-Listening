@@ -128,6 +128,12 @@ const placementTestSchema = new mongoose.Schema({
     enum: ['listening', 'reading'],
     required: [true, 'Loại bài test là bắt buộc']
   },
+  testType: {
+    type: String,
+    enum: ['placement', 'mock-exam', 'checkpoint'],
+    default: 'placement',
+    required: [true, 'Mục đích sử dụng bài test là bắt buộc']
+  },
   timeLimit: {
     type: Number, // Thời gian làm bài (phút)
     required: [true, 'Thời gian làm bài là bắt buộc'],

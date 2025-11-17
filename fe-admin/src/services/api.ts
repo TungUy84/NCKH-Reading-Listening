@@ -180,8 +180,10 @@ export class TestsAPI {
     page?: number;
     limit?: number;
     category?: string;
+    testType?: string;
     search?: string;
     isActive?: boolean;
+    status?: 'active' | 'inactive';
   }): Promise<AdminApiResponse<PlacementTest[]>> {
     try {
       const response = await api.get('/placement-tests', { params: { scope: 'admin', ...params } });
@@ -306,6 +308,7 @@ export class PlacementTestAPI {
     page?: number;
     limit?: number;
     category?: string;
+    testType?: string;
     search?: string;
     status?: 'active' | 'inactive';
   } = {}): Promise<AdminApiResponse<PlacementTest[]>> {
@@ -314,6 +317,7 @@ export class PlacementTestAPI {
       if (params.page !== undefined) queryParams.page = params.page;
       if (params.limit !== undefined) queryParams.limit = params.limit;
       if (params.category) queryParams.category = params.category;
+      if (params.testType) queryParams.testType = params.testType;
       if (params.search) queryParams.search = params.search;
       if (params.status) queryParams.status = params.status;
 
@@ -799,6 +803,42 @@ export class RoadmapAPI {
     };
   }> {
     const response = await api.get('/roadmap/admin/content/available', { params });
+    return response.data;
+  }
+
+  /**
+   * Kiểm tra xem test có đang được sử dụng trong roadmap không
+   */
+  static async checkTestUsageInRoadmap(testId: string): Promise<{
+    success: boolean;
+    isUsed: boolean;
+    roadmaps: Array<{ id: string; levelGroup: string; title: string }>;
+  }> {
+    const response = await api.get(`/roadmap/admin/test-usage/${testId}`);
+    return response.data;
+  }
+
+  /**
+   * Kiểm tra xem lesson có đang được sử dụng trong roadmap không
+   */
+  static async checkLessonUsageInRoadmap(lessonId: string): Promise<{
+    success: boolean;
+    isUsed: boolean;
+    roadmaps: Array<{ id: string; levelGroup: string; title: string }>;
+  }> {
+    const response = await api.get(`/roadmap/admin/lesson-usage/${lessonId}`);
+    return response.data;
+  }
+
+  /**
+   * Kiểm tra xem practice có đang được sử dụng trong roadmap không
+   */
+  static async checkPracticeUsageInRoadmap(practiceId: string): Promise<{
+    success: boolean;
+    isUsed: boolean;
+    roadmaps: Array<{ id: string; levelGroup: string; title: string }>;
+  }> {
+    const response = await api.get(`/roadmap/admin/practice-usage/${practiceId}`);
     return response.data;
   }
 }

@@ -39,6 +39,30 @@ router.get(
   roadmapController.getAvailableContent
 );
 
+// Check if test is used in any roadmap (before deletion)
+router.get(
+  '/admin/test-usage/:testId',
+  protect,
+  authorize('admin'),
+  roadmapController.checkTestUsageInRoadmap
+);
+
+// Check if lesson is used in any roadmap (before deletion)
+router.get(
+  '/admin/lesson-usage/:lessonId',
+  protect,
+  authorize('admin'),
+  roadmapController.checkLessonUsageInRoadmap
+);
+
+// Check if practice is used in any roadmap (before deletion)
+router.get(
+  '/admin/practice-usage/:practiceId',
+  protect,
+  authorize('admin'),
+  roadmapController.checkPracticeUsageInRoadmap
+);
+
 // ============================================================================
 // USER ROUTES - Quản lý User Roadmap
 // ============================================================================

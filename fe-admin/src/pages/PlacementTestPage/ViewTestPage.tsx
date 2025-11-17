@@ -56,6 +56,12 @@ const getQuestionTypeLabel = (type: keyof typeof questionTypeLabelMap): string =
   return questionTypeLabelMap[type] || 'Khác';
 };
 
+const testTypeLabels: Record<string, string> = {
+  placement: 'Kiểm tra đầu vào',
+  'mock-exam': 'Thi thử',
+  checkpoint: 'Checkpoint',
+};
+
 // Định dạng chuỗi thời gian ISO sang tiếng Việt, tránh lỗi khi thiếu dữ liệu.
 const formatDateTime = (value?: string): string => {
   if (!value) return '—';
@@ -345,7 +351,8 @@ const ViewTestPage: React.FC = () => {
   // Thống kê nhanh cho phần đầu trang.
   const headerStats = useMemo(
     () => [
-      { label: 'Danh mục', value: test?.category ? test.category.toUpperCase() : '—' },
+      { label: 'Kỹ năng', value: test?.category ? test.category.toUpperCase() : '—' },
+      { label: 'Loại bài', value: test?.testType ? testTypeLabels[test.testType] || '—' : '—' },
       { label: 'Thời lượng', value: test?.timeLimit ? `${test.timeLimit} phút` : '—' },
       { label: 'Số phần', value: `${totalSections} phần` },
       { label: 'Tổng câu hỏi', value: `${totalQuestions} câu` },
@@ -402,6 +409,11 @@ const ViewTestPage: React.FC = () => {
                   <span className="h-2 w-2 rounded-full bg-current" />
                   {test.isActive ? 'Đang hoạt động' : 'Tạm ẩn'}
                 </span>
+                {test.testType && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/20 px-3 py-1 text-xs font-semibold text-indigo-200">
+                    {testTypeLabels[test.testType] || test.testType}
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-medium">
                   ID: {testIdSuffix}
                 </span>

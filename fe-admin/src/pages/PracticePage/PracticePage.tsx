@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { FiEye, FiEdit2, FiTrash2, FiRefreshCw, FiUploadCloud } from 'react-icons/fi';
-import { PracticeAPI } from '../../services/api';
+import { PracticeAPI, RoadmapAPI } from '../../services/api';
 import { Practice, PracticeLevelGroup, PracticeQueryParams, PracticeSkill } from '../../types';
 
 const PAGE_SIZE = 10;
@@ -107,20 +107,43 @@ const PracticePage: React.FC = () => {
   };
 
   const handleDelete = async (practice: Practice) => {
-    const result = await Swal.fire({
-      title: 'Xóa bài ôn luyện?',
-      text: `Bạn sắp xóa "${practice.title}" khỏi hệ thống.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Xóa',
-      cancelButtonText: 'Hủy',
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-    });
-
-    if (!result.isConfirmed) return;
-
     try {
+      // Check roadmap usage first
+      const usageCheck = await RoadmapAPI.checkPracticeUsageInRoadmap(practice._id);
+      
+      let textContent = `Bạn sắp xóa "${practice.title}" khỏi hệ thống.`;
+      let htmlContent = undefined;
+      
+      if (usageCheck.isUsed && usageCheck.roadmaps.length > 0) {
+        const roadmapList = usageCheck.roadmaps
+          .map(r => `<li><strong>${r.levelGroup}</strong>: ${r.title}</li>`)
+          .join('');
+        htmlContent = `
+          <div style="text-align: left; margin: 1rem 0;">
+            <p style="margin-bottom: 0.5rem;">Bạn sắp xóa: <strong>"${practice.title}"</strong></p>
+            <p style="margin-bottom: 0.5rem;">⚠️ <strong>Bài ôn luyện này đang được sử dụng trong các lộ trình:</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">${roadmapList}</ul>
+            <p style="margin-top: 0.5rem; color: #dc2626;">
+              Nếu xóa, bài ôn luyện sẽ bị gỡ khỏi các lộ trình trên.
+            </p>
+          </div>
+        `;
+      }
+
+      const result = await Swal.fire({
+        title: 'Xóa bài ôn luyện?',
+        text: htmlContent ? undefined : textContent,
+        html: htmlContent,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+      });
+
+      if (!result.isConfirmed) return;
+
       setDeletingId(practice._id);
       await PracticeAPI.deletePractice(practice._id);
       toast.success('Đã xóa bài ôn luyện');

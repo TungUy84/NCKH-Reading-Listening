@@ -177,6 +177,7 @@ const EditTestPage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<'reading' | 'listening'>('reading');
+  const [testType, setTestType] = useState<'placement' | 'mock-exam' | 'checkpoint'>('placement');
   const [timeLimit, setTimeLimit] = useState<number>(60);
   const [instructions, setInstructions] = useState<string[]>(['']);
   const [isActive, setIsActive] = useState<boolean>(true);
@@ -190,6 +191,7 @@ const EditTestPage: React.FC = () => {
         setTitle(data.title);
         setDescription(data.description || '');
         setCategory(data.category);
+        setTestType((data as any).testType || 'placement');
         setTimeLimit(data.timeLimit || 60);
         setInstructions(data.instructions && data.instructions.length ? data.instructions : ['']);
         setIsActive(typeof (data as any).isActive === 'boolean' ? !!(data as any).isActive : true);
@@ -901,6 +903,7 @@ const EditTestPage: React.FC = () => {
       title: title.trim(),
       description: description.trim(),
       category,
+      testType,
       timeLimit,
       instructions: instructions.map((i) => i.trim()).filter((i) => i),
       isActive,
@@ -928,7 +931,7 @@ const EditTestPage: React.FC = () => {
     return () => {
       if (infoDebounceRef.current) window.clearTimeout(infoDebounceRef.current);
     };
-  }, [testId, title, description, category, timeLimit, instructions, isActive, autoSaveEnabled]);
+  }, [testId, title, description, category, testType, timeLimit, instructions, isActive, autoSaveEnabled]);
 
   // --- Auto-save: Content (sections & questions) ---
   useEffect(() => {
@@ -1112,7 +1115,7 @@ const EditTestPage: React.FC = () => {
     if (!title.trim() || !description.trim()) { toast.error('Vui lòng nhập tiêu đề và mô tả'); return; }
     try {
       setSaving(true);
-      const payload = { title: title.trim(), description: description.trim(), category, timeLimit, instructions: instructions.filter((i) => i.trim()), isActive };
+      const payload = { title: title.trim(), description: description.trim(), category, testType, timeLimit, instructions: instructions.filter((i) => i.trim()), isActive };
       await PlacementTestAPI.updateTestInfo(testId, payload);
       toast.success('Đã lưu thông tin');
       // Update signature to prevent immediate autosave
@@ -1222,12 +1225,20 @@ const EditTestPage: React.FC = () => {
                 <label className="block text-sm mb-1">Mô tả</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-3 py-2 border rounded-lg" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm mb-1">Loại bài test</label>
+                  <label className="block text-sm mb-1">Kỹ năng</label>
                   <select value={category} onChange={(e) => setCategory(e.target.value as 'reading' | 'listening')} className="w-full px-3 py-2 border rounded-lg">
                     <option value="reading">Reading</option>
                     <option value="listening">Listening</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm mb-1">Loại bài</label>
+                  <select value={testType} onChange={(e) => setTestType(e.target.value as typeof testType)} className="w-full px-3 py-2 border rounded-lg">
+                    <option value="placement">Kiểm tra đầu vào</option>
+                    <option value="mock-exam">Thi thử</option>
+                    <option value="checkpoint">Bài kiểm tra Checkpoint</option>
                   </select>
                 </div>
                 <div>

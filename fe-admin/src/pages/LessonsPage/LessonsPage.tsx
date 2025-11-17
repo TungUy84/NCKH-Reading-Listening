@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
+import Swal from 'sweetalert2';
 import { Lesson, LessonListResult, LessonQueryParams, PracticeLevelGroup, PracticeSkill } from '../../types';
-import { LessonAPI } from '../../services/api';
+import { LessonAPI, RoadmapAPI } from '../../services/api';
 
 interface PaginationState {
   page: number;
@@ -67,12 +68,42 @@ const LessonsListPage: React.FC = () => {
 
   // Hàm xóa bài học với xác nhận từ người dùng
   const handleDelete = async (lessonId: string) => {
-    const confirmed = window.confirm('Bạn có chắc muốn xóa bài học này?');
-    if (!confirmed) {
-      return;
-    }
-
     try {
+      // Check roadmap usage first
+      const usageCheck = await RoadmapAPI.checkLessonUsageInRoadmap(lessonId);
+      
+      let confirmText = 'Điều này không thể hoàn tác!';
+      let htmlContent = undefined;
+      
+      if (usageCheck.isUsed && usageCheck.roadmaps.length > 0) {
+        const roadmapList = usageCheck.roadmaps
+          .map(r => `<li><strong>${r.levelGroup}</strong>: ${r.title}</li>`)
+          .join('');
+        htmlContent = `
+          <div style="text-align: left; margin: 1rem 0;">
+            <p style="margin-bottom: 0.5rem;">⚠️ <strong>Bài học này đang được sử dụng trong các lộ trình:</strong></p>
+            <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">${roadmapList}</ul>
+            <p style="margin-top: 0.5rem; color: #dc2626;">
+              Nếu xóa, bài học sẽ bị gỡ khỏi các lộ trình trên.
+            </p>
+          </div>
+        `;
+      }
+
+      const result = await Swal.fire({
+        title: 'Bạn có chắc muốn xóa bài học này?',
+        text: htmlContent ? undefined : confirmText,
+        html: htmlContent,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+      });
+
+      if (!result.isConfirmed) return;
+
       await LessonAPI.deleteLesson(lessonId);
       toast.success('Đã xóa bài học');
       const shouldReloadCurrentPage = lessons.length > 1 || pagination.page === 1;
