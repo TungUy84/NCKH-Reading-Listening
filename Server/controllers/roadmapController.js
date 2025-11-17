@@ -714,3 +714,100 @@ exports.getSuggestedLevel = async (req, res) => {
     });
   }
 };
+
+/**
+ * Check if a placement test is used in any roadmap (Admin only)
+ * Returns roadmap info if test is used as checkpoint
+ */
+exports.checkTestUsageInRoadmap = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    
+    const roadmaps = await Roadmap.find({ checkpointTest: testId })
+      .select('levelGroup title')
+      .lean();
+    
+    res.json({
+      success: true,
+      isUsed: roadmaps.length > 0,
+      roadmaps: roadmaps.map(r => ({
+        id: r._id,
+        levelGroup: r.levelGroup,
+        title: r.title
+      }))
+    });
+  } catch (error) {
+    console.error('Error in checkTestUsageInRoadmap:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể kiểm tra test usage',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Check if a lesson is used in any roadmap (Admin only)
+ */
+exports.checkLessonUsageInRoadmap = async (req, res) => {
+  try {
+    const { lessonId } = req.params;
+    
+    const roadmaps = await Roadmap.find({
+      $or: [
+        { 'content.reading.lessons': lessonId },
+        { 'content.listening.lessons': lessonId }
+      ]
+    }).select('levelGroup title').lean();
+    
+    res.json({
+      success: true,
+      isUsed: roadmaps.length > 0,
+      roadmaps: roadmaps.map(r => ({
+        id: r._id,
+        levelGroup: r.levelGroup,
+        title: r.title
+      }))
+    });
+  } catch (error) {
+    console.error('Error in checkLessonUsageInRoadmap:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể kiểm tra lesson usage',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Check if a practice is used in any roadmap (Admin only)
+ */
+exports.checkPracticeUsageInRoadmap = async (req, res) => {
+  try {
+    const { practiceId } = req.params;
+    
+    const roadmaps = await Roadmap.find({
+      $or: [
+        { 'content.reading.practices': practiceId },
+        { 'content.listening.practices': practiceId }
+      ]
+    }).select('levelGroup title').lean();
+    
+    res.json({
+      success: true,
+      isUsed: roadmaps.length > 0,
+      roadmaps: roadmaps.map(r => ({
+        id: r._id,
+        levelGroup: r.levelGroup,
+        title: r.title
+      }))
+    });
+  } catch (error) {
+    console.error('Error in checkPracticeUsageInRoadmap:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Không thể kiểm tra practice usage',
+      error: error.message
+    });
+  }
+};

@@ -241,13 +241,38 @@ const updateLesson = async (req, res) => {
 const deleteLesson = async (req, res) => {
   try {
     const { lessonId } = req.params;
-    const lesson = await Lesson.findByIdAndDelete(lessonId);
+    const lesson = await Lesson.findById(lessonId);
 
     if (!lesson) {
       return res.status(404).json({ message: 'Không tìm thấy bài học để xóa' });
     }
 
-    return res.status(200).json({ message: 'Xóa bài học thành công' });
+    // Check roadmap usage and remove references
+    const Roadmap = require('../models/Roadmap');
+    const roadmapsUsing = await Roadmap.find({
+      $or: [
+        { 'content.reading.lessons': lessonId },
+        { 'content.listening.lessons': lessonId }
+      ]
+    }).select('levelGroup title').lean();
+
+    if (roadmapsUsing.length > 0) {
+      await Roadmap.updateMany(
+        { 'content.reading.lessons': lessonId },
+        { $pull: { 'content.reading.lessons': lessonId } }
+      );
+      await Roadmap.updateMany(
+        { 'content.listening.lessons': lessonId },
+        { $pull: { 'content.listening.lessons': lessonId } }
+      );
+    }
+
+    await Lesson.findByIdAndDelete(lessonId);
+
+    return res.status(200).json({ 
+      message: 'Xóa bài học thành công',
+      removedFromRoadmaps: roadmapsUsing.map(r => r.levelGroup)
+    });
   } catch (error) {
     console.error('[lessonController][deleteLesson] Error', error);
     return res.status(500).json({ message: 'Không thể xóa bài học' });

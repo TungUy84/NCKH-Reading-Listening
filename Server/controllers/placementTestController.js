@@ -33,15 +33,18 @@ const deleteMediaFiles = async (blocks = []) => {
 // Lấy danh sách các bài test theo category (Public)
 const getActivePlacementTests = async (req, res) => {
   try {
-    const { category } = req.query; // listening hoặc reading
+    const { category, testType } = req.query; // listening hoặc reading, placement/mock-exam/checkpoint
 
     const filter = { isActive: true };
     if (category && ['listening', 'reading'].includes(category)) {
       filter.category = category;
     }
+    if (testType && ['placement', 'mock-exam', 'checkpoint'].includes(testType)) {
+      filter.testType = testType;
+    }
 
     const tests = await PlacementTest.find(filter)
-      .select('title description timeLimit totalQuestions category')
+      .select('title description timeLimit totalQuestions category testType')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -312,11 +315,15 @@ const getAllPlacementTests = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Filters
-    const { search, category, status } = req.query;
+    const { search, category, status, testType } = req.query;
     const filter = {};
 
     if (category && ['listening', 'reading'].includes(category)) {
       filter.category = category;
+    }
+
+    if (testType && ['placement', 'mock-exam', 'checkpoint'].includes(testType)) {
+      filter.testType = testType;
     }
 
     if (status === 'active') filter.isActive = true;
@@ -386,7 +393,7 @@ const getPlacementTestById = async (req, res) => {
 // Tạo bài test mới (Admin only)
 const createPlacementTest = async (req, res) => {
   try {
-    const { title, description, instructions, timeLimit, questions = [], sections = [], category, isActive = true } = req.body;
+    const { title, description, instructions, timeLimit, questions = [], sections = [], category, testType = 'placement', isActive = true } = req.body;
 
     // Chuẩn hoá sections: nếu không có, tạo 1 section mặc định
     const sectionObjects = [];
@@ -483,6 +490,7 @@ const createPlacementTest = async (req, res) => {
       description: description || '',
       instructions: Array.isArray(instructions) ? instructions : [],
       category, // BẮT BUỘC theo schema
+      testType, // placement, mock-exam, checkpoint
       timeLimit,
       sections: sectionObjects,
       questions: normalizedQuestions,
@@ -511,7 +519,7 @@ const createPlacementTest = async (req, res) => {
 const updatePlacementTest = async (req, res) => {
   try {
     const { testId } = req.params;
-    const { title, description, instructions, timeLimit, questions, isActive, category } = req.body;
+    const { title, description, instructions, timeLimit, questions, isActive, category, testType } = req.body;
 
     const test = await PlacementTest.findById(testId);
     if (!test) {
@@ -534,6 +542,7 @@ const updatePlacementTest = async (req, res) => {
     }
     if (typeof isActive === 'boolean') test.isActive = isActive;
     if (category) test.category = category;
+    if (testType && ['placement', 'mock-exam', 'checkpoint'].includes(testType)) test.testType = testType;
 
     await test.save();
 
@@ -679,6 +688,20 @@ const deletePlacementTest = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy bài test' });
     }
 
+    // Check if test is used in any roadmap
+    const Roadmap = require('../models/Roadmap');
+    const roadmapsUsingTest = await Roadmap.find({ checkpointTest: testId })
+      .select('levelGroup title')
+      .lean();
+
+    // Remove test reference from roadmaps
+    if (roadmapsUsingTest.length > 0) {
+      await Roadmap.updateMany(
+        { checkpointTest: testId },
+        { $unset: { checkpointTest: 1 } }
+      );
+    }
+
     const mediaBlocks = [];
     (test.sections || []).forEach((section) => {
       (section?.mediaBlocks || []).forEach((block) => mediaBlocks.push(block));
@@ -690,7 +713,10 @@ const deletePlacementTest = async (req, res) => {
       await deleteMediaFiles(mediaBlocks);
     }
 
-    res.json({ message: 'Xóa bài test thành công' });
+    res.json({ 
+      message: 'Xóa bài test thành công',
+      removedFromRoadmaps: roadmapsUsingTest.map(r => r.levelGroup)
+    });
   } catch (error) {
     console.error('Delete placement test error:', error);
     res.status(500).json({ message: 'Lỗi server khi xóa bài test' });
@@ -720,6 +746,20 @@ const bulkDeletePlacementTests = async (req, res) => {
       return res.status(400).json({ message: 'Danh sách testId không hợp lệ' });
     }
 
+    // Check roadmap usage for all tests
+    const Roadmap = require('../models/Roadmap');
+    const roadmapsUsingTests = await Roadmap.find({ checkpointTest: { $in: ids } })
+      .select('levelGroup title checkpointTest')
+      .lean();
+
+    // Remove test references from roadmaps
+    if (roadmapsUsingTests.length > 0) {
+      await Roadmap.updateMany(
+        { checkpointTest: { $in: ids } },
+        { $unset: { checkpointTest: 1 } }
+      );
+    }
+
     const testsToDelete = await PlacementTest.find({ _id: { $in: ids } }, { sections: 1 }).lean();
     const mediaBlocks = [];
     testsToDelete.forEach((test) => {
@@ -736,7 +776,8 @@ const bulkDeletePlacementTests = async (req, res) => {
 
     res.json({
       message: `Đã xóa ${result.deletedCount} bài test`,
-      deleted: result.deletedCount
+      deleted: result.deletedCount,
+      removedFromRoadmaps: roadmapsUsingTests.map(r => r.levelGroup)
     });
   } catch (error) {
     console.error('Bulk delete placement tests error:', error);

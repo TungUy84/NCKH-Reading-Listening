@@ -2,15 +2,21 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
-import { PlacementTestAPI } from '../../services/api';
-import { PlacementTest } from '../../types';
-import { FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
+import type { PlacementTest } from '../../types';
+import { PlacementTestAPI, RoadmapAPI } from '../../services/api';
+import { FiEye, FiEdit2, FiTrash2, FiTarget, FiFileText, FiCheckCircle } from 'react-icons/fi';
 
 const PAGE_SIZE = 10;
 
 const categoryLabel: Record<string, string> = {
   reading: 'Reading',
   listening: 'Listening',
+};
+
+const testTypeLabel: Record<string, string> = {
+  placement: 'Kiểm tra đầu vào',
+  'mock-exam': 'Thi thử',
+  checkpoint: 'Kiểm tra chặng',
 };
 
 const statusLabel = (isActive: boolean) => (isActive ? 'Hoạt động' : 'Tạm ẩn');
@@ -25,6 +31,7 @@ const PlacementTestsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [category, setCategory] = useState<string>('');
+  const [testType, setTestType] = useState<string>('');
   const [status, setStatus] = useState<string>('');
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -38,8 +45,9 @@ const PlacementTestsPage: React.FC = () => {
         page,
         limit: PAGE_SIZE,
         category: category || undefined,
+        testType: testType || undefined,
         search: debouncedSearch || undefined,
-        status: status as any,
+        status: (status as 'active' | 'inactive' | undefined) || undefined,
       });
       setTests(res.data || []);
       setTotal(res.pagination?.totalItems || (res.data?.length ?? 0));
@@ -63,17 +71,18 @@ const PlacementTestsPage: React.FC = () => {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, category, status, debouncedSearch]);
+  }, [page, category, testType, status, debouncedSearch]);
 
   // Reset to first page when filters or search change
   useEffect(() => {
     setPage(1);
-  }, [category, status, debouncedSearch]);
+  }, [category, testType, status, debouncedSearch]);
 
   // Đưa bộ lọc về trạng thái ban đầu và tải lại dữ liệu
   const clearFilters = () => {
     setSearch('');
     setCategory('');
+    setTestType('');
     setStatus('');
     setPage(1);
     load();
@@ -99,21 +108,44 @@ const PlacementTestsPage: React.FC = () => {
 
   // Xác nhận trước khi xóa hẳn bài test khỏi hệ thống
   const remove = async (test: PlacementTest) => {
-    const result = await Swal.fire({
-      title: 'Bạn có chắc muốn xóa?',
-      text: `Bài test: ${test.title}`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Xóa',
-      cancelButtonText: 'Hủy',
-      confirmButtonColor: '#dc2626',
-      cancelButtonColor: '#6b7280',
-      reverseButtons: false,
-    });
-    if (!result.isConfirmed) return;
     try {
+      // Kiểm tra xem test có trong roadmap không
+      const usageCheck = await RoadmapAPI.checkTestUsageInRoadmap(test._id);
+      
+      let confirmText = `Bài test: ${test.title}`;
+      let warningHtml = '';
+      
+      if (usageCheck.isUsed && usageCheck.roadmaps.length > 0) {
+        const roadmapList = usageCheck.roadmaps
+          .map(r => `<li><strong>${r.levelGroup}</strong>: ${r.title}</li>`)
+          .join('');
+        
+        warningHtml = `
+          <div class="text-left mb-3">
+            <p class="text-red-600 font-semibold mb-2">⚠️ Bài test này đang được sử dụng trong roadmap:</p>
+            <ul class="list-disc pl-5 text-sm">${roadmapList}</ul>
+            <p class="text-gray-600 text-sm mt-3">Nếu xóa, checkpoint test sẽ bị gỡ khỏi các roadmap trên.</p>
+          </div>
+        `;
+      }
+
+      const result = await Swal.fire({
+        title: 'Bạn có chắc muốn xóa?',
+        html: warningHtml || confirmText,
+        icon: usageCheck.isUsed ? 'warning' : 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: false,
+      });
+      
+      if (!result.isConfirmed) return;
+      
       await PlacementTestAPI.deleteTest(test._id);
-      toast.success('Đã xóa');
+      toast.success(usageCheck.isUsed ? 'Đã xóa và gỡ khỏi roadmap' : 'Đã xóa');
+      
       const newCount = tests.length - 1;
       if (newCount === 0 && page > 1) setPage(page - 1);
       else load();
@@ -126,7 +158,7 @@ const PlacementTestsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Kiểm tra đầu vào</h1>
+          <h1 className="text-2xl font-semibold text-slate-800">Kiểm tra / Thi thử</h1>
           <p className="text-slate-500">Danh sách bài test</p>
         </div>
         <div className="flex gap-3">
@@ -146,7 +178,7 @@ const PlacementTestsPage: React.FC = () => {
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -158,9 +190,19 @@ const PlacementTestsPage: React.FC = () => {
           onChange={(e) => setCategory(e.target.value)}
           className="px-3 py-2 border rounded-lg"
         >
-          <option value="">Tất cả loại</option>
+          <option value="">Tất cả kỹ năng</option>
           <option value="reading">Reading</option>
           <option value="listening">Listening</option>
+        </select>
+        <select
+          value={testType}
+          onChange={(e) => setTestType(e.target.value)}
+          className="px-3 py-2 border rounded-lg"
+        >
+          <option value="">Tất cả mục đích</option>
+          <option value="placement">Kiểm tra đầu vào</option>
+          <option value="mock-exam">Thi thử</option>
+          <option value="checkpoint">Kiểm tra chặng</option>
         </select>
         <select
           value={status}
@@ -183,10 +225,11 @@ const PlacementTestsPage: React.FC = () => {
             <thead className="bg-slate-50 text-slate-600 text-sm">
               <tr>
                 <th className="text-left p-3 font-medium">Tiêu đề</th>
-                <th className="text-left p-3 font-medium">Loại</th>
-                <th className="text-left p-3 font-medium">Thời gian</th>
-                <th className="text-left p-3 font-medium">Số phần</th>
-                <th className="text-left p-3 font-medium">Câu hỏi</th>
+                <th className="text-center p-3 font-medium">Kỹ năng</th>
+                <th className="text-center p-3 font-medium">Loại bài</th>
+                <th className="text-center p-3 font-medium">Thời gian</th>
+                <th className="text-center p-3 font-medium">Số phần</th>
+                <th className="text-center p-3 font-medium">Câu hỏi</th>
                 <th className="text-center p-3 font-medium">Trạng thái</th>
                 <th className="text-right p-3 font-medium">Hành động</th>
               </tr>
@@ -194,7 +237,7 @@ const PlacementTestsPage: React.FC = () => {
             <tbody className="relative">
               {loading && (
                 <tr>
-                  <td colSpan={7} className="p-0">
+                  <td colSpan={8} className="p-0">
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-4">
                       <div className="flex gap-2">
                         <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
@@ -208,7 +251,7 @@ const PlacementTestsPage: React.FC = () => {
               )}
               {!loading && tests.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-slate-500">Chưa có bài test</td>
+                  <td colSpan={8} className="p-6 text-center text-slate-500">Chưa có bài test</td>
                 </tr>
               ) : (
                 tests.map((t) => (
@@ -217,10 +260,32 @@ const PlacementTestsPage: React.FC = () => {
                       <div className="font-medium text-slate-800">{t.title}</div>
                       <div className="text-xs text-slate-500">Cập nhật: {new Date(t.updatedAt).toLocaleString()}</div>
                     </td>
-                    <td className="p-3">{categoryLabel[t.category] || t.category}</td>
-                    <td className="p-3">{t.timeLimit} phút</td>
-                    <td className="p-3">{Array.isArray(t.sections) ? t.sections.length : ((t as any).totalSections ?? 0)}</td>
-                    <td className="p-3">{t.totalQuestions}</td>
+                    <td className="p-3 text-center">{categoryLabel[t.category] || t.category}</td>
+                    <td className="p-3">
+                      <select
+                        value={t.testType || 'placement'}
+                        onChange={async (e) => {
+                          const newType = e.target.value as 'placement' | 'mock-exam' | 'checkpoint';
+                          try {
+                            await PlacementTestAPI.updateTestInfo(t._id, { testType: newType });
+                            setTests(prev => prev.map(test => 
+                              test._id === t._id ? { ...test, testType: newType } : test
+                            ));
+                            toast.success('Đã cập nhật loại bài');
+                          } catch (err: any) {
+                            toast.error(err.message || 'Không thể cập nhật');
+                          }
+                        }}
+                        className="w-full px-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        <option value="placement">Kiểm tra đầu vào</option>
+                        <option value="mock-exam">Thi thử</option>
+                        <option value="checkpoint">Kiểm tra chặng</option>
+                      </select>
+                    </td>
+                    <td className="p-3 text-center">{t.timeLimit} phút</td>
+                    <td className="p-3 text-center">{Array.isArray(t.sections) ? t.sections.length : ((t as any).totalSections ?? 0)}</td>
+                    <td className="p-3 text-center">{t.totalQuestions}</td>
                     <td className="p-3 text-center">
                       <div className="inline-flex items-center gap-2 justify-center">
                         <button

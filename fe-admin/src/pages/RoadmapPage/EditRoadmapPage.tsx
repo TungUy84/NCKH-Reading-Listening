@@ -211,7 +211,7 @@ const EditRoadmapPage: React.FC = () => {
 
   const loadTests = async () => {
     try {
-      const res = await PlacementTestAPI.getTests({});
+      const res = await PlacementTestAPI.getTests({ testType: 'checkpoint' });
       setTests(res.data || []);
     } catch (err) {
       console.error('Failed to load tests');

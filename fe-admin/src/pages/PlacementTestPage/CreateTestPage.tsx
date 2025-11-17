@@ -10,6 +10,7 @@ const CreateTestPage: React.FC = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState<'reading' | 'listening'>('reading');
+  const [testType, setTestType] = useState<'placement' | 'mock-exam' | 'checkpoint'>('placement');
   const [timeLimit, setTimeLimit] = useState<number>(60);
   const [instructions, setInstructions] = useState<string[]>(['']);
   const [isActive, setIsActive] = useState<boolean>(true);
@@ -30,6 +31,7 @@ const CreateTestPage: React.FC = () => {
         title: title.trim(),
         description: description.trim(),
         category,
+        testType,
         timeLimit,
         instructions: sanitizedInstructions,
         isActive,
@@ -39,6 +41,7 @@ const CreateTestPage: React.FC = () => {
         title: string;
         description: string;
         category: 'reading' | 'listening';
+        testType: 'placement' | 'mock-exam' | 'checkpoint';
         timeLimit: number;
         instructions: string[];
         isActive: boolean;
@@ -74,12 +77,20 @@ const CreateTestPage: React.FC = () => {
             <label className="block text-sm mb-1">Mô tả</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full px-3 py-2 border rounded-lg" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm mb-1">Loại bài test</label>
+              <label className="block text-sm mb-1">Kỹ năng</label>
               <select value={category} onChange={(e) => setCategory(e.target.value as 'reading' | 'listening')} className="w-full px-3 py-2 border rounded-lg">
                 <option value="reading">Reading</option>
                 <option value="listening">Listening</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm mb-1">Loại bài</label>
+              <select value={testType} onChange={(e) => setTestType(e.target.value as 'placement' | 'mock-exam' | 'checkpoint')} className="w-full px-3 py-2 border rounded-lg">
+                <option value="placement">Kiểm tra đầu vào</option>
+                <option value="mock-exam">Thi thử</option>
+                <option value="checkpoint">Kiểm tra chặng</option>
               </select>
             </div>
             <div>

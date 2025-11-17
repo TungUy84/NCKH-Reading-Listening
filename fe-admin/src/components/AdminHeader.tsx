@@ -39,7 +39,7 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ onLogout, onToggleSidebar, si
 
   // Derive breadcrumb label (could be extended later)
   const getCrumb = () => {
-    if (location.pathname.startsWith('/admin/placement-tests')) return 'Kiểm tra đầu vào';
+    if (location.pathname.startsWith('/admin/placement-tests')) return 'Kiểm tra / Thi thử';
     if (location.pathname.startsWith('/admin/dashboard')) return 'Dashboard';
     return 'Trang quản trị';
   };

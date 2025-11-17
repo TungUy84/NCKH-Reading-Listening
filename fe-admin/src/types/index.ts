@@ -11,6 +11,7 @@ export interface PlacementTest {
   title: string;
   description: string;
   category: 'listening' | 'reading';
+  testType: 'placement' | 'mock-exam' | 'checkpoint';
   instructions: string[];
   timeLimit: number;
   questions: Question[];

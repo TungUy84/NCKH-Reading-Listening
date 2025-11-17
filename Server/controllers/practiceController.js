@@ -410,6 +410,26 @@ const deletePractice = async (req, res) => {
       return res.status(404).json({ message: 'Không tìm thấy bài ôn luyện để xóa' });
     }
 
+    // Check roadmap usage and remove references
+    const Roadmap = require('../models/Roadmap');
+    const roadmapsUsing = await Roadmap.find({
+      $or: [
+        { 'content.reading.practices': practiceId },
+        { 'content.listening.practices': practiceId }
+      ]
+    }).select('levelGroup title').lean();
+
+    if (roadmapsUsing.length > 0) {
+      await Roadmap.updateMany(
+        { 'content.reading.practices': practiceId },
+        { $pull: { 'content.reading.practices': practiceId } }
+      );
+      await Roadmap.updateMany(
+        { 'content.listening.practices': practiceId },
+        { $pull: { 'content.listening.practices': practiceId } }
+      );
+    }
+
     const mediaBlocks = [];
     (practice.sections || []).forEach((section) => {
       (section?.mediaBlocks || []).forEach((block) => mediaBlocks.push(block));
@@ -422,7 +442,8 @@ const deletePractice = async (req, res) => {
     }
 
     return res.status(200).json({
-      message: 'Xóa bài ôn luyện thành công'
+      message: 'Xóa bài ôn luyện thành công',
+      removedFromRoadmaps: roadmapsUsing.map(r => r.levelGroup)
     });
   } catch (error) {
     console.error('[practiceController][deletePractice] Lỗi xóa bài ôn luyện', error);
