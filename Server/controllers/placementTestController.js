@@ -57,10 +57,21 @@ const getActivePlacementTests = async (req, res) => {
   }
 };
 
+// Hàm shuffle array (Fisher-Yates algorithm)
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 // Lấy chi tiết bài test để làm bài (Public)
 const getPlacementTestForTaking = async (req, res) => {
   try {
     const { testId } = req.params;
+    const { randomize } = req.query; // ?randomize=true để random câu hỏi
 
     const test = await PlacementTest.findById(testId)
       .select('-questions.correctAnswers -questions.explanation'); // Ẩn đáp án và giải thích
@@ -73,9 +84,46 @@ const getPlacementTestForTaking = async (req, res) => {
       return res.status(400).json({ message: 'Bài test này không còn hoạt động' });
     }
 
+    // Convert to plain object để có thể modify
+    const testObj = test.toObject();
+
+    // Randomize questions nếu được yêu cầu (chỉ với placement test)
+    // CHỈ xáo trộn câu hỏi TRONG CÙNG 1 PART, giữ nguyên thứ tự các part
+    if (randomize === 'true' && testObj.testType === 'placement') {
+      // Nhóm câu hỏi theo sectionId (mỗi section = 1 part)
+      const questionsBySectionId = new Map();
+      const sectionOrder = []; // Lưu thứ tự xuất hiện của section
+      
+      testObj.questions.forEach(q => {
+        const sectionKey = q.sectionId ? q.sectionId.toString() : 'no-section';
+        
+        if (!questionsBySectionId.has(sectionKey)) {
+          questionsBySectionId.set(sectionKey, []);
+          sectionOrder.push(sectionKey); // Ghi nhận thứ tự section
+        }
+        
+        questionsBySectionId.get(sectionKey).push(q);
+      });
+
+      // Xáo trộn câu hỏi TRONG TỪNG section, giữ nguyên thứ tự section
+      const shuffledQuestions = [];
+      sectionOrder.forEach(sectionKey => {
+        const sectionQuestions = questionsBySectionId.get(sectionKey);
+        const shuffled = shuffleArray(sectionQuestions);
+        shuffledQuestions.push(...shuffled);
+      });
+
+      // Cập nhật lại questionNumber theo thứ tự mới (chỉ để display)
+      shuffledQuestions.forEach((q, idx) => {
+        q.questionNumber = idx + 1;
+      });
+
+      testObj.questions = shuffledQuestions;
+    }
+
     res.json({
       message: 'Lấy bài test thành công',
-      test
+      test: testObj
     });
   } catch (error) {
     console.error('Get placement test error:', error);

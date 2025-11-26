@@ -74,7 +74,8 @@ export const getActiveTests = async (category?: string) => {
  * Backend: GET /api/placement-tests/:testId
  */
 export const getTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/${testId}`);
+  // Thêm randomize=true cho placement test để shuffle câu hỏi
+  const response = await apiService.get(`/placement-tests/${testId}?randomize=true`);
   return response.data;
 };
 
@@ -83,7 +84,8 @@ export const getTestForTaking = async (testId: string) => {
  * Backend: GET /api/placement-tests/:testId
  */
 export const getPlacementTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/${testId}`);
+  // Thêm randomize=true cho placement test để shuffle câu hỏi
+  const response = await apiService.get(`/placement-tests/${testId}?randomize=true`);
   return response.data;
 };
 
