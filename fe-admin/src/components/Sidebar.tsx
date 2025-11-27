@@ -61,11 +61,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       icon: <MapIcon className="w-5 h-5" />,
     },
     {
-      label: 'Thi thử',
-      href: '/admin/mock-exams',
-      icon: <CheckBadgeIcon className="w-5 h-5" />,
-    },
-    {
       label: 'Blog',
       href: '/admin/blog',
       icon: <NewspaperIcon className="w-5 h-5" />,

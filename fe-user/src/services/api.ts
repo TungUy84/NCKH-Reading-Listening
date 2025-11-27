@@ -543,6 +543,88 @@ export const getAllMyTestAttempts = async (params?: any) => {
   return response.data;
 };
 
+// ========== NHÓM API BLOG ==========
+
+/**
+ * Lấy danh sách blog đã được duyệt (public feed)
+ * Backend: GET /api/blogs
+ */
+export const getBlogs = async (params?: { page?: number; limit?: number }) => {
+  const response = await apiService.get('/blogs', { params });
+  return response.data;
+};
+
+/**
+ * Lấy danh sách blog của mình (tất cả trạng thái)
+ * Backend: GET /api/blogs/my-posts
+ */
+export const getMyBlogs = async (params?: { page?: number; limit?: number }) => {
+  const response = await apiService.get('/blogs/my-posts', { params });
+  return response.data;
+};
+
+/**
+ * Tải lên ảnh cho blog
+ * Backend: POST /api/blogs/upload-images (multipart/form-data)
+ */
+export const uploadBlogImages = async (files: File[]) => {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('images', file);
+  });
+  const response = await apiService.post('/blogs/upload-images', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+/**
+ * Tạo blog mới (status=pending)
+ * Backend: POST /api/blogs
+ */
+export const createBlog = async (blogData: { title: string; content: string; images: string[] }) => {
+  const response = await apiService.post('/blogs', blogData);
+  return response.data;
+};
+
+/**
+ * Cập nhật blog (chỉ pending/rejected, reset về pending)
+ * Backend: PUT /api/blogs/:id
+ */
+export const updateBlog = async (blogId: string, blogData: { title?: string; content?: string; images?: string[] }) => {
+  const response = await apiService.put(`/blogs/${blogId}`, blogData);
+  return response.data;
+};
+
+/**
+ * Xóa blog của mình
+ * Backend: DELETE /api/blogs/:id
+ */
+export const deleteBlog = async (blogId: string) => {
+  const response = await apiService.delete(`/blogs/${blogId}`);
+  return response.data;
+};
+
+/**
+ * Like/Unlike blog
+ * Backend: POST /api/blogs/:id/like
+ */
+export const likeBlog = async (blogId: string) => {
+  const response = await apiService.post(`/blogs/${blogId}/like`);
+  return response.data;
+};
+
+/**
+ * Thêm comment vào blog
+ * Backend: POST /api/blogs/:id/comments
+ */
+export const addBlogComment = async (blogId: string, content: string) => {
+  const response = await apiService.post(`/blogs/${blogId}/comments`, { content });
+  return response.data;
+};
+
 // Export the axios instance as default for direct use
 export default apiService;
 

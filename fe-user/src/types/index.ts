@@ -231,6 +231,54 @@ export interface ScoreDisplayProps {
   levelDescription: string;
 }
 
+// ===== LOẠI DỮ LIỆU CHO BLOG =====
+
+export interface BlogComment {
+  _id: string;
+  authorId: {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+  content: string;
+  createdAt: string;
+}
+
+export interface Blog {
+  _id: string;
+  title: string;
+  content: string;
+  images: string[];
+  authorId: {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+  status: 'pending' | 'approved' | 'rejected';
+  approvedAt?: string;
+  comments: BlogComment[];
+  likedBy: string[];
+  likeCount: number;
+  commentCount: number;
+  isLikedByMe?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBlogPayload {
+  title: string;
+  content: string;
+  images: string[];
+}
+
+export interface UpdateBlogPayload {
+  title?: string;
+  content?: string;
+  images?: string[];
+}
+
 // ===== LOẠI DỮ LIỆU CHO ÔN LUYỆN =====
 
 export type PracticeSkill = 'reading' | 'listening';

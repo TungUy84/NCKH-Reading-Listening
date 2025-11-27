@@ -29,6 +29,7 @@ import MockTestDetailedResultPage from './pages/MockTestPage/MockTestDetailedRes
 import LessonsPage from './pages/LessonsPage/LessonsPage';
 import LessonDetailPage from './pages/LessonsPage/LessonDetailPage';
 import BlogPage from './pages/BlogPage/BlogPage';
+import MyBlogsPage from './pages/BlogPage/MyBlogsPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
 import RoadmapSetupPage from './pages/RoadmapPage/RoadmapSetupPage';
 import StageDetailPage from './pages/RoadmapPage/StageDetailPage';
@@ -118,6 +119,14 @@ const AppShell: React.FC = () => {
           <Route path="/lessons" element={<LessonsPage />} />
           <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
           <Route path="/blog" element={<BlogPage />} />
+          <Route
+            path="/blog/my-posts"
+            element={
+              <ProtectedRoute>
+                <MyBlogsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/roadmap"
             element={
