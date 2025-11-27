@@ -111,10 +111,10 @@ export const submitTest = async (submission: {
 };
 
 /**
- * Nộp bài test IELTS
+ * Nộp bài test IELTS (LEGACY - không lưu kết quả)
  * Backend: POST /api/placement-tests/:testId/submissions
  */
-export const submitPlacementTest = async (testId: string, answers: Array<{
+export const checkPlacementTest = async (testId: string, answers: Array<{
   questionNumber: number;
   selectedOptions?: string[];
   userAnswer?: string;
@@ -495,6 +495,52 @@ export const submitCheckpoint = async (payload: SubmitCheckpointPayload) => {
 export const getSuggestedLevel = async () => {
   const response = await apiService.get('/roadmap/user/suggested-level');
   return response.data as SuggestedLevelResponse;
+};
+
+// ========== NEW APIs: PLACEMENT TEST RESULT (Submit và lưu kết quả) ==========
+
+/**
+ * Submit test và lưu kết quả vào database
+ * Backend: POST /api/placement-tests/:testId/submit
+ */
+export const submitPlacementTest = async (testId: string, payload: {
+  answers: Array<{
+    questionId: string;
+    selectedOptions?: string[];
+    userAnswer?: string;
+    matchingAnswers?: { prompt: string; selected: string }[];
+  }>;
+  durationSeconds?: number;
+}) => {
+  const response = await apiService.post(`/placement-tests/${testId}/submit`, payload);
+  return response.data;
+};
+
+/**
+ * Lấy chi tiết một lần làm bài
+ * Backend: GET /api/placement-tests/attempts/:attemptId
+ */
+export const getTestAttemptDetail = async (attemptId: string) => {
+  const response = await apiService.get(`/placement-tests/attempts/${attemptId}`);
+  return response.data;
+};
+
+/**
+ * Lấy lịch sử làm bài của user cho test cụ thể
+ * Backend: GET /api/placement-tests/:testId/attempts/mine
+ */
+export const getMyTestHistory = async (testId: string, params?: any) => {
+  const response = await apiService.get(`/placement-tests/${testId}/attempts/mine`, { params });
+  return response.data;
+};
+
+/**
+ * Lấy tất cả lịch sử làm bài của user (cross all tests)
+ * Backend: GET /api/placement-tests/attempts/all
+ */
+export const getAllMyTestAttempts = async (params?: any) => {
+  const response = await apiService.get('/placement-tests/attempts/all', { params });
+  return response.data;
 };
 
 // Export the axios instance as default for direct use

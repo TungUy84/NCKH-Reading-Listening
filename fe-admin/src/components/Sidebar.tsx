@@ -41,7 +41,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       icon: <UsersIcon className="w-5 h-5" />,
     },
     {
-      label: 'Kiểm tra / Thi thử',
+      label: 'Tạo bộ đề thi',
       href: '/admin/placement-tests',
       icon: <ClipboardDocumentCheckIcon className="w-5 h-5" />,
     },

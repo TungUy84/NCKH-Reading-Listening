@@ -22,6 +22,10 @@ import PracticeDetailPage from './pages/PracticePage/PracticeDetailPage';
 import PracticeTakePage from './pages/PracticePage/PracticeTakePage';
 import PracticeResultPage from './pages/PracticePage/PracticeResultPage';
 import MockTestPage from './pages/MockTestPage/MockTestPage';
+import MockTestDetailPage from './pages/MockTestPage/MockTestDetailPage';
+import TakeMockTestPage from './pages/MockTestPage/TakeMockTestPage';
+import MockTestResultPage from './pages/MockTestPage/MockTestResultPage';
+import MockTestDetailedResultPage from './pages/MockTestPage/MockTestDetailedResultPage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
 import LessonDetailPage from './pages/LessonsPage/LessonDetailPage';
 import BlogPage from './pages/BlogPage/BlogPage';
@@ -41,7 +45,7 @@ declare global {
 // Thành phần khung ứng dụng quản lý layout chung và routing chính
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
-  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname);
+  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname);
   const isPracticeTakingPage = /^\/practice\/[^/]+\/take$/.test(pathname);
   const hideLayoutChrome = isTestTakingPage || isPracticeTakingPage;
 
@@ -93,6 +97,24 @@ const AppShell: React.FC = () => {
             }
           />
           <Route path="/mock-test" element={<MockTestPage />} />
+          <Route
+            path="/mock-test/result/:resultId/details"
+            element={
+              <ProtectedRoute>
+                <MockTestDetailedResultPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mock-test/result/:resultId"
+            element={
+              <ProtectedRoute>
+                <MockTestResultPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/mock-test/:testId/take" element={<TakeMockTestPage />} />
+          <Route path="/mock-test/:testId" element={<MockTestDetailPage />} />
           <Route path="/lessons" element={<LessonsPage />} />
           <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
           <Route path="/blog" element={<BlogPage />} />
