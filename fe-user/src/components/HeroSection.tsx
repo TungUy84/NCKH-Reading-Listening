@@ -11,7 +11,7 @@ const HeroSection: React.FC = () => {
   ];
 
   return (
-    <section className="relative pt-10 pb-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-hidden">
+    <section className="relative pt-8 pb-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl" />
@@ -83,19 +83,6 @@ const HeroSection: React.FC = () => {
                   alt="Students studying English"
                   className="w-full h-[500px] object-cover"
                 />
-              </div>
-
-              {/* Floating card */}
-              <div className="absolute bottom-8 left-8 right-8 bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-gray-100">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white">
-                    <Award className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-600">Học tập thông minh</div>
-                    <div className="text-lg font-bold text-gray-900">Tiến bộ vượt trội</div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

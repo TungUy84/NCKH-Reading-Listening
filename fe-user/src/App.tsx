@@ -43,7 +43,15 @@ declare global {
   }
 }
 
-// Thành phần khung ứng dụng quản lý layout chung và routing chính
+// Background chung cho toàn bộ ứng dụng (Modern Gradient)
+const GlobalBackground = () => (
+  <div className="fixed inset-0 w-full h-full pointer-events-none overflow-hidden -z-50 bg-slate-50">
+    <div className="absolute top-0 left-0 w-full h-[600px] bg-gradient-to-b from-indigo-50/80 via-white to-slate-50" />
+    <div className="absolute top-[-100px] right-[-100px] w-[600px] h-[600px] bg-blue-400/20 rounded-full blur-3xl opacity-50 animate-pulse" />
+    <div className="absolute top-[200px] left-[-100px] w-[400px] h-[400px] bg-purple-400/20 rounded-full blur-3xl opacity-50" />
+  </div>
+);
+
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
   const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname);
@@ -51,9 +59,13 @@ const AppShell: React.FC = () => {
   const hideLayoutChrome = isTestTakingPage || isPracticeTakingPage;
 
   return (
-    <div className={`min-h-screen flex flex-col overflow-x-hidden${hideLayoutChrome ? ' bg-gray-50' : ''}`}>
+    <div className="min-h-screen flex flex-col overflow-x-hidden relative">
+      {/* Background nằm dưới cùng */}
+      <GlobalBackground />
+
       {!hideLayoutChrome && <Header />}
 
+      {/* Main content đã có pt-16 từ App, nên các trang con chỉ cần padding nhỏ */}
       <main className={`flex-1 ${hideLayoutChrome ? '' : 'pt-16'}`}>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -62,105 +74,32 @@ const AppShell: React.FC = () => {
           <Route path="/test/:testId/result" element={<TestResultPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/practice" element={<PracticeListPage />} />
-          <Route
-            path="/practice/:practiceId"
-            element={
-              <ProtectedRoute>
-                <PracticeDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/practice/:practiceId/take"
-            element={
-              <ProtectedRoute>
-                <PracticeTakePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/practice/attempts/:attemptId"
-            element={
-              <ProtectedRoute>
-                <PracticeResultPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/practice/:practiceId" element={<ProtectedRoute><PracticeDetailPage /></ProtectedRoute>} />
+          <Route path="/practice/:practiceId/take" element={<ProtectedRoute><PracticeTakePage /></ProtectedRoute>} />
+          <Route path="/practice/attempts/:attemptId" element={<ProtectedRoute><PracticeResultPage /></ProtectedRoute>} />
           <Route path="/mock-test" element={<MockTestPage />} />
-          <Route
-            path="/mock-test/result/:resultId/details"
-            element={
-              <ProtectedRoute>
-                <MockTestDetailedResultPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/mock-test/result/:resultId"
-            element={
-              <ProtectedRoute>
-                <MockTestResultPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/mock-test/result/:resultId/details" element={<ProtectedRoute><MockTestDetailedResultPage /></ProtectedRoute>} />
+          <Route path="/mock-test/result/:resultId" element={<ProtectedRoute><MockTestResultPage /></ProtectedRoute>} />
           <Route path="/mock-test/:testId/take" element={<TakeMockTestPage />} />
           <Route path="/mock-test/:testId" element={<MockTestDetailPage />} />
           <Route path="/lessons" element={<LessonsPage />} />
           <Route path="/lessons/:lessonId" element={<LessonDetailPage />} />
           <Route path="/blog" element={<BlogPage />} />
-          <Route
-            path="/blog/my-posts"
-            element={
-              <ProtectedRoute>
-                <MyBlogsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/roadmap"
-            element={
-              <ProtectedRoute>
-                <RoadmapPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/roadmap/setup"
-            element={
-              <ProtectedRoute>
-                <RoadmapSetupPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/roadmap/stage/:levelGroup"
-            element={
-              <ProtectedRoute>
-                <StageDetailPage />
-              </ProtectedRoute>
-            }
-          />
-
+          <Route path="/blog/my-posts" element={<ProtectedRoute><MyBlogsPage /></ProtectedRoute>} />
+          <Route path="/roadmap" element={<ProtectedRoute><RoadmapPage /></ProtectedRoute>} />
+          <Route path="/roadmap/setup" element={<ProtectedRoute><RoadmapSetupPage /></ProtectedRoute>} />
+          <Route path="/roadmap/stage/:levelGroup" element={<ProtectedRoute><StageDetailPage /></ProtectedRoute>} />
           <Route
             path="*"
             element={
               <div className="section-container py-20 text-center">
                 <h1 className="text-4xl font-bold text-gray-900 mb-4">404 - Không tìm thấy trang</h1>
                 <p className="text-gray-600 mb-8">Trang bạn đang tìm kiếm không tồn tại.</p>
-                <a href="/" className="btn-primary">
-                  Về trang chủ
-                </a>
+                <a href="/" className="btn-primary">Về trang chủ</a>
               </div>
             }
           />
@@ -172,32 +111,18 @@ const AppShell: React.FC = () => {
   );
 };
 
-// Thành phần gốc thiết lập nhà cung cấp context và cấu hình router
 const App: React.FC = () => {
   useEffect(() => {
-    // Khởi tạo AOS để kích hoạt animation mỗi khi cuộn tới section mới
-    AOS.init({
-      duration: 400,
-      once: true,
-      offset: 50,
-    });
+    AOS.init({ duration: 400, once: true, offset: 50 });
   }, []);
 
   useEffect(() => {
-    // Dùng Lenis để xử lý cuộn mượt trên toàn bộ trang
-    const lenis = new Lenis({
-      duration: 1.2,
-      smoothWheel: true,
-      wheelMultiplier: 1.0,
-    });
-
+    const lenis = new Lenis({ duration: 1.2, smoothWheel: true, wheelMultiplier: 1.0 });
     window.__lenis = lenis;
-
     let frameId = requestAnimationFrame(function raf(time: number) {
       lenis.raf(time);
       frameId = requestAnimationFrame(raf);
     });
-
     return () => {
       cancelAnimationFrame(frameId);
       lenis.destroy();
@@ -207,28 +132,10 @@ const App: React.FC = () => {
 
   return (
     <AuthProvider>
-      <Router
-        future={{
-          v7_startTransition: true,
-          v7_relativeSplatPath: true
-        }}
-      >
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <ScrollToTop />
         <AppShell />
-
-        {/* Toast hiển thị thông báo toàn cục */}
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
+        <ToastContainer position="top-right" autoClose={3000} theme="light" />
       </Router>
     </AuthProvider>
   );
