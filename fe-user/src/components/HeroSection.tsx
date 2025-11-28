@@ -11,7 +11,7 @@ const HeroSection: React.FC = () => {
   ];
 
   return (
-    <section className="relative pt-32 pb-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-hidden">
+    <section className="relative pt-10 pb-20 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 overflow-hidden">
       {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl" />
@@ -32,7 +32,7 @@ const HeroSection: React.FC = () => {
             </div>
 
             {/* Heading */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight text-gray-900">
+            <h1 className="text-4xl sm:text-4xl lg:text-4xl font-bold leading-tight text-gray-900">
               Nâng cao kỹ năng{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
                 Nghe & Đọc

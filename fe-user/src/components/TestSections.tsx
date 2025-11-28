@@ -11,7 +11,6 @@ const TestSections: React.FC = () => {
       description: 'Thực hành với hàng trăm bài tập được phân loại theo cấp độ và kỹ năng',
       gradient: 'from-blue-500 to-cyan-500',
       features: [
-        'Hàng trăm bài tập đa dạng',
         'Phân loại theo cấp độ',
         'Giải thích chi tiết',
         'Lưu tiến độ tự động'
@@ -26,7 +25,6 @@ const TestSections: React.FC = () => {
       gradient: 'from-purple-500 to-pink-500',
       features: [
         'Lộ trình học có hệ thống',
-        'Video bài giảng chất lượng',
         'Bài tập thực hành',
         'Kiểm tra sau mỗi bài'
       ],
@@ -42,7 +40,6 @@ const TestSections: React.FC = () => {
         'Đề thi chuẩn format',
         'Chấm điểm tự động',
         'Phân tích kết quả chi tiết',
-        'Xếp hạng toàn quốc'
       ],
       link: '/mock-test',
       buttonText: 'Làm bài thi thử'

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { CheckCircle, XCircle, ArrowLeft, Volume2, FileText, Clock } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowLeft, Volume2, FileText } from 'lucide-react';
 import { getTestAttemptDetail } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 

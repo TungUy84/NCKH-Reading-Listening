@@ -96,7 +96,7 @@ const Header: React.FC = () => {
           {/* Logo thương hiệu */}
           <Link to="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors">
             <AcademicCapIcon className="h-8 w-8" />
-            <span className="text-2xl font-bold">EnglishMaster</span>
+            <span className="text-2xl font-bold">VLU English</span>
           </Link>
 
           {/* Điều hướng trên desktop */}
