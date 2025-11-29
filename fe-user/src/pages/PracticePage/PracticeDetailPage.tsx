@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { 
-  ClockIcon, 
-  BookOpenIcon, 
-  TrophyIcon, 
-  PlayCircleIcon, 
+import {
+  ClockIcon,
+  BookOpenIcon,
+  TrophyIcon,
+  PlayCircleIcon,
   ChevronLeftIcon,
   SpeakerWaveIcon,
   ListBulletIcon,
@@ -24,9 +24,16 @@ const convertToTenScale = (earnedPoints: number, totalPoints: number): number =>
   return parseFloat(((earnedPoints / totalPoints) * 10).toFixed(2));
 };
 
+const getLevelGradient = (level: string) => {
+  if (['AV1-AV3'].includes(level)) return 'from-emerald-400 to-teal-500 shadow-emerald-200';
+  if (['AV4-AV5'].includes(level)) return 'from-amber-400 to-orange-500 shadow-amber-200';
+  if (['AV6', 'AV7'].includes(level)) return 'from-rose-400 to-pink-500 shadow-rose-200';
+  return 'from-blue-400 to-indigo-500 shadow-blue-200';
+};
+
 const getSkillGradient = (skill: string) => {
-  return skill === 'reading' 
-    ? 'from-blue-500 to-cyan-500 shadow-blue-200' 
+  return skill === 'reading'
+    ? 'from-blue-500 to-cyan-500 shadow-blue-200'
     : 'from-purple-500 to-pink-500 shadow-purple-200';
 };
 
@@ -107,7 +114,7 @@ const PracticeDetailPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center py-20">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-slate-800 mb-2">Đã xảy ra lỗi 😕</h2>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Đã xảy ra lỗi</h2>
           <p className="text-slate-500 mb-6">{error || 'Không tìm thấy bài tập này.'}</p>
           <Button onClick={() => navigate('/practice')} variant="outline">Quay lại danh sách</Button>
         </div>
@@ -119,11 +126,11 @@ const PracticeDetailPage: React.FC = () => {
 
   return (
     <div className="font-sans pb-12">
-      
+
       {/* --- MAIN CONTENT --- */}
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        
-        <button 
+
+        <button
           onClick={() => navigate('/practice')}
           className="group flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-8 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200/50 w-fit"
         >
@@ -132,7 +139,7 @@ const PracticeDetailPage: React.FC = () => {
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 lg:gap-12 items-start">
-          
+
           {/* === LEFT COLUMN: INFO & ACTIONS === */}
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -143,7 +150,10 @@ const PracticeDetailPage: React.FC = () => {
                 {isReading ? <BookOpenIcon className="h-4 w-4" /> : <SpeakerWaveIcon className="h-4 w-4" />}
                 {practice.skill}
               </span>
-              <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-bold text-slate-600 shadow-sm uppercase tracking-wide">
+              <span className={clsx(
+                "px-3 py-1 rounded-full text-xs font-bold text-white shadow-md bg-gradient-to-r",
+                getLevelGradient(practice.levelGroup)
+              )}>
                 {practice.levelGroup}
               </span>
             </div>
@@ -161,15 +171,15 @@ const PracticeDetailPage: React.FC = () => {
                 onClick={() => navigate(`/practice/${practice._id}/take`)}
                 className={clsx(
                   "flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-white font-bold text-lg shadow-xl hover:-translate-y-1 transition-all duration-300 bg-gradient-to-r w-full sm:w-auto",
-                  isReading 
-                    ? "from-blue-600 to-indigo-600 hover:shadow-blue-500/30" 
+                  isReading
+                    ? "from-blue-600 to-indigo-600 hover:shadow-blue-500/30"
                     : "from-purple-600 to-pink-600 hover:shadow-purple-500/30"
                 )}
               >
                 <PlayCircleIcon className="h-7 w-7" />
                 Bắt đầu làm bài
               </button>
-              
+
               {lastAttemptId && (
                 <button
                   onClick={() => navigate(`/practice/attempts/${lastAttemptId}`)}
@@ -224,7 +234,7 @@ const PracticeDetailPage: React.FC = () => {
           <div className="bg-white/60 backdrop-blur-md rounded-[2rem] border border-white/60 shadow-lg p-6 lg:p-8">
             {historyLoading && <div className="text-center py-8 text-slate-500">Đang tải dữ liệu...</div>}
             {historyError && <div className="text-center py-8 text-red-500">{historyError}</div>}
-            
+
             {!historyLoading && !historyError && historyItems.length === 0 && (
               <div className="text-center py-12">
                 <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -242,8 +252,8 @@ const PracticeDetailPage: React.FC = () => {
                     key={item.id}
                     className={clsx(
                       "group flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border transition-all duration-200 hover:shadow-md",
-                      item.id === lastAttemptId 
-                        ? "bg-blue-50/50 border-blue-200 ring-1 ring-blue-200" 
+                      item.id === lastAttemptId
+                        ? "bg-blue-50/50 border-blue-200 ring-1 ring-blue-200"
                         : "bg-white border-slate-100 hover:border-blue-100"
                     )}
                   >
@@ -252,13 +262,13 @@ const PracticeDetailPage: React.FC = () => {
                       <div className={clsx(
                         "flex flex-col items-center justify-center w-16 h-16 rounded-xl font-bold border",
                         item.score10 >= 8 ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                        item.score10 >= 5 ? "bg-amber-50 text-amber-600 border-amber-100" :
-                        "bg-rose-50 text-rose-600 border-rose-100"
+                          item.score10 >= 5 ? "bg-amber-50 text-amber-600 border-amber-100" :
+                            "bg-rose-50 text-rose-600 border-rose-100"
                       )}>
                         <span className="text-xl">{item.score10}</span>
                         <span className="text-[10px] uppercase opacity-70">Điểm</span>
                       </div>
-                      
+
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <p className="font-bold text-slate-800">{item.createdAt}</p>

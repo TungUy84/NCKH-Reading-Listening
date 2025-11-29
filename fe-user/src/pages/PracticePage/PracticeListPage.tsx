@@ -86,9 +86,6 @@ const PracticeListPage: React.FC = () => {
             Chinh phục <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">kỹ năng</span> <br />
             bứt phá điểm số.
           </h1>
-          {/* <p className="text-lg text-slate-600 leading-relaxed">
-            Hàng trăm bài tập Reading & Listening được biên soạn kỹ lưỡng, giúp bạn rèn luyện phản xạ và tư duy ngôn ngữ mỗi ngày.
-          </p> */}
         </div>
 
         {/* --- FLOATING FILTER BAR --- */}
