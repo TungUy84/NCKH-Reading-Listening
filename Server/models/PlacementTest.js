@@ -210,13 +210,9 @@ const placementResultSchema = new mongoose.Schema({
     earnedPoints: Number,
     percentage: Number
   },
-  ieltsRange: {
-    min: Number,
-    max: Number
-  },
   avLevel: {
     type: String,
-    enum: ['AV1', 'AV2', 'AV3', 'AV4', 'AV5', 'AV6', 'AV7', 'Đạt chuẩn đầu ra']
+    enum: ['AV1-AV3', 'AV4-AV5', 'AV6', 'AV7']
   },
   recommendation: String,
   completedAt: {
@@ -229,44 +225,29 @@ const placementResultSchema = new mongoose.Schema({
 });
 
 // Method để tính điểm IELTS và level AV
-placementResultSchema.methods.calculateIELTSAndLevel = function() {
+placementResultSchema.methods.calculateLevel = function() {
   const percentage = this.score.percentage;
   
-  let ieltsMin, ieltsMax, avLevel, recommendation;
+  let avLevel, recommendation;
   
-  if (percentage < 30) {
-    // AV1-AV3 (0-3.0)
-    ieltsMin = 0;
-    ieltsMax = 3.0;
-    avLevel = percentage < 10 ? 'AV1' : percentage < 20 ? 'AV2' : 'AV3';
-    recommendation = 'Mức cơ bản, cần cải thiện khả năng nhận diện từ vựng và nghe hiểu hội thoại ngắn.';
-  } else if (percentage < 50) {
-    // AV4-AV5 (3.0-4.0)
-    ieltsMin = 3.0;
-    ieltsMax = 4.0;
-    avLevel = percentage < 40 ? 'AV4' : 'AV5';
-    recommendation = 'Mức trung cấp, tập trung vào nâng cao tốc độ nghe và hiểu ý chính trong các đoạn hội thoại dài hơn.';
-  } else if (percentage < 70) {
-    // AV6 (4.0-5.0)
-    ieltsMin = 4.0;
-    ieltsMax = 5.0;
+  if (percentage > 80) {
+    // AV7 (> 80%)
+    avLevel = 'AV7';
+    recommendation = 'Xuất sắc! Bắt đầu cải thiện bằng các phương pháp học sâu, tích hợp IELTS, TOEIC, ...';
+  } else if (percentage > 65) {
+    // AV6 (65-80%)
     avLevel = 'AV6';
     recommendation = 'Mức cao trung cấp, nắm được các ý chính, tập trung vào việc nâng cao khả năng nghe những bài với vốn từ cao hơn.';
-  } else if (percentage < 85) {
-    // AV7 (5.0-6.0)
-    ieltsMin = 5.0;
-    ieltsMax = 6.0;
-    avLevel = 'AV7';
-    recommendation = 'Mức khá, thích nghi được với các bài nghe dài hơn, nắm được ý chính, đánh đố.';
+  } else if (percentage > 35) {
+    // AV4-AV5 (35-65%)
+    avLevel = 'AV4-AV5';
+    recommendation = 'Mức trung cấp, tập trung vào nâng cao tốc độ nghe và hiểu ý chính trong các đoạn hội thoại dài hơn.';
   } else {
-    // Đạt chuẩn đầu ra (>=6.0)
-    ieltsMin = 6.0;
-    ieltsMax = 9.0;
-    avLevel = 'Đạt chuẩn đầu ra';
-    recommendation = 'Xuất sắc! Bắt đầu cải thiện bằng các phương pháp học sâu, tích hợp IELTS, TOEIC, ...';
+    // AV1-AV3 (0-35%)
+    avLevel = 'AV1-AV3';
+    recommendation = 'Mức cơ bản, cần cải thiện khả năng nhận diện từ vựng và nghe hiểu hội thoại ngắn.';
   }
   
-  this.ieltsRange = { min: ieltsMin, max: ieltsMax };
   this.avLevel = avLevel;
   this.recommendation = recommendation;
 };

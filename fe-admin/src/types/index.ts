@@ -651,3 +651,38 @@ export interface SuggestedLevelResponse {
   };
 }
 
+// ===== BLOG TYPES =====
+
+export interface BlogComment {
+  _id: string;
+  authorId: {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+  content: string;
+  createdAt: string;
+}
+
+export interface Blog {
+  _id: string;
+  title: string;
+  content: string;
+  images: string[];
+  authorId: {
+    _id: string;
+    username: string;
+    firstName: string;
+    lastName: string;
+  };
+  status: 'pending' | 'approved' | 'rejected';
+  approvedAt?: string;
+  comments: BlogComment[];
+  likedBy: string[];
+  likeCount: number;
+  commentCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+

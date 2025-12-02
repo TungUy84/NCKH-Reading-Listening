@@ -7,6 +7,10 @@ const {
   getActivePlacementTests,
   getPlacementTestForTaking,
   checkPlacementTest,
+  submitPlacementTest,
+  getMyTestAttempts,
+  getTestAttemptDetails,
+  getAllMyTestAttempts,
   getAllPlacementTests,
   getPlacementTestById,
   createPlacementTest,
@@ -134,8 +138,22 @@ router.put('/:testId', protect, isAdmin, updatePlacementTest);
 // Xóa bài test
 router.delete('/:testId', protect, isAdmin, deletePlacementTest);
 
-// Gửi bài làm để chấm điểm (không lưu database)
+// Gửi bài làm để chấm điểm (không lưu database) - LEGACY
 router.post('/:testId/submissions', checkPlacementTest);
+
+// ======= NEW ROUTES: Submit và lưu kết quả =======
+
+// Submit test và lưu kết quả vào database
+router.post('/:testId/submit', protect, submitPlacementTest);
+
+// Lấy lịch sử làm bài của user cho test cụ thể
+router.get('/:testId/attempts/mine', protect, getMyTestAttempts);
+
+// Lấy tất cả lịch sử làm bài của user (cross all tests)
+router.get('/attempts/all', protect, getAllMyTestAttempts);
+
+// Lấy chi tiết một lần làm bài
+router.get('/attempts/:attemptId', protect, getTestAttemptDetails);
 
 // Lấy chi tiết bài test cho thí sinh
 router.get('/:testId', getPlacementTestForTaking);

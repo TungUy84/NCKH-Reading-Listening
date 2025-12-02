@@ -63,8 +63,10 @@ apiService.interceptors.response.use(
  * Lấy danh sách bài test đang hoạt động (lọc theo category nếu cần)
  * Backend: GET /api/placement-tests?category=listening
  */
-export const getActiveTests = async (category?: string) => {
-  const params = category ? { category } : {};
+export const getActiveTests = async (category?: string, testType?: string) => {
+  const params: any = {};
+  if (category) params.category = category;
+  if (testType) params.testType = testType;
   const response = await apiService.get('/placement-tests', { params });
   return response.data;
 };
@@ -73,8 +75,9 @@ export const getActiveTests = async (category?: string) => {
  * Lấy chi tiết bài test để làm (không trả đáp án)
  * Backend: GET /api/placement-tests/:testId
  */
-export const getTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/${testId}`);
+export const getTestForTaking = async (testId: string, randomize: boolean = true) => {
+  // Thêm randomize=true cho placement test để shuffle câu hỏi
+  const response = await apiService.get(`/placement-tests/${testId}?randomize=${randomize}`);
   return response.data;
 };
 
@@ -83,7 +86,8 @@ export const getTestForTaking = async (testId: string) => {
  * Backend: GET /api/placement-tests/:testId
  */
 export const getPlacementTestForTaking = async (testId: string) => {
-  const response = await apiService.get(`/placement-tests/${testId}`);
+  // Thêm randomize=true cho placement test để shuffle câu hỏi
+  const response = await apiService.get(`/placement-tests/${testId}?randomize=true`);
   return response.data;
 };
 
@@ -109,10 +113,10 @@ export const submitTest = async (submission: {
 };
 
 /**
- * Nộp bài test IELTS
+ * Nộp bài test IELTS (LEGACY - không lưu kết quả)
  * Backend: POST /api/placement-tests/:testId/submissions
  */
-export const submitPlacementTest = async (testId: string, answers: Array<{
+export const checkPlacementTest = async (testId: string, answers: Array<{
   questionNumber: number;
   selectedOptions?: string[];
   userAnswer?: string;
@@ -493,6 +497,134 @@ export const submitCheckpoint = async (payload: SubmitCheckpointPayload) => {
 export const getSuggestedLevel = async () => {
   const response = await apiService.get('/roadmap/user/suggested-level');
   return response.data as SuggestedLevelResponse;
+};
+
+// ========== NEW APIs: PLACEMENT TEST RESULT (Submit và lưu kết quả) ==========
+
+/**
+ * Submit test và lưu kết quả vào database
+ * Backend: POST /api/placement-tests/:testId/submit
+ */
+export const submitPlacementTest = async (testId: string, payload: {
+  answers: Array<{
+    questionId: string;
+    selectedOptions?: string[];
+    userAnswer?: string;
+    matchingAnswers?: { prompt: string; selected: string }[];
+  }>;
+  durationSeconds?: number;
+}) => {
+  const response = await apiService.post(`/placement-tests/${testId}/submit`, payload);
+  return response.data;
+};
+
+/**
+ * Lấy chi tiết một lần làm bài
+ * Backend: GET /api/placement-tests/attempts/:attemptId
+ */
+export const getTestAttemptDetail = async (attemptId: string) => {
+  const response = await apiService.get(`/placement-tests/attempts/${attemptId}`);
+  return response.data;
+};
+
+/**
+ * Lấy lịch sử làm bài của user cho test cụ thể
+ * Backend: GET /api/placement-tests/:testId/attempts/mine
+ */
+export const getMyTestHistory = async (testId: string, params?: any) => {
+  const response = await apiService.get(`/placement-tests/${testId}/attempts/mine`, { params });
+  return response.data;
+};
+
+/**
+ * Lấy tất cả lịch sử làm bài của user (cross all tests)
+ * Backend: GET /api/placement-tests/attempts/all
+ */
+export const getAllMyTestAttempts = async (params?: any) => {
+  const response = await apiService.get('/placement-tests/attempts/all', { params });
+  return response.data;
+};
+
+// ========== NHÓM API BLOG ==========
+
+/**
+ * Lấy danh sách blog đã được duyệt (public feed)
+ * Backend: GET /api/blogs
+ */
+export const getBlogs = async (params?: { page?: number; limit?: number }) => {
+  const response = await apiService.get('/blogs', { params });
+  return response.data;
+};
+
+/**
+ * Lấy danh sách blog của mình (tất cả trạng thái)
+ * Backend: GET /api/blogs/my-posts
+ */
+export const getMyBlogs = async (params?: { page?: number; limit?: number }) => {
+  const response = await apiService.get('/blogs/my-posts', { params });
+  return response.data;
+};
+
+/**
+ * Tải lên ảnh cho blog
+ * Backend: POST /api/blogs/upload-images (multipart/form-data)
+ */
+export const uploadBlogImages = async (files: File[]) => {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('images', file);
+  });
+  const response = await apiService.post('/blogs/upload-images', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+/**
+ * Tạo blog mới (status=pending)
+ * Backend: POST /api/blogs
+ */
+export const createBlog = async (blogData: { title: string; content: string; images: string[] }) => {
+  const response = await apiService.post('/blogs', blogData);
+  return response.data;
+};
+
+/**
+ * Cập nhật blog (chỉ pending/rejected, reset về pending)
+ * Backend: PUT /api/blogs/:id
+ */
+export const updateBlog = async (blogId: string, blogData: { title?: string; content?: string; images?: string[] }) => {
+  const response = await apiService.put(`/blogs/${blogId}`, blogData);
+  return response.data;
+};
+
+/**
+ * Xóa blog của mình
+ * Backend: DELETE /api/blogs/:id
+ */
+export const deleteBlog = async (blogId: string) => {
+  const response = await apiService.delete(`/blogs/${blogId}`);
+  return response.data;
+};
+
+/**
+ * Like/Unlike blog
+ * Backend: POST /api/blogs/:id/like
+ */
+export const likeBlog = async (blogId: string) => {
+  const response = await apiService.post(`/blogs/${blogId}/like`);
+  return response.data;
+};
+
+/**
+ * Thêm comment vào blog
+ * Backend: POST /api/blogs/:id/comments
+ */
+export const addBlogComment = async (blogId: string, content: string) => {
+  const response = await apiService.post(`/blogs/${blogId}/comments`, { content });
+  return response.data;
 };
 
 // Export the axios instance as default for direct use

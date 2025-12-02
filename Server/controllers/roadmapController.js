@@ -670,7 +670,7 @@ exports.getSuggestedLevel = async (req, res) => {
     // Tìm placement test result gần nhất
     const latestResult = await PlacementResult.findOne({ userId })
       .sort({ createdAt: -1 })
-      .select('avLevel ieltsRange category score');
+      .select('avLevel category score');
     
     if (!latestResult) {
       return res.json({
@@ -680,19 +680,26 @@ exports.getSuggestedLevel = async (req, res) => {
       });
     }
     
-    // Map avLevel sang levelGroup
-    const avLevelToGroup = {
-      'AV1': 'AV1-AV3',
-      'AV2': 'AV1-AV3',
-      'AV3': 'AV1-AV3',
-      'AV4': 'AV4-AV5',
-      'AV5': 'AV4-AV5',
-      'AV6': 'AV6',
-      'AV7': 'AV7',
-      'Đạt chuẩn đầu ra': 'AV7'
-    };
-    
-    const suggestedLevel = avLevelToGroup[latestResult.avLevel] || 'AV1-AV3';
+    // Map avLevel sang levelGroup (nếu cần, hoặc dùng trực tiếp nếu đã lưu theo group)
+    // Với logic mới, avLevel đã là group (AV1-AV3, AV4-AV5, AV6, AV7)
+    const validGroups = ['AV1-AV3', 'AV4-AV5', 'AV6', 'AV7'];
+    let suggestedLevel = latestResult.avLevel;
+
+    // Fallback cho dữ liệu cũ hoặc không khớp
+    if (!validGroups.includes(suggestedLevel)) {
+        // Map cũ
+        const avLevelToGroup = {
+            'AV1': 'AV1-AV3',
+            'AV2': 'AV1-AV3',
+            'AV3': 'AV1-AV3',
+            'AV4': 'AV4-AV5',
+            'AV5': 'AV4-AV5',
+            'AV6': 'AV6',
+            'AV7': 'AV7',
+            'Đạt chuẩn đầu ra': 'AV7'
+        };
+        suggestedLevel = avLevelToGroup[suggestedLevel] || 'AV1-AV3';
+    }
     
     res.json({
       success: true,

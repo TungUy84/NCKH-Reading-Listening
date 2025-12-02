@@ -1,7 +1,9 @@
 import React from 'react';
 import HeroSection from '../components/HeroSection';
 import FeaturesSection from '../components/FeaturesSection';
-import ProcessSection from '../components/ProcessSection';
+import TestSections from '../components/TestSections';
+import LearningPath from '../components/LearningPath';
+import BlogPreview from '../components/BlogPreview';
 
 // Trang chủ ghép các section chính của landing page
 const HomePage: React.FC = () => {
@@ -9,7 +11,9 @@ const HomePage: React.FC = () => {
     <div className="min-h-screen">
       <HeroSection />
       <FeaturesSection />
-      <ProcessSection />
+      <TestSections />
+      <LearningPath />
+      <BlogPreview />
     </div>
   );
 };

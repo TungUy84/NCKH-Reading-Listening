@@ -3,7 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getCurrentUserRoadmap, syncRoadmapContent } from '../../services/api';
 import { UserRoadmap, RoadmapStage } from '../../types';
-import { CheckCircle, Lock, PlayCircle, Award } from 'lucide-react';
+import { 
+  MapIcon, 
+  CheckCircleIcon, 
+  LockClosedIcon, 
+  PlayCircleIcon, 
+  TrophyIcon, 
+  ArrowRightIcon,
+  ChartBarIcon,
+  RocketLaunchIcon,
+  FireIcon,
+  ClockIcon
+} from '@heroicons/react/24/solid';
+import clsx from 'clsx';
+import Loader from '../../components/ui/Loader';
 
 const RoadmapPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,376 +31,255 @@ const RoadmapPage: React.FC = () => {
   const loadRoadmap = async () => {
     try {
       setLoading(true);
-      
-      // Đồng bộ content từ template trước (để có content mới nhất)
-      try {
-        await syncRoadmapContent();
-        console.log('✓ Synced roadmap content from template');
-      } catch (syncErr) {
-        // Nếu sync fail (vd: chưa có roadmap), tiếp tục load
-        console.log('Sync skipped:', syncErr);
-      }
-      
+      try { await syncRoadmapContent(); } catch (err) { console.log('Sync skipped'); }
       const res = await getCurrentUserRoadmap();
-      
       if (!res.hasRoadmap || !res.data) {
-        // Chưa có roadmap -> chuyển sang setup
         navigate('/roadmap/setup');
         return;
       }
-      
       setRoadmap(res.data);
     } catch (err: any) {
-      console.error('Error loading roadmap:', err);
-      toast.error('Không thể tải lộ trình. Vui lòng thử lại.');
-      // Nếu có lỗi nghiêm trọng, redirect về home
+      toast.error('Không thể tải lộ trình.');
       navigate('/');
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusIcon = (status: RoadmapStage['status']) => {
+  const getStatusColor = (status: RoadmapStage['status']) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-6 h-6 text-green-600" />;
-      case 'in-progress':
-      case 'checkpoint-ready':
-        return <PlayCircle className="w-6 h-6 text-blue-600" />;
-      case 'locked':
-        return <Lock className="w-6 h-6 text-gray-400" />;
-      default:
-        return null;
+      case 'completed': return 'bg-emerald-50 border-emerald-200 ring-emerald-500/20';
+      case 'in-progress': return 'bg-white border-indigo-200 ring-4 ring-indigo-500/10 shadow-xl shadow-indigo-500/10';
+      case 'checkpoint-ready': return 'bg-amber-50 border-amber-200 ring-amber-500/20';
+      default: return 'bg-slate-50/50 border-slate-200 opacity-70 grayscale';
     }
-  };
-
-  const getStatusBadge = (status: RoadmapStage['status']) => {
-    switch (status) {
-      case 'completed':
-        return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">Hoàn thành</span>;
-      case 'checkpoint-ready':
-        return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">Sẵn sàng kiểm tra</span>;
-      case 'in-progress':
-        return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">Đang học</span>;
-      case 'locked':
-        return <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-sm font-medium">Bị khóa</span>;
-      default:
-        return null;
-    }
-  };
-
-  const calculateDaysLearning = () => {
-    if (!roadmap) return 0;
-    const created = new Date(roadmap.createdAt);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - created.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
   };
 
   const getOverallProgress = () => {
     if (!roadmap) return 0;
     const totalStages = roadmap.stages.length;
     const completedStages = roadmap.stages.filter(s => s.status === 'completed').length;
-    const inProgressStages = roadmap.stages.filter(s => s.status === 'in-progress' || s.status === 'checkpoint-ready');
+    const activeStage = roadmap.stages.find(s => s.status === 'in-progress' || s.status === 'checkpoint-ready');
     
-    // Nếu có stage đang học, tính thêm progress của stage đó
-    if (inProgressStages.length > 0) {
-      const currentStage = inProgressStages[0];
-      const stageProgress = currentStage.progress.overallPercentage / 100;
-      return Math.round(((completedStages + stageProgress) / totalStages) * 100);
+    let progress = (completedStages / totalStages) * 100;
+    if (activeStage) {
+      progress += (activeStage.progress.overallPercentage / 100) * (100 / totalStages);
     }
-    
-    return Math.round((completedStages / totalStages) * 100);
+    return Math.min(Math.round(progress), 100);
   };
 
-  const getEstimatedWeeksRemaining = () => {
-    if (!roadmap) return 0;
-    const remainingStages = roadmap.stages.filter(s => s.status !== 'completed').length;
-    return remainingStages * 6; // 6 tuần mỗi chặng
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Đang tải lộ trình...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!roadmap) {
-    return null;
-  }
+  if (loading) return <div className="min-h-screen flex items-center justify-center pt-20"><Loader /></div>;
+  if (!roadmap) return null;
 
   const overallProgress = getOverallProgress();
-  const daysLearning = calculateDaysLearning();
-  const weeksRemaining = getEstimatedWeeksRemaining();
   const currentStageIndex = roadmap.stages.findIndex(s => s.status === 'in-progress' || s.status === 'checkpoint-ready');
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-3xl font-bold text-gray-900">
-              🗺️ Lộ trình học tập của bạn
-            </h1>
-            <button
-              onClick={() => navigate('/')}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              ← Trang chủ
-            </button>
-          </div>
-        </div>
-
-        {/* Overall Progress */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">📊 Tổng quan</h2>
-          
-          <div className="mb-4">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-gray-600">
-                Trình độ hiện tại: <span className="font-semibold">{roadmap.currentLevel}</span>
-                <span className="mx-2">→</span>
-                Mục tiêu: <span className="font-semibold">{roadmap.targetLevel}</span>
+    <div className="min-h-screen font-sans pb-20 pt-8">
+      {/* Mở rộng max-width lên 7xl để đồng bộ với các trang khác */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* --- HEADER --- */}
+        <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
+          <div>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-white/50 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-4 shadow-sm animate-bounce">
+              <MapIcon className="h-4 w-4" />
+              Lộ trình cá nhân hóa
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight">
+              Hành trình <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                chinh phục {roadmap.targetLevel}
               </span>
-              <span className="font-bold text-blue-600">{overallProgress}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div
-                className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${overallProgress}%` }}
-              ></div>
-            </div>
+            </h1>
           </div>
-
-          <div className="flex items-center gap-6 text-sm text-gray-600">
-            <span>
-              Chặng <span className="font-semibold">{currentStageIndex + 1}/{roadmap.stages.length}</span> đang học
-            </span>
-            <span>•</span>
-            <span>
-              <span className="font-semibold">{daysLearning}</span> ngày đã học
-            </span>
-            <span>•</span>
-            <span>
-              Còn ~<span className="font-semibold">{weeksRemaining}</span> tuần
-            </span>
+          
+          <div className="flex items-center gap-4 text-sm font-medium text-slate-500 bg-white/60 backdrop-blur-md p-2 rounded-2xl border border-white/50 shadow-sm">
+            <div className="px-4 py-2 rounded-xl bg-white border border-slate-100 shadow-sm">
+              Bắt đầu: <span className="font-bold text-slate-900">{roadmap.currentLevel}</span>
+            </div>
+            <ArrowRightIcon className="h-4 w-4 text-slate-300" />
+            <div className="px-4 py-2 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-700 shadow-sm">
+              Mục tiêu: <span className="font-bold">{roadmap.targetLevel}</span>
+            </div>
           </div>
         </div>
 
-        {/* Stages */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold text-gray-900">🛣️ Các chặng học tập</h2>
+        {/* --- STATS DASHBOARD --- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {/* Card 1: Overall Progress */}
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-indigo-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <ChartBarIcon className="h-24 w-24 text-indigo-600" />
+            </div>
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Tiến độ tổng thể</p>
+            <div className="flex items-end gap-2 mb-4">
+              <span className="text-5xl font-black text-slate-900">{overallProgress}%</span>
+              <span className="text-sm font-medium text-emerald-500 mb-1.5 flex items-center">
+                <ArrowRightIcon className="h-3 w-3 -rotate-45" /> Tốt
+              </span>
+            </div>
+            <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" style={{ width: `${overallProgress}%` }} />
+            </div>
+          </div>
 
-          {roadmap.stages.map((stage, index) => {
-            const isLocked = stage.status === 'locked';
-            const isCompleted = stage.status === 'completed';
-            const isActive = stage.status === 'in-progress' || stage.status === 'checkpoint-ready';
-            const canTakeCheckpoint = stage.status === 'checkpoint-ready';
-            
-            // Calculate totals from actual content in stage
-            const totalReadingItems = stage.content.reading.lessons.length + stage.content.reading.practices.length;
-            const completedReadingItems = stage.progress.reading.completedLessons.length + stage.progress.reading.completedPractices.length;
-            
-            const totalListeningItems = stage.content.listening.lessons.length + stage.content.listening.practices.length;
-            const completedListeningItems = stage.progress.listening.completedLessons.length + stage.progress.listening.completedPractices.length;
-
-            return (
-              <div
-                key={stage._id}
-                className={`bg-white rounded-lg shadow-md overflow-hidden transition-all ${
-                  isActive ? 'ring-2 ring-blue-500' : ''
-                }`}
-              >
-                {/* Stage Header */}
-                <div className={`p-6 ${isCompleted ? 'bg-green-50' : isActive ? 'bg-blue-50' : 'bg-gray-50'}`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(stage.status)}
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">
-                          Chặng {index + 1}: {stage.levelGroup}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          {isCompleted ? 'Đã hoàn thành' : isActive ? 'Đang học' : 'Chưa mở khóa'}
-                        </p>
-                      </div>
-                    </div>
-                    {getStatusBadge(stage.status)}
-                  </div>
-
-                  {/* Progress Bar */}
-                  {!isLocked && (
-                    <div className="mt-4">
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="text-gray-600">Tiến độ</span>
-                        <span className="font-semibold">{stage.progress.overallPercentage}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            isCompleted ? 'bg-green-500' : 'bg-blue-500'
-                          }`}
-                          style={{ width: `${stage.progress.overallPercentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Stage Content */}
-                {!isLocked && (
-                  <div className="p-6">
-                    <div className="grid md:grid-cols-2 gap-6 mb-6">
-                      {/* Reading */}
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          📚 Reading ({completedReadingItems}/{totalReadingItems} hoàn thành)
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Lessons:</span>
-                            <span className="font-medium">
-                              {stage.progress.reading.completedLessons.length}/{stage.content.reading.lessons.length}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Practices:</span>
-                            <span className="font-medium">
-                              {stage.progress.reading.completedPractices.length}/{stage.content.reading.practices.length}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Listening */}
-                      <div>
-                        <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          🎧 Listening ({completedListeningItems}/{totalListeningItems} hoàn thành)
-                        </h4>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Lessons:</span>
-                            <span className="font-medium">
-                              {stage.progress.listening.completedLessons.length}/{stage.content.listening.lessons.length}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Practices:</span>
-                            <span className="font-medium">
-                              {stage.progress.listening.completedPractices.length}/{stage.content.listening.practices.length}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    {canTakeCheckpoint ? (
-                      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div className="flex items-start gap-3 mb-4">
-                          <Award className="w-6 h-6 text-yellow-600 flex-shrink-0 mt-1" />
-                          <div className="flex-1">
-                            <h5 className="font-semibold text-yellow-900 mb-1">
-                              🎯 Bài kiểm tra chặng - Đã mở khóa
-                            </h5>
-                            <p className="text-sm text-yellow-800 mb-3">
-                              Xuất sắc! Bạn đã hoàn thành tất cả nội dung chặng {index + 1}. 
-                              Làm bài kiểm tra để mở khóa chặng tiếp theo.
-                            </p>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => navigate(`/roadmap/stage/${stage.levelGroup}`)}
-                                className="px-4 py-2 border border-yellow-600 text-yellow-700 rounded-lg hover:bg-yellow-100 text-sm"
-                              >
-                                📖 Ôn tập lại
-                              </button>
-                              <button
-                                onClick={() => {
-                                  // Navigate to checkpoint test
-                                  if (stage.checkpointTestId) {
-                                    navigate(`/placement-test/${stage.checkpointTestId}/take`);
-                                  }
-                                }}
-                                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 text-sm font-semibold"
-                              >
-                                🚀 Làm bài kiểm tra
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : isActive && stage.progress.overallPercentage < 100 ? (
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => navigate(`/roadmap/stage/${stage.levelGroup}`)}
-                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold"
-                        >
-                          Tiếp tục học →
-                        </button>
-                      </div>
-                    ) : isCompleted && stage.checkpointResult ? (
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="w-6 h-6 text-green-600" />
-                          <div>
-                            <p className="font-semibold text-green-900">
-                              Đã hoàn thành chặng {index + 1}
-                            </p>
-                            <p className="text-sm text-green-700">
-                              Điểm kiểm tra: {stage.checkpointResult.score}% • 
-                              {stage.checkpointResult.passed ? ' Đạt' : ' Chưa đạt'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {/* Locked Stage */}
-                {isLocked && (
-                  <div className="p-6">
-                    <div className="text-center py-8 text-gray-500">
-                      <Lock className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                      <p className="font-medium">Chặng này đang bị khóa</p>
-                      <p className="text-sm mt-1">
-                        Hoàn thành chặng {index} và đạt điểm kiểm tra để mở khóa
-                      </p>
-                    </div>
-                  </div>
-                )}
+          {/* Card 2: Current Focus */}
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden group hover:-translate-y-1 transition-all">
+            <div className="absolute -right-4 -bottom-4 bg-white/10 w-32 h-32 rounded-full blur-2xl" />
+            <p className="text-sm font-bold text-indigo-200 uppercase tracking-wider mb-2">Đang tập trung</p>
+            {currentStageIndex !== -1 ? (
+              <>
+                <h3 className="text-3xl font-black mb-1">{roadmap.stages[currentStageIndex].levelGroup}</h3>
+                <p className="text-indigo-100 text-sm opacity-90">Chặng {currentStageIndex + 1} trên tổng số {roadmap.stages.length}</p>
+                <button 
+                  onClick={() => navigate(`/roadmap/stage/${roadmap.stages[currentStageIndex].levelGroup}`)}
+                  className="mt-6 px-5 py-2.5 bg-white/20 backdrop-blur-md border border-white/20 rounded-xl text-sm font-bold hover:bg-white/30 transition-colors flex items-center gap-2"
+                >
+                  <PlayCircleIcon className="h-5 w-5" /> Tiếp tục học
+                </button>
+              </>
+            ) : (
+              <div className="h-full flex flex-col justify-center">
+                <h3 className="text-2xl font-bold flex items-center gap-2"><CheckCircleIcon className="h-8 w-8" /> Hoàn thành!</h3>
+                <p className="text-indigo-100 text-sm mt-2">Bạn đã xuất sắc vượt qua mọi thử thách.</p>
               </div>
-            );
-          })}
+            )}
+          </div>
+
+          {/* Card 3: Streak/Motivation */}
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-orange-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <FireIcon className="h-24 w-24 text-orange-500" />
+            </div>
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Trạng thái</p>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-orange-100 text-orange-600 rounded-2xl">
+                <FireIcon className="h-8 w-8" />
+              </div>
+              <div>
+                <p className="font-bold text-slate-900">Đang học tập</p>
+                <p className="text-xs text-slate-500">Giữ vững phong độ nhé!</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {[1,2,3,4,5,6,7].map(d => (
+                <div key={d} className={clsx("h-2 flex-1 rounded-full", d <= 3 ? "bg-orange-400" : "bg-slate-200")} />
+              ))}
+            </div>
+            <p className="text-xs text-slate-400 mt-2 text-right">Tuần này</p>
+          </div>
         </div>
 
-        {/* Completed Roadmap */}
-        {roadmap.status === 'completed' && (
-          <div className="mt-8 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-lg p-8 text-center">
-            <div className="inline-block p-4 bg-green-100 rounded-full mb-4">
-              <Award className="w-12 h-12 text-green-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-green-900 mb-2">
-              🎊 Chúc mừng! Bạn đã hoàn thành lộ trình!
-            </h2>
-            <p className="text-green-700 mb-4">
-              Bạn đã vượt qua tất cả {roadmap.stages.length} chặng từ {roadmap.currentLevel} đến {roadmap.targetLevel}
-            </p>
-            <button
-              onClick={() => navigate('/lessons')}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
-            >
-              Tiếp tục học nâng cao →
-            </button>
+        {/* --- DETAILED TIMELINE --- */}
+        <div className="relative pl-8 md:pl-0">
+          {/* Vertical Line */}
+          <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-indigo-200 via-slate-200 to-transparent -z-10 hidden md:block" />
+          <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-slate-200 -z-10 md:hidden" />
+
+          <div className="space-y-12">
+            {roadmap.stages.map((stage, index) => {
+              const isCompleted = stage.status === 'completed';
+              const isActive = stage.status === 'in-progress' || stage.status === 'checkpoint-ready';
+              const isLocked = stage.status === 'locked';
+
+              return (
+                <div key={stage._id} className="relative md:grid md:grid-cols-[100px_1fr] gap-8 group">
+                  
+                  {/* Timeline Marker (Desktop) */}
+                  <div className="hidden md:flex flex-col items-center">
+                    <div className={clsx(
+                      "w-14 h-14 rounded-2xl flex items-center justify-center border-4 z-10 transition-all duration-500",
+                      isCompleted ? "bg-emerald-500 border-emerald-100 text-white shadow-emerald-200" :
+                      isActive ? "bg-white border-indigo-600 text-indigo-600 shadow-xl scale-110" :
+                      "bg-white border-slate-200 text-slate-300"
+                    )}>
+                      {isCompleted ? <CheckCircleIcon className="h-8 w-8" /> : 
+                       isActive ? <PlayCircleIcon className="h-8 w-8" /> :
+                       <span className="font-bold text-lg">{index + 1}</span>}
+                    </div>
+                    {/* Date or Label below marker */}
+                    <div className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      Chặng {index + 1}
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div 
+                    onClick={() => !isLocked && navigate(`/roadmap/stage/${stage.levelGroup}`)}
+                    className={clsx(
+                      "relative rounded-[2rem] p-8 border transition-all duration-300 cursor-pointer overflow-hidden",
+                      getStatusColor(stage.status),
+                      !isLocked && "hover:shadow-2xl hover:-translate-y-1"
+                    )}
+                  >
+                    {/* Background Blob for Active Card */}
+                    {isActive && <div className="absolute -right-20 -top-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl" />}
+
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                      <div>
+                        {/* Mobile Marker */}
+                        <div className="md:hidden flex items-center gap-2 mb-3">
+                          <span className="px-2 py-1 bg-slate-100 rounded text-xs font-bold text-slate-600">Chặng {index + 1}</span>
+                          {isActive && <span className="text-xs font-bold text-indigo-600 animate-pulse">● Đang diễn ra</span>}
+                        </div>
+
+                        <h3 className={clsx("text-2xl font-black mb-2", isLocked ? "text-slate-400" : "text-slate-900")}>
+                          {stage.levelGroup}
+                        </h3>
+                        
+                        <p className={clsx("text-sm max-w-lg leading-relaxed", isLocked ? "text-slate-400" : "text-slate-600")}>
+                          {isCompleted ? "Bạn đã hoàn thành xuất sắc các nội dung và bài kiểm tra của chặng này." : 
+                           isActive ? "Tập trung hoàn thành các bài học và bài tập thực hành để mở khóa bài kiểm tra." :
+                           "Hoàn thành chặng trước để mở khóa nội dung này."}
+                        </p>
+
+                        {/* Stats Row */}
+                        {!isLocked && (
+                          <div className="flex items-center gap-6 mt-6">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
+                              <CheckCircleIcon className={clsx("h-5 w-5", isCompleted ? "text-emerald-500" : "text-slate-300")} />
+                              <span>{stage.progress.overallPercentage}% Hoàn thành</span>
+                            </div>
+                            {stage.checkpointResult && (
+                              <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
+                                <TrophyIcon className="h-4 w-4" />
+                                Điểm thi: {stage.checkpointResult.score}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Action Button */}
+                      {!isLocked && (
+                        <div className="shrink-0">
+                          <button className={clsx(
+                            "h-14 w-14 rounded-full flex items-center justify-center transition-all",
+                            isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:scale-110" : 
+                            "bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200"
+                          )}>
+                            <ArrowRightIcon className="h-6 w-6" />
+                          </button>
+                        </div>
+                      )}
+                      
+                      {isLocked && <LockClosedIcon className="h-8 w-8 text-slate-300 md:mr-4" />}
+                    </div>
+
+                    {/* Progress Bar Bottom */}
+                    {!isLocked && isActive && (
+                      <div className="absolute bottom-0 left-0 w-full h-1.5 bg-indigo-100">
+                        <div className="h-full bg-indigo-600 transition-all duration-1000" style={{ width: `${stage.progress.overallPercentage}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        )}
+        </div>
+
       </div>
     </div>
   );

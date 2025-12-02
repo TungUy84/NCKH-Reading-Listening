@@ -2,7 +2,14 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const { PlacementTest } = require('../models/PlacementTest');
+const PlacementTestResult = require('../models/PlacementTestResult');
 const { parseDocxFile, parsePdfBuffer, parseExcelBuffer } = require('../utils/placementTestImport');
+const {
+  validatePracticeSubmissionPayload,
+  scorePracticeSubmission,
+  sanitizeDuration,
+  parseDateValue
+} = require('../utils/placementTestResultHelper');
 
 // Xóa các tệp media cũ để tránh rác khi admin cập nhật bài thi
 const deleteMediaFiles = async (blocks = []) => {
@@ -57,10 +64,21 @@ const getActivePlacementTests = async (req, res) => {
   }
 };
 
+// Hàm shuffle array (Fisher-Yates algorithm)
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 // Lấy chi tiết bài test để làm bài (Public)
 const getPlacementTestForTaking = async (req, res) => {
   try {
     const { testId } = req.params;
+    const { randomize } = req.query; // ?randomize=true để random câu hỏi
 
     const test = await PlacementTest.findById(testId)
       .select('-questions.correctAnswers -questions.explanation'); // Ẩn đáp án và giải thích
@@ -73,9 +91,46 @@ const getPlacementTestForTaking = async (req, res) => {
       return res.status(400).json({ message: 'Bài test này không còn hoạt động' });
     }
 
+    // Convert to plain object để có thể modify
+    const testObj = test.toObject();
+
+    // Randomize questions nếu được yêu cầu (placement test và mock-exam)
+    // CHỈ xáo trộn câu hỏi TRONG CÙNG 1 PART, giữ nguyên thứ tự các part
+    if (randomize === 'true' && (testObj.testType === 'placement' || testObj.testType === 'mock-exam')) {
+      // Nhóm câu hỏi theo sectionId (mỗi section = 1 part)
+      const questionsBySectionId = new Map();
+      const sectionOrder = []; // Lưu thứ tự xuất hiện của section
+      
+      testObj.questions.forEach(q => {
+        const sectionKey = q.sectionId ? q.sectionId.toString() : 'no-section';
+        
+        if (!questionsBySectionId.has(sectionKey)) {
+          questionsBySectionId.set(sectionKey, []);
+          sectionOrder.push(sectionKey); // Ghi nhận thứ tự section
+        }
+        
+        questionsBySectionId.get(sectionKey).push(q);
+      });
+
+      // Xáo trộn câu hỏi TRONG TỪNG section, giữ nguyên thứ tự section
+      const shuffledQuestions = [];
+      sectionOrder.forEach(sectionKey => {
+        const sectionQuestions = questionsBySectionId.get(sectionKey);
+        const shuffled = shuffleArray(sectionQuestions);
+        shuffledQuestions.push(...shuffled);
+      });
+
+      // Cập nhật lại questionNumber theo thứ tự mới (chỉ để display)
+      shuffledQuestions.forEach((q, idx) => {
+        q.questionNumber = idx + 1;
+      });
+
+      testObj.questions = shuffledQuestions;
+    }
+
     res.json({
       message: 'Lấy bài test thành công',
-      test
+      test: testObj
     });
   } catch (error) {
     console.error('Get placement test error:', error);
@@ -244,38 +299,26 @@ const checkPlacementTest = async (req, res) => {
   const getIELTSAndLevel = (percentage) => {
       let ieltsScore, avLevel, recommendation;
 
-      if (percentage >= 95) {
-        ieltsScore = '8.5-9.0';
-        avLevel = 'Đạt chuẩn đầu ra';
-        recommendation = 'Xuất sắc! Bạn đã đạt trình độ rất cao và có thể tự tin sử dụng tiếng Anh trong mọi tình huống.';
-      } else if (percentage >= 85) {
-        ieltsScore = '7.5-8.0';
+      if (percentage > 80) {
+        // > 80% - 100%
+        ieltsScore = '7.5-9.0';
         avLevel = 'AV7';
-        recommendation = 'Rất tốt! Bạn có thể tham gia các khóa học nâng cao để hoàn thiện kỹ năng.';
-      } else if (percentage >= 75) {
+        recommendation = 'Xuất sắc! Bạn có nền tảng tiếng Anh rất vững chắc. Hãy duy trì và phát huy.';
+      } else if (percentage > 65) {
+        // > 65% - 80%
         ieltsScore = '6.5-7.0';
         avLevel = 'AV6';
-        recommendation = 'Tốt! Bạn nên tập trung rèn luyện thêm để đạt mức độ thành thạo.';
-      } else if (percentage >= 65) {
-        ieltsScore = '6.0-6.5';
-        avLevel = 'AV5';
-        recommendation = 'Khá tốt! Tiếp tục học tập đều đặn để nâng cao trình độ.';
-      } else if (percentage >= 55) {
-        ieltsScore = '5.5-6.0';
-        avLevel = 'AV4';
-        recommendation = 'Trung bình khá! Bạn cần luyện tập nhiều hơn ở những phần còn yếu.';
-      } else if (percentage >= 45) {
-        ieltsScore = '5.0-5.5';
-        avLevel = 'AV3';
-        recommendation = 'Trung bình! Hãy tập trung vào việc củng cố kiến thức cơ bản.';
-      } else if (percentage >= 35) {
-        ieltsScore = '4.5-5.0';
-        avLevel = 'AV2';
-        recommendation = 'Cần cải thiện! Bạn nên bắt đầu từ những bài học cơ bản.';
+        recommendation = 'Tốt! Bạn có kiến thức tốt, hãy tập trung vào các kỹ năng nâng cao.';
+      } else if (percentage > 35) {
+        // > 35% - 65%
+        ieltsScore = '5.0-6.0';
+        avLevel = 'AV4-AV5';
+        recommendation = 'Khá! Bạn đã có kiến thức cơ bản, cần rèn luyện thêm để thành thạo hơn.';
       } else {
-        ieltsScore = '3.0-4.0';
-        avLevel = 'AV1';
-        recommendation = 'Cần học từ đầu! Hãy tham gia các khóa học tiếng Anh cơ bản.';
+        // 0% - 35%
+        ieltsScore = '3.0-4.5';
+        avLevel = 'AV1-AV3';
+        recommendation = 'Cần cố gắng! Bạn nên bắt đầu từ những kiến thức nền tảng cơ bản nhất.';
       }
 
       return { ieltsScore, avLevel, recommendation };
@@ -895,11 +938,258 @@ const importPlacementTest = async (req, res) => {
   }
 };
 
+// Submit placement test và lưu kết quả
+const submitPlacementTest = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Chưa đăng nhập' });
+    }
+
+    const test = await PlacementTest.findById(testId).lean();
+
+    if (!test) {
+      return res.status(404).json({ message: 'Không tìm thấy bài test' });
+    }
+
+    if (!test.isActive) {
+      return res.status(400).json({ message: 'Bài test này đang bị vô hiệu hóa' });
+    }
+
+    // Kiểm tra và chuẩn hóa dữ liệu nộp bài
+    let submissionPayload;
+    try {
+      submissionPayload = validatePracticeSubmissionPayload(req.body);
+    } catch (validationError) {
+      return res.status(400).json({
+        message: validationError.message || 'Dữ liệu nộp bài không hợp lệ'
+      });
+    }
+
+    // Chấm điểm
+    const scoring = scorePracticeSubmission(test, submissionPayload.answers);
+
+    // Xử lý thời gian
+    const durationSeconds = sanitizeDuration(req.body?.durationSeconds);
+    const providedStartedAt = parseDateValue(req.body?.startedAt);
+    const providedCompletedAt = parseDateValue(req.body?.completedAt);
+    const completedAt = providedCompletedAt || new Date();
+    let startedAt = providedStartedAt;
+
+    if (!startedAt && durationSeconds > 0) {
+      startedAt = new Date(completedAt.getTime() - durationSeconds * 1000);
+    }
+
+    // Lưu kết quả vào database
+    const resultDoc = await PlacementTestResult.create({
+      testId: test._id,
+      userId,
+      testType: test.testType || 'placement',
+      category: test.category,
+      testTitle: test.title,
+      totalQuestions: scoring.totalQuestions,
+      totalPoints: scoring.totalPoints,
+      earnedPoints: scoring.earnedPoints,
+      percentage: scoring.percentage,
+      correctCount: scoring.correctCount,
+      incorrectCount: scoring.incorrectCount,
+      skippedCount: scoring.skippedCount,
+      durationSeconds,
+      startedAt,
+      completedAt,
+      answers: scoring.answers
+    });
+
+    const result = resultDoc.toObject();
+
+    return res.status(201).json({
+      message: 'Nộp bài test thành công',
+      data: {
+        resultId: result._id,
+        result: {
+          percentage: result.percentage,
+          earnedPoints: result.earnedPoints,
+          totalPoints: result.totalPoints,
+          correctCount: result.correctCount,
+          incorrectCount: result.incorrectCount,
+          skippedCount: result.skippedCount
+        },
+        test: {
+          id: String(test._id),
+          title: test.title,
+          testType: test.testType,
+          category: test.category,
+          totalQuestions: scoring.totalQuestions,
+          totalPoints: scoring.totalPoints
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[placementTestController][submitPlacementTest] Lỗi nộp bài test', error);
+    return res.status(500).json({ message: 'Không thể nộp bài test' });
+  }
+};
+
+// Lấy lịch sử làm bài của user cho một test cụ thể
+const getMyTestAttempts = async (req, res) => {
+  try {
+    const { testId } = req.params;
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Chưa đăng nhập' });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const query = {
+      testId,
+      userId
+    };
+
+    const [items, total] = await Promise.all([
+      PlacementTestResult.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select('-answers')
+        .populate('testId', 'title category testType totalQuestions totalPoints')
+        .lean(),
+      PlacementTestResult.countDocuments(query)
+    ]);
+
+    return res.status(200).json({
+      message: 'Lấy lịch sử làm bài thành công',
+      data: {
+        items,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[placementTestController][getMyTestAttempts] Lỗi lấy lịch sử', error);
+    return res.status(500).json({ message: 'Không thể lấy lịch sử làm bài' });
+  }
+};
+
+// Lấy chi tiết một lần làm bài
+const getTestAttemptDetails = async (req, res) => {
+  try {
+    const { attemptId } = req.params;
+    const userId = req.user?._id || req.user?.id;
+
+    const attemptDoc = await PlacementTestResult.findById(attemptId)
+      .populate({
+        path: 'testId',
+        select: 'title category testType totalQuestions totalPoints sections questions'
+      })
+      .populate('userId', 'firstName lastName email username role');
+
+    if (!attemptDoc) {
+      return res.status(404).json({ message: 'Không tìm thấy kết quả bài làm' });
+    }
+
+    // Kiểm tra quyền: chỉ owner hoặc admin mới xem được
+    const isOwner = attemptDoc.userId && attemptDoc.userId._id.toString() === userId.toString();
+    const isAdmin = req.user?.role === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ message: 'Bạn không có quyền xem kết quả này' });
+    }
+
+    const attempt = attemptDoc.toObject();
+    const test = attempt.testId;
+
+    // Map questions vào sections dựa trên sectionId
+    if (test && test.sections && test.questions) {
+      test.sections = test.sections.map(section => ({
+        ...section,
+        questions: test.questions.filter(q => 
+          q.sectionId && q.sectionId.toString() === section._id.toString()
+        )
+      }));
+    }
+
+    return res.status(200).json({
+      message: 'Lấy chi tiết kết quả thành công',
+      data: {
+        attempt,
+        test
+      }
+    });
+  } catch (error) {
+    console.error('[placementTestController][getTestAttemptDetails] Lỗi lấy chi tiết', error);
+    return res.status(500).json({ message: 'Không thể lấy chi tiết kết quả' });
+  }
+};
+
+// Lấy tất cả lịch sử làm bài của user (cross all tests)
+const getAllMyTestAttempts = async (req, res) => {
+  try {
+    const userId = req.user?._id || req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Chưa đăng nhập' });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const query = { userId };
+
+    // Filter by testType if provided
+    if (req.query.testType && ['placement', 'mock-exam'].includes(req.query.testType)) {
+      query.testType = req.query.testType;
+    }
+
+    // Filter by category if provided
+    if (req.query.category && ['reading', 'listening'].includes(req.query.category)) {
+      query.category = req.query.category;
+    }
+
+    const [items, total] = await Promise.all([
+      PlacementTestResult.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select('-answers')
+        .populate('testId', 'title category testType totalQuestions totalPoints')
+        .lean(),
+      PlacementTestResult.countDocuments(query)
+    ]);
+
+    return res.status(200).json({
+      message: 'Lấy lịch sử làm bài thành công',
+      data: {
+        items,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit) || 1
+        }
+      }
+    });
+  } catch (error) {
+    console.error('[placementTestController][getAllMyTestAttempts] Lỗi lấy lịch sử', error);
+    return res.status(500).json({ message: 'Không thể lấy lịch sử làm bài' });
+  }
+};
+
 module.exports = {
   // Public APIs
   getActivePlacementTests,
   getPlacementTestForTaking,
-  checkPlacementTest, // Thay thế submitPlacementTest
+  checkPlacementTest, // Legacy - kept for compatibility
+  submitPlacementTest, // NEW - Submit và lưu kết quả
+  getMyTestAttempts, // NEW - Lịch sử làm bài của user
+  getTestAttemptDetails, // NEW - Chi tiết một lần làm bài
+  getAllMyTestAttempts, // NEW - Tất cả lịch sử làm bài
 
   // Admin APIs
   getAllPlacementTests,

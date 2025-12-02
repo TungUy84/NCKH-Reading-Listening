@@ -887,6 +887,50 @@ export const adminApiUtils = {
   },
 };
 
+// ========== BLOG API ==========
+
+export class BlogAPI {
+  /**
+   * Lấy danh sách blog đang chờ duyệt (Approval Page)
+   */
+  static async getPendingBlogs(params?: { page?: number; limit?: number }) {
+    const response = await api.get('/blogs/admin/pending', { params });
+    return response.data;
+  }
+
+  /**
+   * Lấy tất cả blog (approved/rejected) (Management Page)
+   */
+  static async getAllBlogs(params?: { page?: number; limit?: number; status?: 'approved' | 'rejected' }) {
+    const response = await api.get('/blogs/admin/all', { params });
+    return response.data;
+  }
+
+  /**
+   * Duyệt blog
+   */
+  static async approveBlog(blogId: string) {
+    const response = await api.put(`/blogs/${blogId}/approve`);
+    return response.data;
+  }
+
+  /**
+   * Từ chối blog
+   */
+  static async rejectBlog(blogId: string) {
+    const response = await api.put(`/blogs/${blogId}/reject`);
+    return response.data;
+  }
+
+  /**
+   * Xóa blog (admin)
+   */
+  static async deleteBlog(blogId: string) {
+    const response = await api.delete(`/blogs/admin/${blogId}`);
+    return response.data;
+  }
+}
+
 // Khởi tạo token khi app load
 authUtils.initToken();
 

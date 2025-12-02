@@ -4,6 +4,7 @@ import clsx from 'clsx';
 export interface LoaderProps {
   size?: 'sm' | 'md' | 'lg';
   variant?: 'default' | 'primary' | 'inverse';
+  className?: string;
 }
 
 // Mapping kích thước spinner

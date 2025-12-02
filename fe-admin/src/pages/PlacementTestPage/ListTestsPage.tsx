@@ -158,7 +158,7 @@ const PlacementTestsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Kiểm tra / Thi thử</h1>
+          <h1 className="text-2xl font-semibold text-slate-800">Tạo bộ đề thi</h1>
           <p className="text-slate-500">Danh sách bài test</p>
         </div>
         <div className="flex gap-3">
