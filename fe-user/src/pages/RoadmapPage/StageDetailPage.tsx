@@ -1,320 +1,256 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { getStageDetail, syncRoadmapContent } from '../../services/api';
 import { StageDetailResponse, RoadmapLevelGroup } from '../../types';
-import { BookOpen, Headphones, CheckCircle, Circle } from 'lucide-react';
+import { 
+  BookOpenIcon, 
+  SpeakerWaveIcon, 
+  CheckCircleIcon, 
+  PlayCircleIcon, 
+  ChevronLeftIcon,
+  TrophyIcon,
+  LockClosedIcon,
+  DocumentTextIcon
+} from '@heroicons/react/24/solid';
+import clsx from 'clsx';
+import Loader from '../../components/ui/Loader';
 
 const StageDetailPage: React.FC = () => {
   const { levelGroup } = useParams<{ levelGroup: RoadmapLevelGroup }>();
   const navigate = useNavigate();
-  
   const [data, setData] = useState<StageDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'reading' | 'listening'>('reading');
 
-  useEffect(() => {
-    if (levelGroup) {
-      loadStageDetail();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelGroup]);
-
-  const loadStageDetail = async () => {
+  // Hàm load dữ liệu, thêm tham số isBackground để không hiện loading khi auto-refresh
+  const loadStageDetail = useCallback(async (isBackground = false) => {
+    if (!levelGroup) return;
     try {
-      setLoading(true);
+      if (!isBackground) setLoading(true);
       
-      // Sync content trước để có nội dung mới nhất
-      try {
-        await syncRoadmapContent();
-      } catch (err) {
-        console.log('Sync skipped');
-      }
+      // Sync content nhẹ (có thể bỏ qua nếu muốn nhanh hơn)
+      try { await syncRoadmapContent(); } catch (err) {}
       
       const res = await getStageDetail(levelGroup as RoadmapLevelGroup);
       setData(res.data);
     } catch (err: any) {
-      toast.error('Không thể tải chi tiết chặng');
-      navigate('/roadmap');
+      if (!isBackground) {
+        toast.error('Không thể tải chi tiết chặng');
+        navigate('/roadmap');
+      }
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
+  }, [levelGroup, navigate]);
+
+  // Load lần đầu
+  useEffect(() => {
+    loadStageDetail();
+  }, [loadStageDetail]);
+
+  // TỰ ĐỘNG CẬP NHẬT: Khi người dùng quay lại tab này (focus)
+  useEffect(() => {
+    const onFocus = () => {
+      // Gọi load lại dữ liệu ngầm (không hiện loading spin)
+      loadStageDetail(true);
+    };
+
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadStageDetail]);
+
+  // Hàm mở tab mới
+  const openInNewTab = (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Đang tải...</p>
-        </div>
-      </div>
-    );
-  }
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center pt-20"><Loader /></div>;
   if (!data) return null;
 
-  const { stage, content, checkpointTest, requirements } = data;
+  const { stage, content, checkpointTest } = data;
   const skillContent = content[activeTab];
   const skillProgress = stage.progress[activeTab];
-
-  // Calculate totals from actual content in stage
+  
   const totalItems = skillContent.lessons.length + skillContent.practices.length;
   const completedItems = skillProgress.completedLessons.length + skillProgress.completedPractices.length;
-  const skillPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/roadmap')}
-            className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2"
-          >
-            ← Quay lại lộ trình
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Chặng: {stage.levelGroup}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Hoàn thành tất cả nội dung để mở khóa bài kiểm tra chặng
-          </p>
-        </div>
+    <div className="min-h-screen font-sans pb-20 pt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Navigation */}
+        <button 
+          onClick={() => navigate('/roadmap')}
+          className="group flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors mb-8 font-medium w-fit bg-white/50 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200"
+        >
+          <ChevronLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> 
+          Quay lại lộ trình
+        </button>
 
-        {/* Progress Overview */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Tiến độ tổng thể</h2>
-            <span className="text-2xl font-bold text-blue-600">{stage.progress.overallPercentage}%</span>
+        {/* Hero Section */}
+        <div className="grid lg:grid-cols-[1.5fr_1fr] gap-8 mb-10">
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl p-8 md:p-12 relative overflow-hidden flex flex-col justify-center">
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gradient-to-br from-indigo-50 to-blue-50 rounded-full blur-3xl -z-10 opacity-50 translate-x-1/3 -translate-y-1/3" />
+            <span className="inline-block px-4 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold uppercase tracking-wide border border-indigo-100 w-fit mb-4">
+              Chặng hiện tại
+            </span>
+            <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-4">{stage.levelGroup}</h1>
+            <p className="text-lg text-slate-600">
+              Hoàn thành các bài học và bài tập để nắm vững kiến thức và mở khóa bài kiểm tra cuối chặng.
+            </p>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-            <div
-              className="bg-blue-600 h-3 rounded-full transition-all"
-              style={{ width: `${stage.progress.overallPercentage}%` }}
-            ></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="text-gray-600 mb-1">Reading</div>
-              <div className="font-semibold">
-                {stage.progress.reading.completedLessons.length + stage.progress.reading.completedPractices.length}/
-                {content.reading.lessons.length + content.reading.practices.length}
+
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 rounded-[2.5rem] shadow-lg p-8 flex flex-col justify-center items-center text-center">
+            <div className="relative w-32 h-32 mb-4">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-slate-100" />
+                <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={377} strokeDashoffset={377 - (377 * stage.progress.overallPercentage) / 100} className="text-indigo-600 transition-all duration-1000" strokeLinecap="round" />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-3xl font-black text-indigo-900">{stage.progress.overallPercentage}%</span>
               </div>
             </div>
-            <div>
-              <div className="text-gray-600 mb-1">Listening</div>
-              <div className="font-semibold">
-                {stage.progress.listening.completedLessons.length + stage.progress.listening.completedPractices.length}/
-                {content.listening.lessons.length + content.listening.practices.length}
-              </div>
-            </div>
+            <p className="font-bold text-slate-900 text-lg">Tiến độ hoàn thành</p>
+            <p className="text-slate-500 text-sm">Cố gắng lên nhé!</p>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">
-          <div className="flex border-b">
+        {/* Checkpoint Banner */}
+        {stage.status === 'checkpoint-ready' && checkpointTest && (
+          <div className="bg-gradient-to-r from-amber-100 to-orange-50 border border-amber-200 rounded-2xl p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm animate-pulse">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-md">
+                <TrophyIcon className="h-6 w-6" />
+              </div>
+              <div>
+                <h3 className="font-black text-amber-900 text-2xl mb-1">Đã mở khóa bài kiểm tra chặng!</h3>
+                <p className="text-amber-800 font-medium">Bạn đã đủ điều kiện để thực hiện bài kiểm tra đánh giá năng lực.</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => navigate(`/placement-test/${checkpointTest._id}/take`)}
+              className="px-8 py-4 bg-amber-600 text-white font-bold rounded-2xl hover:bg-amber-700 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+            >
+              Làm bài ngay
+            </button>
+          </div>
+        )}
+
+        {/* Main Content Tabs */}
+        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden min-h-[500px]">
+          <div className="flex border-b border-slate-100 p-2 gap-2 bg-slate-50/50">
             <button
               onClick={() => setActiveTab('reading')}
-              className={`flex-1 px-6 py-4 font-semibold transition-colors flex items-center justify-center gap-2 ${
-                activeTab === 'reading'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={clsx(
+                "flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold transition-all duration-300",
+                activeTab === 'reading' ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:bg-white/50"
+              )}
             >
-              <BookOpen className="w-5 h-5" />
-              Reading
+              <BookOpenIcon className="h-5 w-5" /> Reading
             </button>
             <button
               onClick={() => setActiveTab('listening')}
-              className={`flex-1 px-6 py-4 font-semibold transition-colors flex items-center justify-center gap-2 ${
-                activeTab === 'listening'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={clsx(
+                "flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl text-sm font-bold transition-all duration-300",
+                activeTab === 'listening' ? "bg-white text-purple-600 shadow-sm" : "text-slate-500 hover:bg-white/50"
+              )}
             >
-              <Headphones className="w-5 h-5" />
-              Listening
+              <SpeakerWaveIcon className="h-5 w-5" /> Listening
             </button>
           </div>
 
-          {/* Tab Content */}
-          <div className="p-6">
-            {/* Progress Bar */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between text-sm mb-2">
-                <span className="text-gray-600">Tiến độ {activeTab === 'reading' ? 'Reading' : 'Listening'}</span>
-                <span className="font-semibold">{skillPercentage}% ({completedItems}/{totalItems})</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all"
-                  style={{ width: `${skillPercentage}%` }}
-                ></div>
-              </div>
+          <div className="p-8 md:p-12">
+            <div className="flex items-center justify-between mb-10">
+              <h3 className="font-bold text-slate-900 text-2xl flex items-center gap-3">
+                <span className={clsx("w-3 h-8 rounded-full", activeTab === 'reading' ? "bg-blue-500" : "bg-purple-500")} />
+                Nội dung {activeTab === 'reading' ? 'Đọc hiểu' : 'Nghe hiểu'}
+              </h3>
+              <span className="text-sm font-bold bg-slate-100 text-slate-600 px-4 py-2 rounded-xl border border-slate-200">
+                {completedItems}/{totalItems} hoàn thành
+              </span>
             </div>
 
-            {/* Lessons */}
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                📖 Lessons - Lý thuyết & Chiến lược
-              </h3>
-              {skillContent.lessons.length === 0 ? (
-                <p className="text-gray-500 italic">Chưa có lesson nào</p>
-              ) : (
-                <div className="space-y-3">
-                  {skillContent.lessons.map((lesson, index) => {
-                    const isCompleted = skillProgress.completedLessons.includes(lesson._id);
-                    return (
-                      <div
-                        key={lesson._id}
-                        className={`border rounded-lg p-4 transition-all ${
-                          isCompleted ? 'bg-green-50 border-green-200' : 'bg-white hover:shadow-md'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-1">
-                            {isCompleted ? (
-                              <CheckCircle className="w-6 h-6 text-green-600" />
-                            ) : (
-                              <Circle className="w-6 h-6 text-gray-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-900 mb-1">
-                              {index + 1}. {lesson.title}
-                            </h4>
-                            {lesson.summary && (
-                              <p className="text-sm text-gray-600 mb-2">{lesson.summary}</p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              {isCompleted && <span className="text-green-600 font-medium">✓ Đã xem</span>}
+            <div className="space-y-12">
+              {/* Lessons */}
+              {skillContent.lessons.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 ml-2">Bài học (Lessons)</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {skillContent.lessons.map(lesson => {
+                      const isDone = skillProgress.completedLessons.includes(lesson._id);
+                      return (
+                        <div 
+                          key={lesson._id} 
+                          // SỬA: Dùng window.open thay vì navigate
+                          onClick={() => openInNewTab(`/lessons/${lesson._id}`)} 
+                          className={clsx(
+                            "group flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer",
+                            isDone ? "bg-emerald-50/50 border-emerald-100" : "bg-white border-slate-100 hover:border-indigo-200 hover:shadow-lg hover:-translate-y-1"
+                          )}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={clsx("h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm", isDone ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400")}>
+                              {isDone ? <CheckCircleIcon className="h-6 w-6" /> : <DocumentTextIcon className="h-6 w-6" />}
+                            </div>
+                            <div>
+                              <h5 className={clsx("font-bold text-lg", isDone ? "text-emerald-900 line-through opacity-70" : "text-slate-900 group-hover:text-indigo-700")}>
+                                {lesson.title}
+                              </h5>
+                              <p className="text-xs text-slate-500 mt-1 font-medium">Lý thuyết & Ví dụ minh họa</p>
                             </div>
                           </div>
-                          <div className="flex-shrink-0">
-                            <button
-                              onClick={() => navigate(`/lessons/${lesson._id}`)}
-                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                isCompleted
-                                  ? 'border border-green-600 text-green-700 hover:bg-green-100'
-                                  : 'bg-blue-600 text-white hover:bg-blue-700'
-                              }`}
-                            >
-                              {isCompleted ? 'Xem lại' : 'Xem ngay'}
-                            </button>
+                          <div className={clsx("px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors", isDone ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500 group-hover:bg-indigo-600 group-hover:text-white")}>
+                            {isDone ? 'Đã học' : 'Học ngay'}
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
               )}
-            </div>
 
-            {/* Practices */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                ✍️ Practices - Bài tập thực hành
-              </h3>
-              {skillContent.practices.length === 0 ? (
-                <p className="text-gray-500 italic">Chưa có practice nào</p>
-              ) : (
-                <div className="space-y-3">
-                  {skillContent.practices.map((practice, index) => {
-                    const isCompleted = skillProgress.completedPractices.includes(practice._id);
-                    return (
-                      <div
-                        key={practice._id}
-                        className={`border rounded-lg p-4 transition-all ${
-                          isCompleted ? 'bg-green-50 border-green-200' : 'bg-white hover:shadow-md'
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="flex-shrink-0 mt-1">
-                            {isCompleted ? (
-                              <CheckCircle className="w-6 h-6 text-green-600" />
-                            ) : (
-                              <Circle className="w-6 h-6 text-gray-400" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-gray-900 mb-1">
-                              {index + 1}. {practice.title}
-                            </h4>
-                            {practice.description && (
-                              <p className="text-sm text-gray-600 mb-2">{practice.description}</p>
-                            )}
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span>{practice.totalQuestions} câu</span>
-                              {practice.estimatedTime && <span>• ~{practice.estimatedTime} phút</span>}
-                              {isCompleted && <span className="text-green-600 font-medium">• ✓ Đã hoàn thành</span>}
+              {/* Practices */}
+              {skillContent.practices.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 ml-2">Thực hành (Practice)</h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {skillContent.practices.map(practice => {
+                      const isDone = skillProgress.completedPractices.includes(practice._id);
+                      return (
+                        <div 
+                          key={practice._id} 
+                          // SỬA: Dùng window.open thay vì navigate
+                          onClick={() => openInNewTab(`/practice/${practice._id}`)}
+                          className={clsx(
+                            "group flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer",
+                            isDone ? "bg-emerald-50/50 border-emerald-100" : "bg-white border-slate-100 hover:border-indigo-200 hover:shadow-lg hover:-translate-y-1"
+                          )}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={clsx("h-12 w-12 rounded-2xl flex items-center justify-center shadow-sm", isDone ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400")}>
+                              {isDone ? <CheckCircleIcon className="h-6 w-6" /> : <PlayCircleIcon className="h-6 w-6" />}
+                            </div>
+                            <div>
+                              <h5 className={clsx("font-bold text-lg", isDone ? "text-emerald-900 line-through opacity-70" : "text-slate-900 group-hover:text-indigo-700")}>
+                                {practice.title}
+                              </h5>
+                              <p className="text-xs text-slate-500 mt-1 font-medium">{practice.totalQuestions} câu hỏi • ~{practice.estimatedTime} phút</p>
                             </div>
                           </div>
-                          <div className="flex-shrink-0">
-                            <button
-                              onClick={() => navigate(`/practice/${practice._id}`)}
-                              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                                isCompleted
-                                  ? 'border border-green-600 text-green-700 hover:bg-green-100'
-                                  : 'bg-blue-600 text-white hover:bg-blue-700'
-                              }`}
-                            >
-                              {isCompleted ? 'Xem kết quả' : 'Làm bài'}
-                            </button>
+                          <div className={clsx("px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-colors", isDone ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500 group-hover:bg-indigo-600 group-hover:text-white")}>
+                            {isDone ? 'Hoàn thành' : 'Làm bài'}
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Checkpoint Info */}
-        {stage.status === 'checkpoint-ready' && checkpointTest && (
-          <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-lg p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">
-              🎯 Bài kiểm tra chặng - Đã mở khóa
-            </h3>
-            <div className="bg-white rounded-lg p-4 mb-4">
-              <h4 className="font-semibold text-gray-900 mb-2">{checkpointTest.title}</h4>
-              <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
-                <div>
-                  <span className="font-medium">Thời gian:</span> {checkpointTest.timeLimit} phút
-                </div>
-                <div>
-                  <span className="font-medium">Số câu:</span> {checkpointTest.totalQuestions}
-                </div>
-                <div>
-                  <span className="font-medium">Điểm đạt:</span> ≥{requirements.passingScore}%
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="px-6 py-3 border-2 border-yellow-600 text-yellow-700 rounded-lg hover:bg-yellow-100 font-semibold"
-              >
-                📖 Ôn tập lại
-              </button>
-              <button
-                onClick={() => navigate(`/placement-test/${checkpointTest._id}/take`, {
-                  state: { 
-                    isCheckpoint: true, 
-                    levelGroup: stage.levelGroup,
-                    testId: checkpointTest._id
-                  }
-                })}
-                className="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-semibold"
-              >
-                🚀 Làm bài kiểm tra
-              </button>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

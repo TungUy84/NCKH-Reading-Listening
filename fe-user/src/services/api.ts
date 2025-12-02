@@ -63,8 +63,10 @@ apiService.interceptors.response.use(
  * Lấy danh sách bài test đang hoạt động (lọc theo category nếu cần)
  * Backend: GET /api/placement-tests?category=listening
  */
-export const getActiveTests = async (category?: string) => {
-  const params = category ? { category } : {};
+export const getActiveTests = async (category?: string, testType?: string) => {
+  const params: any = {};
+  if (category) params.category = category;
+  if (testType) params.testType = testType;
   const response = await apiService.get('/placement-tests', { params });
   return response.data;
 };
@@ -73,9 +75,9 @@ export const getActiveTests = async (category?: string) => {
  * Lấy chi tiết bài test để làm (không trả đáp án)
  * Backend: GET /api/placement-tests/:testId
  */
-export const getTestForTaking = async (testId: string) => {
+export const getTestForTaking = async (testId: string, randomize: boolean = true) => {
   // Thêm randomize=true cho placement test để shuffle câu hỏi
-  const response = await apiService.get(`/placement-tests/${testId}?randomize=true`);
+  const response = await apiService.get(`/placement-tests/${testId}?randomize=${randomize}`);
   return response.data;
 };
 

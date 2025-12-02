@@ -106,8 +106,8 @@ const LessonsPage: React.FC = () => {
       {/* --- HERO HEADER (Giống trang Ôn luyện) --- */}
       <div className="pt-10 pb-5 mb-8">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-white/50 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-6 animate-bounce shadow-sm">
-            <SparklesIcon className="h-4 w-4" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-bold text-slate-700 mb-6 animate-bounce">
+            <BookOpenIcon className="h-4 w-4 text-indigo-400" />
             Thư viện kiến thức
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-6">

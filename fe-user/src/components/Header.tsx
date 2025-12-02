@@ -48,9 +48,9 @@ const Header: React.FC = () => {
   const navigationItems = [
     { label: 'Trang chủ', href: '/', icon: HomeIcon },
     { label: 'Kiểm tra đầu vào', href: '/tests', icon: ClipboardDocumentCheckIcon },
+    { label: 'Lộ trình học', href: '/roadmap', icon: MapIcon },
     { label: 'Ôn luyện', href: '/practice', icon: AcademicCapIcon },
     { label: 'Bài học', href: '/lessons', icon: BookOpenIcon },
-    { label: 'Lộ trình học', href: '/roadmap', icon: MapIcon },
     { label: 'Thi thử', href: '/mock-test', icon: CheckBadgeIcon },
     { label: 'Blog', href: '/blog', icon: NewspaperIcon },
   ];

@@ -1,746 +1,449 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { PlacementTest, SectionMedia, TestQuestion, TestSection, TestResult, DetailedResult } from '../../types';
 import { getTestForTaking } from '../../services/api';
-import { DetailedResult, SectionMedia, TestResult, TestSection, MatchingPair, Option } from '../../types';
+import { Button } from '../../components/ui/Button';
+import { 
+  ArrowLeftIcon, 
+  SpeakerWaveIcon, 
+  DocumentTextIcon, 
+  ListBulletIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  PlayIcon,
+  PauseIcon,
+  LightBulbIcon,
+  ChevronDownIcon,
+  CheckIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
+import clsx from 'clsx';
 
 const mediaPlaceholderRegex = /\[\[media:([^\]]+)\]\]/g;
 
-interface PassageGroup {
-  sectionId?: string;
-  passage?: string;
-  sectionTitle?: string;
-  mediaBlocks: SectionMedia[];
-  questions: DetailedResult[];
-}
+const EMPTY_SECTIONS: TestSection[] = [];
+const EMPTY_QUESTIONS: TestQuestion[] = [];
 
-// Kiểu media thô như backend trả về giúp chuẩn hóa trước khi render
-type RawSectionMedia = Partial<SectionMedia> & {
-  _id?: string;
-  path?: string;
-  name?: string;
+// --- THEME HELPER ---
+const getTheme = (category?: string) => {
+  const isListening = category === 'listening';
+  return {
+    isListening,
+    primary: isListening ? 'purple' : 'blue',
+    gradient: isListening ? 'from-purple-500 to-pink-500' : 'from-blue-500 to-cyan-500',
+    text: isListening ? 'text-purple-600' : 'text-blue-600',
+    textDark: isListening ? 'text-purple-900' : 'text-blue-900',
+    bg: isListening ? 'bg-purple-50' : 'bg-blue-50',
+    bgLight: isListening ? 'bg-purple-50/50' : 'bg-blue-50/50',
+    border: isListening ? 'border-purple-200' : 'border-blue-200',
+    borderActive: isListening ? 'border-purple-500' : 'border-blue-500',
+    shadow: isListening ? 'shadow-purple-200' : 'shadow-blue-200',
+    ring: isListening ? 'ring-purple-200' : 'ring-blue-200',
+    icon: isListening ? 'text-purple-500' : 'text-blue-500',
+    button: isListening ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700',
+    buttonLight: isListening ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-blue-100 text-blue-700 hover:bg-blue-200',
+  };
 };
 
-// Chuẩn hóa id để đồng bộ giữa dữ liệu backend và giao diện
-const normalizeId = (value: unknown): string => {
-  if (value === null || value === undefined) return '';
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return value.toString();
-  if (typeof value === 'object' && 'toString' in value) {
-    try {
-      return (value as { toString: () => string }).toString();
-    } catch {
-      /* noop */
+const normalizeId = (v: unknown) => (v == null ? '' : String(v));
+const generateMediaId = () => Math.random().toString(36).slice(2, 10);
+
+const getMediaUrl = (path?: string) => {
+  if (!path) return '';
+  if (path.startsWith('http') || path.startsWith('blob:')) return path;
+  const baseUrl = (process.env.REACT_APP_API_URL || '').replace(/\/api\/?$/, '');
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
+const formatTime = (seconds: number) => {
+  if (isNaN(seconds)) return "0:00";
+  const safe = Math.max(seconds, 0);
+  const h = Math.floor(safe / 3600);
+  const m = Math.floor((safe % 3600) / 60);
+  const s = Math.floor(safe % 60);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+};
+
+const AudioPlayer: React.FC<{ src: string; theme?: any }> = React.memo(({ src, theme }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const onEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
     }
-  }
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-};
+    setIsPlaying(!isPlaying);
+  };
 
-// Tạo id dự phòng cho media khi thiếu thông tin từ backend
-const generateMediaId = (): string => {
-  try {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-  } catch {
-    /* noop */
-  }
-  return Math.random().toString(36).slice(2, 10);
-};
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!audioRef.current) return;
+    const time = Number(e.target.value);
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
+  };
 
-// Chuẩn hóa danh sách media block để tránh giá trị thiếu gây lỗi
+  // Default theme fallback if not provided
+  const activeTheme = theme || {
+    isListening: false,
+    button: 'bg-blue-600 hover:bg-blue-700',
+    text: 'text-blue-600',
+    bgLight: 'bg-blue-50',
+  };
+
+  const progressPercent = duration ? (currentTime / duration) * 100 : 0;
+
+  return (
+    <div className="group relative flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+      <audio ref={audioRef} src={src} preload="metadata" />
+      
+      <button 
+        onClick={togglePlay}
+        className={clsx(
+          "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95",
+          activeTheme.button
+        )}
+      >
+        {isPlaying ? <PauseIcon className="h-6 w-6" /> : <PlayIcon className="h-6 w-6 ml-1" />}
+      </button>
+
+      <div className="flex flex-1 flex-col gap-1.5">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+        <div className="relative h-2 w-full rounded-full bg-slate-100">
+          <div 
+            className={clsx("absolute top-0 left-0 h-full rounded-full transition-all", activeTheme.isListening ? 'bg-purple-500' : 'bg-blue-500')}
+            style={{ width: `${progressPercent}%` }}
+          />
+          <input
+            type="range"
+            min={0}
+            max={duration || 0}
+            value={currentTime}
+            onChange={handleSeek}
+            className="absolute top-1/2 -translate-y-1/2 left-0 w-full h-6 opacity-0 cursor-pointer z-10"
+          />
+        </div>
+      </div>
+    </div>
+  );
+});
+
 const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
   if (!Array.isArray(blocks)) return [];
-  return blocks
-    .filter(Boolean)
-    .map((block) => {
-      const candidate = block as RawSectionMedia;
-      const normalized: SectionMedia = {
-        id: candidate.id || candidate._id || generateMediaId(),
-        type: candidate.type === 'audio' ? 'audio' : 'image',
-        url: candidate.url || candidate.path || '',
-        originalName: candidate.originalName || candidate.name || '',
-        transcript: typeof candidate.transcript === 'string' ? candidate.transcript : undefined,
-      };
-      return normalized;
-    })
-    .filter((block) => !!block.id && !!block.url);
+  return blocks.filter(Boolean).map((b: any) => ({
+    id: b.id || b._id || generateMediaId(),
+    type: (b.type === 'audio' ? 'audio' : 'image') as 'audio' | 'image',
+    url: getMediaUrl(b.url || b.path),
+    originalName: b.originalName || b.name || '',
+    transcript: b.transcript,
+  })).filter(b => b.id && b.url);
 };
 
-// Ghép bổ sung audio/image vào section và loại bỏ trùng lặp
-const sanitizeSections = (sections: TestSection[] = []): TestSection[] => {
-  return sections.map((section) => {
-    const normalizedBlocks = normalizeMediaBlocks(section?.mediaBlocks);
-    const extras: SectionMedia[] = [];
+const sanitizeSections = (sections: TestSection[] = []): TestSection[] => sections.map(s => ({
+  ...s,
+  audio: getMediaUrl(s.audio),
+  image: getMediaUrl(s.image),
+  mediaBlocks: normalizeMediaBlocks(s?.mediaBlocks),
+}));
 
-    if (section?.audio && typeof section.audio === 'string') {
-      extras.push({
-        id: `audio-${section?._id || generateMediaId()}`,
-        type: 'audio',
-        url: section.audio,
-        originalName: section?.title ? `${section.title} audio` : 'Section audio',
-      });
-    }
+const MediaBlock: React.FC<{ block: SectionMedia; theme?: any }> = ({ block, theme }) => {
+  const [showTranscript, setShowTranscript] = useState(false);
 
-    if (section?.image && typeof section.image === 'string') {
-      extras.push({
-        id: `image-${section?._id || generateMediaId()}`,
-        type: 'image',
-        url: section.image,
-        originalName: section?.title ? `${section.title} illustration` : 'Section illustration',
-      });
-    }
-
-    const merged = [...extras, ...normalizedBlocks];
-    const unique = new Map<string, SectionMedia>();
-    merged.forEach((block) => {
-      if (!block?.id) {
-        return;
-      }
-      if (!unique.has(block.id)) {
-        unique.set(block.id, block);
-      }
-    });
-
-    return {
-      ...section,
-      mediaBlocks: Array.from(unique.values()),
-    };
-  });
-};
-
-// Render media block kèm xử lý giao diện nhất quán cho audio/ảnh
-const renderMediaBlock = (block: SectionMedia, key: React.Key): React.ReactNode => {
-  if (!block?.url) {
-    return (
-      <div
-        key={`media-missing-${key}`}
-        className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"
-      >
-        Media content not found.
-      </div>
-    );
-  }
-
-  // Chèn media vào passage dựa trên placeholder [[media:id]]
+  if (!block?.url) return <div className="text-xs text-amber-600 p-2 border border-amber-200 bg-amber-50 rounded">Media missing</div>;
+  
   if (block.type === 'audio') {
     return (
-      <div
-        key={`media-audio-${key}`}
-        className="rounded-2xl border border-blue-100 bg-blue-50/70 p-5 shadow-sm"
-      >
-        <div className="text-xs font-semibold uppercase tracking-wide text-blue-700">
-          {block.originalName || 'Audio'}
-        </div>
-        <audio
-          controls
-          controlsList="nodownload"
-          preload="auto"
-          className="mt-3 w-full"
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          <source src={block.url} />
-          Your browser does not support audio playback.
-        </audio>
-        {block.transcript ? (
-          <details className="mt-4 rounded-xl border border-blue-100 bg-white/90 p-3 text-xs leading-relaxed text-slate-600">
-            <summary className="cursor-pointer font-semibold text-blue-600">Transcript</summary>
-            <p className="mt-2 whitespace-pre-wrap">{block.transcript}</p>
-          </details>
-        ) : null}
+      <div className="my-4 space-y-2">
+        <AudioPlayer src={block.url} theme={theme} />
+        {block.transcript && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 overflow-hidden">
+            <button
+              onClick={() => setShowTranscript(!showTranscript)}
+              className="w-full flex items-center justify-between px-4 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors"
+            >
+              <span className="uppercase tracking-wider">Transcript</span>
+              <ChevronDownIcon className={clsx("w-4 h-4 transition-transform", showTranscript ? "rotate-180" : "")} />
+            </button>
+            {showTranscript && (
+              <div className="px-4 py-3 text-sm text-slate-600 leading-relaxed border-t border-slate-200 bg-white">
+                {block.transcript}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <figure
-      key={`media-image-${key}`}
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
-    >
-      <img
-        src={block.url}
-        alt={block.originalName || `Media ${block.id}`}
-        className="h-auto w-full object-contain"
-      />
-      {block.originalName ? (
-        <figcaption className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
-          {block.originalName}
-        </figcaption>
-      ) : null}
+    <figure className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden my-2">
+      <img src={block.url} alt={block.originalName || 'Media'} className="w-full h-auto object-contain" />
     </figure>
   );
 };
 
-const renderPartContent = (passage: string, mediaBlocks: SectionMedia[] = []): React.ReactNode => {
-  if (!passage && mediaBlocks.length) {
-    return mediaBlocks.map((block, index) => renderMediaBlock(block, `media-only-${index}`));
-  }
-
-  mediaPlaceholderRegex.lastIndex = 0;
-
-  const mediaMap = new Map<string, SectionMedia>();
-  mediaBlocks.forEach((block) => {
-    if (block?.id) {
-      mediaMap.set(String(block.id), block);
-    }
-  });
-
-  const usedMediaIds = new Set<string>();
-  const nodes: React.ReactNode[] = [];
-
-  let lastIndex = 0;
-  let key = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = mediaPlaceholderRegex.exec(passage)) !== null) {
-    const textSegment = passage.slice(lastIndex, match.index);
-    if (textSegment) {
-      nodes.push(
-        <p key={`text-${key++}`} className="whitespace-pre-wrap leading-relaxed text-slate-800">
-          {textSegment}
-        </p>
-      );
-    }
-
-    const mediaId = match[1]?.trim();
-    if (mediaId) {
-      const block = mediaMap.get(mediaId);
-      if (block) {
-        nodes.push(renderMediaBlock(block, `inline-${key++}`));
-        usedMediaIds.add(mediaId);
-      } else {
-        nodes.push(
-          <p key={`missing-${key++}`} className="text-xs text-amber-600">
-            Media with code {mediaId} is not available.
-          </p>
-        );
-      }
-    }
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  const tail = passage.slice(lastIndex);
-  if (tail) {
-    nodes.push(
-      <p key={`text-${key++}`} className="whitespace-pre-wrap leading-relaxed text-slate-800">
-        {tail}
-      </p>
-    );
-  }
-
-  mediaBlocks.forEach((block) => {
-    const blockId = String(block.id);
-    if (!usedMediaIds.has(blockId)) {
-      nodes.push(renderMediaBlock(block, `remaining-${key++}`));
-    }
-  });
-
-  return nodes;
-};
-
-// Render media gắn trực tiếp với từng câu hỏi (nếu có)
-const renderQuestionMedia = (detail: DetailedResult): React.ReactNode => {
-  const media = detail.question?.media;
-  if (!media) {
-    return null;
-  }
-
-  const blocks: SectionMedia[] = [];
-
-  if (typeof media.audioUrl === 'string' && media.audioUrl.trim().length) {
-    blocks.push({
-      id: `question-audio-${detail.questionNumber}`,
-      type: 'audio',
-      url: media.audioUrl,
-      originalName: media.audioName || `Question ${detail.questionNumber} audio`,
-      transcript: typeof media.transcript === 'string' ? media.transcript : undefined,
-    });
-  }
-
-  if (typeof media.imageUrl === 'string' && media.imageUrl.trim().length) {
-    blocks.push({
-      id: `question-image-${detail.questionNumber}`,
-      type: 'image',
-      url: media.imageUrl,
-      originalName: media.imageName || `Question ${detail.questionNumber} illustration`,
-    });
-  }
-
-  if (!blocks.length) {
-    return null;
-  }
-
+const SelectableParagraph: React.FC<{
+  text: string;
+  index: number;
+  theme: any;
+}> = React.memo(({ text, index, theme }) => {
   return (
-    <div className="space-y-3">
-  {blocks.map((block, index) => renderMediaBlock(block, `${detail.questionNumber}-${index}`))}
-    </div>
+    <p className="whitespace-pre-wrap leading-relaxed text-slate-700 relative">
+      {text}
+    </p>
   );
-};
+});
 
-// Chuẩn hóa tiêu đề section thành định dạng dễ đọc hơn
-const formatSectionTitle = (title?: string | null): string => {
-  if (!title) return '';
-  return title.replace(/^passage\b/i, (match) => {
-    if (match === match.toUpperCase()) return 'PART';
-    if (match === match.toLowerCase()) return 'part';
-    return 'Part';
-  });
-};
-
-// Gom nhóm kết quả theo passage/section để hiển thị thành từng khối
-const buildPassageGroups = (
-  details: DetailedResult[] = [],
-  sectionLookup?: Map<string, TestSection>
-): PassageGroup[] => {
-  const groups: PassageGroup[] = [];
-
-  details.forEach((detail) => {
-    const sectionIdRaw = detail.question?.sectionId;
-    const sectionId = sectionIdRaw ? normalizeId(sectionIdRaw) : '';
-    const section = sectionId && sectionLookup ? sectionLookup.get(sectionId) : undefined;
-    const passage = (detail.question?.passage || '').trim() || section?.passage || '';
-    const sectionTitle = section?.title || detail.question?.sectionTitle || '';
-    const mediaBlocks = section?.mediaBlocks ?? [];
-    const lastGroup = groups[groups.length - 1];
-
-    if (
-      lastGroup &&
-      lastGroup.sectionId === (sectionId || undefined) &&
-      lastGroup.passage === passage &&
-      lastGroup.sectionTitle === sectionTitle
-    ) {
-      lastGroup.questions.push(detail);
-    } else {
-      groups.push({
-        sectionId: sectionId || undefined,
-        passage,
-        sectionTitle,
-        mediaBlocks,
-        questions: [detail],
-      });
-    }
-  });
-
-  return groups;
-};
-
-// Trả về nhãn A, B, C... cho đáp án lựa chọn
-const getOptionLabel = (index: number) => String.fromCharCode(65 + index);
-
-// So sánh chuỗi bỏ qua hoa thường và khoảng trắng
-const isSameText = (a?: string, b?: string) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
-
-// Render đáp án dạng lựa chọn, kèm trạng thái đúng/sai của học viên
-const renderOptionAnswers = (detail: DetailedResult) => {
-  const options = Array.isArray(detail.question.options) ? detail.question.options : [];
-  const selected = Array.isArray(detail.userAnswer.selectedOptions)
-    ? detail.userAnswer.selectedOptions.map((opt) => (opt || '').trim())
-    : [];
-  const allowMultiple = Boolean(detail.question.allowMultiple);
-
-  if (!options.length) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-        No answers to display.
-      </div>
-    );
-  }
-
+const PassageRenderer: React.FC<{
+  passage: string;
+  mediaBlocks: SectionMedia[];
+  theme: any;
+}> = ({ passage, mediaBlocks, theme }) => {
+  const mediaMap = useMemo(() => new Map(mediaBlocks.map(b => [String(b.id), b])), [mediaBlocks]);
+  if (!passage) return null;
+  
   return (
-    <div className="space-y-3">
-      {options.map((option: Option, optionIndex: number) => {
-        const optionText = typeof option?.text === 'string' ? option.text : '';
-        const isCorrect =
-          Boolean(option?.isCorrect) || (detail.correctAnswers || []).some((answer) => isSameText(answer, optionText));
-        const isSelected = selected.some((answer) => isSameText(answer, optionText));
-        const isWrongSelection = isSelected && !isCorrect;
-        const baseClasses =
-          'flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm transition-colors shadow-sm';
-        const stateClasses = isCorrect
-          ? 'border-emerald-500/80 bg-emerald-50 text-emerald-900'
-          : isWrongSelection
-            ? 'border-rose-500/80 bg-rose-50 text-rose-900'
-            : 'border-slate-200 bg-white text-slate-700';
-
-        return (
-          <div key={`${detail.questionNumber}-option-${optionIndex}`} className={`${baseClasses} ${stateClasses}`}>
-            <span
-              className={`mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${isCorrect
-                  ? 'border-emerald-500/80 bg-white text-emerald-600'
-                  : isWrongSelection
-                    ? 'border-rose-400 bg-white text-rose-500'
-                    : 'border-slate-300 text-slate-500'
-                }`}
-            >
-              {getOptionLabel(optionIndex)}
-            </span>
-            <div className="flex-1">
-              <p className="font-medium leading-relaxed">{optionText || '—'}</p>
-              {isWrongSelection ? (
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-rose-500">Your selection</p>
-              ) : null}
-              {isCorrect ? (
-                <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-emerald-600">Correct answer</p>
-              ) : null}
-            </div>
-          </div>
-        );
+    <>
+      {passage.split(mediaPlaceholderRegex).map((part, i) => {
+        if (i % 2 === 0) {
+          if (!part) return null;
+          return (
+            <SelectableParagraph
+              key={i}
+              index={i}
+              text={part}
+              theme={theme}
+            />
+          );
+        }
+        const block = mediaMap.get(part.trim());
+        return block ? <MediaBlock key={i} block={block} theme={theme} /> : <p key={i} className="text-xs text-amber-600">Media {part} missing</p>;
       })}
-      {allowMultiple ? (
-        <p className="text-xs text-slate-500">Multiple answers may be correct.</p>
-      ) : null}
-    </div>
+    </>
   );
 };
 
-// Render đáp án dạng điền ngắn và hiển thị đáp án đúng
-const renderShortAnswer = (detail: DetailedResult) => {
-  const userAnswer = (detail.userAnswer.userAnswer || '').trim();
-  const answered = Boolean(userAnswer);
-  const isCorrect = detail.isCorrect;
-  const baseClasses = 'rounded-xl border px-4 py-3 text-sm font-medium';
-  const stateClasses = isCorrect
-    ? 'border-emerald-500/80 bg-emerald-50 text-emerald-700'
-    : answered
-      ? 'border-rose-500/80 bg-rose-50 text-rose-700'
-      : 'border-rose-300/80 bg-rose-50 text-rose-600';
-
-  return (
-    <div className="space-y-3">
-      <div className={`${baseClasses} ${stateClasses}`}>{answered ? userAnswer : 'Not answered'}</div>
-      <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 text-sm">
-        <span className="font-semibold text-emerald-700">Correct answer: </span>
-        <span className="font-medium text-emerald-600">{(detail.correctAnswers || []).join(', ') || '—'}</span>
-      </div>
-    </div>
-  );
-};
-
-// Render đáp án dạng nối cặp và đánh dấu đúng sai cho từng prompt
-const renderMatchingAnswer = (detail: DetailedResult) => {
-  const expectedPairs = Array.isArray(detail.question.matchingPairs)
-    ? detail.question.matchingPairs
-    : [];
-  const submittedPairs = Array.isArray(detail.userAnswer.matchingAnswers)
-    ? detail.userAnswer.matchingAnswers
-    : [];
-
-  if (!expectedPairs.length) {
-    return renderOptionAnswers(detail);
-  }
-
-  return (
-    <div className="space-y-3">
-      {expectedPairs.map((pair: MatchingPair, pairIndex: number) => {
-        const prompt = pair?.prompt || '';
-        const correctOption = pair?.correctOption || '';
-        const userSelection = submittedPairs.find((answer) => isSameText(answer?.prompt, prompt));
-        const selectedValue = userSelection?.selected || '';
-        const hasSelection = Boolean(selectedValue);
-        const isCorrect = hasSelection && isSameText(selectedValue, correctOption);
-        const baseClasses = 'rounded-2xl border px-4 py-3 text-sm transition-colors';
-        const stateClasses = isCorrect
-          ? 'border-emerald-500/80 bg-emerald-50 text-emerald-800'
-          : hasSelection
-            ? 'border-rose-500/80 bg-rose-50 text-rose-800'
-            : 'border-slate-200 bg-white text-slate-700';
-
-        return (
-          <div key={`${detail.questionNumber}-pair-${pairIndex}`} className={`${baseClasses} ${stateClasses}`}>
-            <div className="font-semibold text-slate-800">{prompt}</div>
-            <div className="mt-2 flex flex-col gap-1 text-sm">
-              <span className="text-slate-600">
-                <span className="font-semibold">Your answer: </span>
-                <span className={hasSelection && !isCorrect ? 'text-rose-600 font-medium' : 'text-slate-700'}>
-                  {hasSelection ? selectedValue : 'Not answered'}
-                </span>
-              </span>
-              <span className="text-emerald-600">
-                <span className="font-semibold">Correct answer: </span>
-                <span className="font-medium">{correctOption}</span>
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-// Xác định component render đáp án dựa trên loại câu hỏi
-const renderAnswerBlock = (detail: DetailedResult) => {
-  switch (detail.question.type) {
-    case 'multi_choice':
-    case 'dropdown':
-      return renderOptionAnswers(detail);
-    case 'matching':
-      return renderMatchingAnswer(detail);
-    case 'short_answer':
-    default:
-      return renderShortAnswer(detail);
-  }
-};
-
-// Trả về màu sắc tương ứng với cấp độ AV
-const getLevelColor = (avLevel: string) => {
-  const level = avLevel.toLowerCase();
-  if (level.includes('av1') || level.includes('av2')) return 'text-rose-600 bg-rose-100';
-  if (level.includes('av3') || level.includes('av4')) return 'text-amber-600 bg-amber-100';
-  if (level.includes('av5') || level.includes('av6')) return 'text-emerald-600 bg-emerald-100';
-  if (level.includes('av7')) return 'text-blue-600 bg-blue-100';
-  return 'text-slate-600 bg-slate-100';
-};
-
-// Trả về màu chữ cho tổng điểm dựa trên phần trăm đạt được
-const getScoreColor = (percentage: number) => {
-  if (percentage >= 80) return 'text-emerald-600';
-  if (percentage >= 60) return 'text-amber-600';
-  if (percentage >= 40) return 'text-orange-600';
-  return 'text-rose-600';
-};
-
-// Trang hiển thị chi tiết kết quả bài kiểm tra đầu vào của người học
 const TestResultPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
-  const location = useLocation();
   const navigate = useNavigate();
-
+  const location = useLocation();
+  
   const result = location.state?.result as TestResult | undefined;
-  const fromCheckpoint = location.state?.fromCheckpoint as boolean | undefined;
 
-  const [sections, setSections] = useState<TestSection[]>([]);
-  const [isFetchingSections, setIsFetchingSections] = useState<boolean>(false);
+  const [test, setTest] = useState<PlacementTest | null>(null);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  
+  const theme = useMemo(() => getTheme(test?.category), [test?.category]);
 
   useEffect(() => {
-    if (!testId) {
-      return;
-    }
-
-    let isMounted = true;
-
-    const fetchSections = async () => {
+    const fetchTest = async () => {
+      if (!testId) { setIsLoading(false); return; }
+      setIsLoading(true);
       try {
-        setIsFetchingSections(true);
-        const response = await getTestForTaking(testId);
-        const fetchedSections: TestSection[] = Array.isArray(response?.test?.sections)
-          ? response.test.sections
-          : [];
-        if (!isMounted) {
-          return;
+        // Fetch test WITHOUT randomization to match the order in detailedResults
+        const res = await getTestForTaking(testId, false);
+        const t = res?.test;
+        if (t) {
+           setTest({ ...t, sections: sanitizeSections(t.sections) });
         }
-        setSections(sanitizeSections(fetchedSections));
-      } catch (error: unknown) {
-        console.error('Unable to load section content for results:', error);
-        if (isMounted) {
-          setSections([]);
-        }
-      } finally {
-        if (isMounted) {
-          setIsFetchingSections(false);
-        }
-      }
+      } catch (e) { console.error(e); toast.error('Error loading test details.'); }
+      finally { setIsLoading(false); }
     };
-
-    fetchSections();
-
-    return () => {
-      isMounted = false;
-    };
+    fetchTest();
   }, [testId]);
 
-  const sectionLookup = useMemo(() => {
-    const map = new Map<string, TestSection>();
-    sections.forEach((section) => {
-      const id = normalizeId(section?._id);
-      if (id) {
-        map.set(id, section);
+  const goToQuestion = useCallback(
+    (index: number) => {
+      if (!test) return;
+      const total = test.questions.length;
+      const safeIndex = Math.min(Math.max(index, 0), total - 1);
+      setCurrentQuestionIndex(safeIndex);
+
+      if (typeof window !== 'undefined') {
+        setTimeout(() => {
+          const element = document.getElementById(`question-${safeIndex}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 80);
       }
-    });
-    return map;
-  }, [sections]);
+    },
+    [test]
+  );
 
-  const groupedDetails = useMemo(() => {
-    if (!result) return [];
-    return buildPassageGroups(Array.isArray(result.detailedResults) ? result.detailedResults : [], sectionLookup);
-  }, [result, sectionLookup]);
+  useEffect(() => {
+    if (!isLoading && test) {
+      const element = document.getElementById(`question-${currentQuestionIndex}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [currentQuestionIndex, isLoading, test]);
 
-  const detailCount = result?.detailedResults?.length || 0;
+  const sections = test?.sections ?? EMPTY_SECTIONS;
+  const questions = test?.questions ?? EMPTY_QUESTIONS;
+  const totalQuestions = questions.length;
+  const totalSections = sections.length;
 
-  if (!result) {
+  const currentQuestion = questions[currentQuestionIndex] ?? null;
+  const currentSectionId = normalizeId(currentQuestion?.sectionId);
+
+  const currentSection = useMemo(() => {
+    if (!currentSectionId) return null;
+    return sections.find((section) => normalizeId(section?._id) === currentSectionId) ?? null;
+  }, [currentSectionId, sections]);
+
+  const sectionQuestions = useMemo<SectionQuestion[]>(() => {
+    return questions
+      .map((question, index) => ({ question, globalIndex: index }))
+      .filter(({ question: candidate }) => normalizeId(candidate.sectionId) === currentSectionId);
+  }, [currentSectionId, questions]);
+
+  const sectionNavigatorQuestions = useMemo(() => sectionQuestions.map(({ question }) => question), [sectionQuestions]);
+  const sectionNavigatorIndices = useMemo(() => sectionQuestions.map(({ globalIndex }) => globalIndex), [sectionQuestions]);
+
+  const currentSectionIndex = useMemo(() => {
+    if (!currentSectionId) return -1;
+    return sections.findIndex((section) => normalizeId(section?._id) === currentSectionId);
+  }, [currentSectionId, sections]);
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="rounded-2xl border border-slate-200 bg-white px-10 py-12 text-center shadow-xl">
-          <h1 className="mb-3 text-3xl font-semibold text-slate-900">Result not found</h1>
-          <p className="mb-6 text-sm text-slate-600">
-            The test result you are looking for is unavailable or has expired.
-          </p>
-          <button
-            onClick={() => navigate('/tests')}
-            className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-          >
-            Back to test list
-          </button>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
+          <p className="text-sm text-gray-600">Loading test details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!test || !result) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center p-8 bg-white rounded-2xl shadow-xl">
+          <XCircleIcon className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Result Not Found</h2>
+          <Button onClick={() => navigate('/tests')}>Back to Tests</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-blue-50/80 py-10">
-      <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-12">
-        <div className="mb-10 text-center">
-          <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-blue-600">
-            Placement test
-          </span>
-          <h1 className="mt-4 text-4xl font-bold text-slate-900">Full results</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Review your performance by part, including audio and transcripts where available.
-          </p>
-          <p className="mt-4 text-lg font-semibold text-blue-600">{result.testTitle}</p>
-        </div>
-
-        <div className="rounded-3xl border border-blue-100 bg-white/95 p-8 shadow-xl shadow-blue-100/60 md:p-10">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            <div className="rounded-2xl bg-gradient-to-br from-white via-emerald-50/70 to-white px-6 py-6 text-center shadow-sm">
-              <div className={`text-5xl font-bold ${getScoreColor(result.score.percentage)}`}>
-                {result.score.percentage}%
+    <div className="h-screen flex flex-col bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+      {/* --- HEADER --- */}
+      <header className="shrink-0 z-40 border-b border-white/50 bg-white/80 backdrop-blur-md shadow-sm transition-all duration-300">
+        <div className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/test/${testId}/result`, { state: { result } })} className="text-slate-500 hover:text-slate-900">
+              <ArrowLeftIcon className="h-5 w-5" />
+            </Button>
+            <div className="flex flex-col">
+              <div className={clsx("flex items-center gap-2 text-xs font-bold uppercase tracking-wider", theme.text)}>
+                {theme.isListening ? <SpeakerWaveIcon className="h-3.5 w-3.5" /> : <DocumentTextIcon className="h-3.5 w-3.5" />}
+                {test.category} Result
               </div>
-              <p className="mt-2 text-sm font-medium text-slate-600">Overall score</p>
-              <p className="text-xs text-slate-500">
-                {result.score.earnedPoints}/{result.score.totalPoints} points
-              </p>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight truncate max-w-xs sm:max-w-md">
+                {test.title}
+              </h1>
             </div>
+          </div>
 
-            <div className="rounded-2xl bg-gradient-to-br from-white via-blue-50/70 to-white px-6 py-6 text-center shadow-sm">
-              <div className="text-5xl font-bold text-blue-600">{result.ieltsScore}</div>
-              <p className="mt-2 text-sm font-medium text-slate-600">Estimated IELTS band</p>
-            </div>
+          <div className="hidden md:flex flex-1 justify-center">
+            <QuestionNavigator
+              questions={sectionNavigatorQuestions}
+              result={result}
+              currentQuestionIndex={currentQuestionIndex}
+              onSelect={goToQuestion}
+              questionIndices={sectionNavigatorIndices}
+              theme={theme}
+              inline
+            />
+          </div>
 
-            <div className="rounded-2xl bg-gradient-to-br from-white via-indigo-50/70 to-white px-6 py-6 text-center shadow-sm">
-              <span className={`inline-flex items-center justify-center rounded-full px-5 py-2 text-lg font-semibold ${getLevelColor(result.avLevel)}`}>
-                {result.avLevel}
+          <div className="flex shrink-0 items-center gap-3">
+            <div className={clsx("flex items-center gap-2 rounded-full border bg-white px-4 py-2 shadow-sm", theme.border)}>
+              <span className={clsx("font-mono text-base font-bold", theme.textDark)}>
+                Score: {result.score.percentage.toFixed(0)}%
               </span>
-              <p className="mt-2 text-sm font-medium text-slate-600">Current level</p>
             </div>
           </div>
         </div>
+      </header>
 
-        <div className="mt-10 rounded-3xl border border-blue-100 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-blue-50 p-7 shadow-inner">
-          <h2 className="text-lg font-semibold text-blue-800">Recommendation</h2>
-          <p className="mt-2 text-sm text-blue-700">{result.recommendation}</p>
+      <main className="flex-1 min-h-0 w-full max-w-none mx-auto p-0 relative">
+        <div className="grid h-full w-full grid-cols-1 lg:grid-cols-2 gap-0 pb-14">
+          <SectionPanel
+            section={currentSection}
+            sectionIndex={currentSectionIndex}
+            theme={theme}
+          />
+
+          <QuestionPanel
+            sectionQuestions={sectionQuestions}
+            result={result}
+            currentQuestionIndex={currentQuestionIndex}
+            onFocusQuestion={setCurrentQuestionIndex}
+            theme={theme}
+          />
         </div>
+      </main>
 
-        <div className="mt-10 rounded-3xl border border-slate-200/70 bg-white/95 p-8 shadow-lg shadow-slate-200/60 md:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-semibold text-slate-900">Detailed breakdown</h2>
-              <p className="text-sm text-slate-500">Review each question with answers and explanations.</p>
-            </div>
-            <span className="rounded-full border border-slate-200 bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-              {detailCount} questions
-            </span>
-          </div>
-
-          <div className="mt-6 space-y-6">
-            {isFetchingSections && !groupedDetails.length ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                Loading section content...
-              </div>
-            ) : null}
-
-            {groupedDetails.length > 0 ? (
-              groupedDetails.map((group, groupIndex) => {
-                const hasPassageContent = Boolean(group.passage && group.passage.trim().length);
-                const hasMedia = group.mediaBlocks.length > 0;
-                const partContent = renderPartContent(group.passage || '', group.mediaBlocks);
-
-                return (
-                  <div key={group.sectionId || groupIndex} className="space-y-4">
-                    {(hasPassageContent || hasMedia) ? (
-                      <div className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 via-white to-blue-50 p-6 shadow-inner">
-                        {group.sectionTitle ? (
-                          <div className="flex flex-col gap-2">
-                            <h3 className="text-lg font-semibold text-blue-800">{formatSectionTitle(group.sectionTitle)}</h3>
-                          </div>
-                        ) : null}
-                        <div className="mt-3 space-y-4">
-                          {Array.isArray(partContent)
-                            ? partContent.map((node, nodeIndex) => (
-                              <React.Fragment key={nodeIndex}>{node}</React.Fragment>
-                            ))
-                            : partContent}
-                        </div>
-                      </div>
-                    ) : null}
-
-                    {group.questions.map((detail) => {
-                      const questionMedia = renderQuestionMedia(detail);
-                      return (
-                        <div
-                          key={`${detail.questionNumber}-${group.sectionId || 'section'}-${groupIndex}`}
-                          className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm"
-                        >
-                          <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 bg-slate-50/70 px-5 py-4">
-                            <div>
-                              <h3 className="text-base font-semibold text-slate-900">Question {detail.questionNumber}</h3>
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                              <span
-                                className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-semibold ${detail.isCorrect ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
-                                  }`}
-                              >
-                                {detail.isCorrect ? 'Correct' : 'Incorrect'}
-                              </span>
-                              <span className="text-xs font-medium text-slate-500">+{detail.pointsEarned ?? 0} points</span>
-                            </div>
-                          </div>
-
-                          <div className="space-y-4 px-5 py-5">
-                            <div className="space-y-3">
-                              <p className="text-sm leading-relaxed text-slate-800">{detail.question.content}</p>
-                              {questionMedia}
-                            </div>
-
-                            {renderAnswerBlock(detail)}
-
-                            {detail.explanation ? (
-                              <div className="rounded-xl border border-amber-100 bg-amber-50/80 px-4 py-3">
-                                <h4 className="text-xs font-semibold uppercase tracking-wide text-amber-600">Explanation</h4>
-                                <p className="mt-1 text-sm leading-relaxed text-amber-700">{detail.explanation}</p>
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })
-            ) : (
-              <p className="text-center text-sm text-slate-500">No detailed data available.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-12 flex justify-center gap-4">
-          {fromCheckpoint && (
-            <button
-              onClick={() => navigate('/roadmap')}
-              className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 px-8 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-green-600 hover:to-emerald-600"
-            >
-              ← Quay lại lộ trình
-            </button>
-          )}
-          <button
-            onClick={() => navigate('/tests')}
-            className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 px-8 py-3 text-sm font-semibold text-white shadow-sm transition hover:from-blue-600 hover:to-indigo-600"
-          >
-            Take another test
-          </button>
+      {/* --- BOTTOM PART NAVIGATION (Docked) --- */}
+      <div className="absolute bottom-0 left-0 w-full z-50 bg-white/90 backdrop-blur-xl border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-center gap-2 p-2 overflow-x-auto no-scrollbar">
+          {sections.map((section, idx) => {
+            const isActive = currentSectionIndex === idx;
+            return (
+              <button
+                key={idx}
+                onClick={() => {
+                  const sectionId = normalizeId(section._id);
+                  const firstQuestionIndex = questions.findIndex((q) => normalizeId(q.sectionId) === sectionId);
+                  if (firstQuestionIndex >= 0) goToQuestion(firstQuestionIndex);
+                }}
+                className={clsx(
+                  "px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300 whitespace-nowrap flex items-center gap-2",
+                  isActive
+                    ? clsx("text-white shadow-md bg-gradient-to-r", theme.gradient)
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                <span>Part {idx + 1}</span>
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -748,3 +451,303 @@ const TestResultPage: React.FC = () => {
 };
 
 export default TestResultPage;
+
+interface SectionPanelProps {
+  section: TestSection | null;
+  sectionIndex: number;
+  theme: any;
+}
+
+function SectionPanel({ section, sectionIndex, theme }: SectionPanelProps) {
+  return (
+    <div className={clsx("flex flex-col overflow-hidden bg-white h-full transition-all duration-300 border-r", theme.border)} data-lenis-prevent>
+      <div className="border-b border-slate-100 px-5 py-3 bg-white/50 backdrop-blur-sm">
+        <div className="text-sm font-bold text-slate-900 truncate flex items-center gap-2">
+          <span className={clsx("px-2 py-0.5 rounded text-[12px] font-black uppercase tracking-wider border", theme.bgLight, theme.text, theme.border)}>
+            PART {sectionIndex + 1}
+          </span>
+          {section?.title}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        {section?.passage ? (
+          <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-[15px]">
+            <PassageRenderer 
+              passage={section.passage} 
+              mediaBlocks={section.mediaBlocks || []} 
+              theme={theme}
+            />
+          </div>
+        ) : section?.mediaBlocks && section.mediaBlocks.length ? (
+          <div className="space-y-6">
+            {section.mediaBlocks.map((block, index) => <MediaBlock key={block.id || index} block={block} theme={theme} />)}
+          </div>
+        ) : (
+          <p className="text-xs italic text-slate-400">No content for this part.</p>
+        )}
+
+        {section?.audio && <div className="mt-4"><AudioPlayer src={section.audio} theme={theme} /></div>}
+
+        {section?.image ? (
+          <div>
+            <img
+              src={section.image}
+              alt={section?.title || 'Section illustration'}
+              className="rounded-2xl border border-slate-100 w-full max-h-80 object-cover shadow-sm"
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+interface SectionQuestion {
+  question: TestQuestion;
+  globalIndex: number;
+}
+
+interface QuestionNavigatorProps {
+  questions: TestQuestion[];
+  result: TestResult;
+  currentQuestionIndex: number;
+  onSelect: (index: number) => void;
+  inline?: boolean;
+  questionIndices?: number[];
+  theme: any;
+}
+
+function QuestionNavigator({
+  questions, result, onSelect, inline = false, questionIndices, currentQuestionIndex, theme
+}: QuestionNavigatorProps) {
+  return (
+    <div className={clsx(inline ? 'flex flex-wrap items-center gap-2' : 'space-y-3')}>
+      <div className={clsx(inline ? 'flex flex-wrap gap-2' : 'grid grid-cols-5 gap-2')}>
+        {questions.map((_, index) => {
+          const targetIndex = questionIndices ? questionIndices[index] : index;
+          const isCurrent = targetIndex === currentQuestionIndex;
+          
+          // Find result for this question
+          const detail = result.detailedResults.find(d => d.questionNumber === targetIndex + 1);
+          const isCorrect = detail?.isCorrect;
+          const isSkipped = !detail?.userAnswer?.userAnswer && (!detail?.userAnswer?.selectedOptions || detail.userAnswer.selectedOptions.length === 0);
+
+          return (
+            <button
+              key={index}
+              onClick={() => onSelect(targetIndex)}
+              className={clsx(
+                "flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-bold transition-all duration-200 shadow-sm",
+                isCurrent 
+                  ? clsx("ring-2 ring-offset-1", theme.ring, theme.borderActive, theme.text, "bg-white")
+                  : isCorrect
+                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                    : isSkipped
+                      ? "bg-slate-100 text-slate-500 border-slate-200"
+                      : "bg-rose-100 text-rose-700 border-rose-200"
+              )}
+            >
+              {targetIndex + 1}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+interface QuestionPanelProps {
+  sectionQuestions: SectionQuestion[];
+  result: TestResult;
+  currentQuestionIndex: number;
+  onFocusQuestion: (index: number) => void;
+  theme: any;
+}
+
+function QuestionResult({ question, detail, theme }: { question: TestQuestion, detail?: DetailedResult, theme: any }) {
+  const { type, options } = question;
+  const userAnswer = detail?.userAnswer;
+  const isCorrect = detail?.isCorrect;
+  const explanation = detail?.explanation;
+
+  return (
+    <div className="space-y-4">
+      {/* Question Type Badge */}
+      <div className="flex items-center gap-2 mb-2">
+         <span className="px-2 py-1 rounded text-xs font-bold bg-slate-100 text-slate-500 uppercase">
+            {type.replace('_', ' ')}
+         </span>
+      </div>
+
+      {/* Options / Input Display */}
+      {(type === 'multi_choice' || type === 'dropdown') && (
+        <div className="flex flex-col gap-2">
+          {options?.map((opt: any, idx: number) => {
+            const isSelected = userAnswer?.selectedOptions?.includes(opt.text);
+            const isCorrectOption = detail?.correctAnswers?.includes(opt.text); 
+            
+            // Determine style
+            let containerClass = "border-slate-200 bg-white hover:bg-slate-50";
+            let textClass = "text-slate-700";
+            let iconClass = "bg-slate-100 text-slate-500 border-slate-300";
+            let iconContent: React.ReactNode = String.fromCharCode(65 + idx);
+
+            if (isSelected && isCorrectOption) {
+               // User selected CORRECT
+               containerClass = "border-emerald-500 bg-emerald-50";
+               textClass = "text-emerald-900 font-medium";
+               iconClass = "bg-emerald-500 text-white border-emerald-500";
+               iconContent = <CheckIcon className="w-3 h-3" />;
+            } else if (isSelected && !isCorrectOption) {
+               // User selected WRONG
+               containerClass = "border-rose-500 bg-rose-50";
+               textClass = "text-rose-900 font-medium";
+               iconClass = "bg-rose-500 text-white border-rose-500";
+               iconContent = <XMarkIcon className="w-3 h-3" />;
+            } else if (!isSelected && isCorrectOption) {
+               // Correct option (not selected)
+               containerClass = "border-emerald-500 bg-white border-dashed";
+               textClass = "text-emerald-700 font-medium";
+               iconClass = "bg-emerald-100 text-emerald-600 border-emerald-500";
+               iconContent = <CheckIcon className="w-3 h-3" />;
+            }
+
+            return (
+              <div key={idx} className={clsx("relative flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl border transition-all text-sm", containerClass)}>
+                <div className={clsx("flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-xs font-bold mt-0.5", iconClass)}>
+                  {iconContent}
+                </div>
+                <span className={clsx("flex-1 leading-relaxed", textClass)}>{opt.text}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {type === 'short_answer' && (
+        <div className="space-y-3">
+          {/* User Input */}
+          <div>
+            <label className="text-xs font-bold text-slate-400 mb-1 block uppercase">Your Answer</label>
+            <div className={clsx(
+                "w-full p-3 rounded-xl border text-sm font-medium",
+                isCorrect
+                  ? "bg-emerald-50 border-emerald-500 text-emerald-900"
+                  : "bg-rose-50 border-rose-500 text-rose-900"
+            )}>
+                {userAnswer?.userAnswer || <span className="italic text-slate-400 font-normal">No answer</span>}
+            </div>
+          </div>
+
+          {/* Correct Answer (if wrong) */}
+          {!isCorrect && (
+            <div>
+                <label className="text-xs font-bold text-emerald-600 mb-1 block uppercase">Correct Answer</label>
+                <div className="w-full p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-sm font-medium">
+                  {detail?.correctAnswers?.join(', ')}
+                </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {type === 'matching' && (
+        <div className="space-y-3">
+          {question.matchingPairs?.map((pair, idx) => {
+            const userMatch = userAnswer?.matchingAnswers?.find(
+              (ans: any) => ans.prompt === pair.prompt
+            );
+            const isPairCorrect = userMatch?.selected === pair.correctOption;
+            
+            return (
+              <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50/50">
+                <div className="font-medium text-slate-900 mb-2">{pair.prompt}</div>
+                <div className="flex flex-col sm:flex-row gap-2 text-sm">
+                  {/* User Selection */}
+                  <div className={clsx(
+                    "flex-1 p-2 rounded-lg border",
+                    isPairCorrect 
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                      : "bg-rose-50 border-rose-200 text-rose-800"
+                  )}>
+                    <span className="text-xs font-bold opacity-70 block uppercase mb-0.5">Your Match</span>
+                    {userMatch?.selected || <span className="italic opacity-50">No selection</span>}
+                  </div>
+                  
+                  {/* Correct Match (if wrong) */}
+                  {!isPairCorrect && (
+                    <div className="flex-1 p-2 rounded-lg border bg-emerald-50 border-emerald-200 text-emerald-800">
+                      <span className="text-xs font-bold opacity-70 block uppercase mb-0.5">Correct Match</span>
+                      {pair.correctOption}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Explanation */}
+      <div className={clsx("mt-4 p-4 rounded-xl border text-sm", theme.bgLight, theme.border, theme.textDark)}>
+        <div className={clsx("flex items-center gap-2 font-bold mb-2", theme.text)}>
+          <LightBulbIcon className="w-4 h-4" />
+          Explanation
+        </div>
+        <div className="leading-relaxed opacity-90 whitespace-pre-wrap">
+          {explanation ? explanation : "No detailed explanation available for this question."}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuestionPanel({ sectionQuestions, result, currentQuestionIndex, onFocusQuestion, theme }: QuestionPanelProps) {
+  return (
+    <div className={clsx("flex flex-col overflow-hidden bg-white h-full transition-all duration-300", theme.border)} data-lenis-prevent>
+      <div className="border-b border-slate-100 px-5 py-3 flex justify-between items-center bg-white/50 backdrop-blur-sm">
+        <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <ListBulletIcon className={clsx("h-5 w-5", theme.text)} />
+          Questions
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        {sectionQuestions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+            <ListBulletIcon className="h-10 w-10 mb-2 opacity-20" />
+            <p className="text-xs">No questions in this section.</p>
+          </div>
+        ) : sectionQuestions.map(({ question, globalIndex }) => {
+          const isCurrent = globalIndex === currentQuestionIndex;
+          const detail = result.detailedResults.find(d => d.questionNumber === globalIndex + 1);
+
+          return (
+            <div key={globalIndex} id={`question-${globalIndex}`} className={clsx("rounded-2xl border transition-all duration-300", isCurrent ? clsx(theme.borderActive, "ring-4 shadow-lg bg-white", theme.ring.replace('ring-', 'ring-opacity-20 ring-')) : 'border-slate-200 hover:border-slate-300 bg-white')}>
+              <div className={clsx("flex justify-between gap-3 border-b px-4 py-3 rounded-t-2xl", isCurrent ? theme.bgLight : 'bg-slate-50/50 border-slate-100')}>
+                <div className="text-sm font-medium text-slate-900 leading-relaxed whitespace-pre-wrap">
+                  <span className={clsx("font-black mr-2 inline-block", theme.text)}>Q{globalIndex + 1}.</span>
+                  {question.content}
+                </div>
+                {detail?.isCorrect ? (
+                  <CheckCircleIcon className="w-5 h-5 text-emerald-500 shrink-0" />
+                ) : (
+                  <XCircleIcon className="w-5 h-5 text-rose-500 shrink-0" />
+                )}
+              </div>
+              <div className="px-4 py-4 space-y-4">
+                {question.media?.audioUrl && <AudioPlayer src={question.media.audioUrl} theme={theme} />}
+                <QuestionResult 
+                  question={question} 
+                  detail={detail}
+                  theme={theme}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

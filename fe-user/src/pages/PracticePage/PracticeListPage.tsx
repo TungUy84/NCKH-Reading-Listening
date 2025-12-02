@@ -6,7 +6,7 @@ import {
   BookOpenIcon, 
   SpeakerWaveIcon, 
   ClockIcon, 
-  SparklesIcon,
+  AcademicCapIcon,
   TrophyIcon,
   PlayCircleIcon
 } from '@heroicons/react/24/solid'; // Dùng icon solid cho nổi bật
@@ -79,7 +79,7 @@ const PracticeListPage: React.FC = () => {
         {/* --- HEADER SECTION --- */}
         <div className="text-center max-w-3xl mx-auto mb-10 relative">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-bold text-slate-700 mb-6 animate-bounce">
-            <SparklesIcon className="h-4 w-4 text-amber-400" />
+            <AcademicCapIcon className="h-4 w-4 text-amber-400" />
             <span>Thư viện Ôn luyện</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight mb-6">

@@ -12,6 +12,7 @@ import HomePage from './pages/HomePage';
 import TestsPage from './pages/PlacementTestPage/TestsPage';
 import TakeTestPage from './pages/PlacementTestPage/TakeTestPage';
 import TestResultPage from './pages/PlacementTestPage/TestResultPage';
+import TestSummaryPage from './pages/PlacementTestPage/TestSummaryPage';
 import LoginPage from './pages/UserPage/LoginPage';
 import RegisterPage from './pages/UserPage/RegisterPage';
 import ProfilePage from './pages/UserPage/ProfilePage';
@@ -54,7 +55,7 @@ const GlobalBackground = () => (
 
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
-  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname);
+  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname) || /^\/test\/[^/]+\/result\/details$/.test(pathname);
   const isPracticeTakingPage = /^\/practice\/[^/]+\/take$/.test(pathname);
   const hideLayoutChrome = isTestTakingPage || isPracticeTakingPage;
 
@@ -71,7 +72,8 @@ const AppShell: React.FC = () => {
           <Route path="/" element={<HomePage />} />
           <Route path="/tests" element={<TestsPage />} />
           <Route path="/test/:testId" element={<TakeTestPage />} />
-          <Route path="/test/:testId/result" element={<TestResultPage />} />
+          <Route path="/test/:testId/result" element={<TestSummaryPage />} />
+          <Route path="/test/:testId/result/details" element={<TestResultPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
