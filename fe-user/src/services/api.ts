@@ -311,8 +311,8 @@ export const getPublicPractices = async (params?: {
  * Lấy chi tiết bài ôn luyện dành cho người học (không bao gồm đáp án).
  * Backend: GET /api/practices/:practiceId
  */
-export const getPracticeForLearner = async (practiceId: string) => {
-  const response = await apiService.get(`/practices/${practiceId}`);
+export const getPracticeForLearner = async (practiceId: string, randomize: boolean = false) => {
+  const response = await apiService.get(`/practices/${practiceId}?randomize=${randomize}`);
   return response.data;
 };
 

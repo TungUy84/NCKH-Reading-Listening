@@ -18,7 +18,7 @@ const {
   getPracticeAttemptsForAdmin,
   getPracticeAttemptDetails
 } = require('../controllers/practiceController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, optionalProtect } = require('../middleware/auth');
 
 const router = express.Router();
 const isAdmin = authorize('admin');
@@ -91,7 +91,7 @@ const practiceImportUpload = multer({
 });
 
 // ====== ROUTE CÔNG KHAI ======
-router.get('/', (req, res, next) => {
+router.get('/', optionalProtect, (req, res, next) => {
   if (req.query.scope === 'admin' || req.query.includeInactive === 'true') {
     return next('route');
   }

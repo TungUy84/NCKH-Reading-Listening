@@ -317,6 +317,7 @@ export interface PracticeSummary {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  highestScore?: number | null;
 }
 
 export interface PracticeSection {
@@ -338,6 +339,7 @@ export interface PracticeQuestion {
   options?: Option[];
   matchingPairs?: MatchingPair[];
   passage?: string;
+  media?: QuestionMedia;
 }
 
 export interface PracticeDetail extends PracticeSummary {

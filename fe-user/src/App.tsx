@@ -22,6 +22,7 @@ import PracticeListPage from './pages/PracticePage/PracticePage';
 import PracticeDetailPage from './pages/PracticePage/PracticeDetailPage';
 import PracticeTakePage from './pages/PracticePage/PracticeTakePage';
 import PracticeResultPage from './pages/PracticePage/PracticeResultPage';
+import PracticeReviewPage from './pages/PracticePage/PracticeReviewPage';
 import MockTestPage from './pages/MockTestPage/MockTestPage';
 import MockTestDetailPage from './pages/MockTestPage/MockTestDetailPage';
 import TakeMockTestPage from './pages/MockTestPage/TakeMockTestPage';
@@ -60,7 +61,7 @@ const GlobalBackground = () => (
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
   const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname) || /^\/test\/[^/]+\/result\/details$/.test(pathname) || /^\/roadmap\/checkpoint\/[^/]+\/take$/.test(pathname) || /^\/roadmap\/checkpoint\/review\/[^/]+$/.test(pathname);
-  const isPracticeTakingPage = /^\/practice\/[^/]+\/take$/.test(pathname);
+  const isPracticeTakingPage = /^\/practice\/[^/]+\/take$/.test(pathname) || /^\/practice\/[^/]+\/review\/[^/]+$/.test(pathname);
   const hideLayoutChrome = isTestTakingPage || isPracticeTakingPage;
 
   return (
@@ -87,6 +88,7 @@ const AppShell: React.FC = () => {
           <Route path="/practice/:practiceId" element={<ProtectedRoute><PracticeDetailPage /></ProtectedRoute>} />
           <Route path="/practice/:practiceId/take" element={<ProtectedRoute><PracticeTakePage /></ProtectedRoute>} />
           <Route path="/practice/attempts/:attemptId" element={<ProtectedRoute><PracticeResultPage /></ProtectedRoute>} />
+          <Route path="/practice/:practiceId/review/:attemptId" element={<ProtectedRoute><PracticeReviewPage /></ProtectedRoute>} />
           <Route path="/mock-test" element={<MockTestPage />} />
           <Route path="/mock-test/result/:resultId/details" element={<ProtectedRoute><MockTestDetailedResultPage /></ProtectedRoute>} />
           <Route path="/mock-test/result/:resultId" element={<ProtectedRoute><MockTestResultPage /></ProtectedRoute>} />

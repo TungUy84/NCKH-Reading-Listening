@@ -201,10 +201,12 @@ const PracticeListPage: React.FC = () => {
                   {/* Card Footer */}
                   <div className="flex items-center justify-between pt-6 border-t border-slate-100">
                     <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <TrophyIcon className="h-4 w-4 text-amber-400" />
-                        {practice.totalQuestions} câu
-                      </span>
+                      {practice.highestScore != null && (
+                        <span className="flex items-center gap-1">
+                          <TrophyIcon className="h-4 w-4 text-amber-400" />
+                          {practice.highestScore.toFixed(1)} pts
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         <ClockIcon className="h-4 w-4" />
                         {practice.estimatedTime || 15}'
