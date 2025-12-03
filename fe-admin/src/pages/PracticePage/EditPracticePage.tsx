@@ -961,7 +961,6 @@ const EditPracticePage: React.FC = () => {
       options: Array.isArray(q?.options) ? q.options.map((op: any) => ({ text: op?.text || '', isCorrect: !!op?.isCorrect })) : [],
       correctAnswers: Array.isArray(q?.correctAnswers) ? q.correctAnswers.map((x: any) => String(x || '')) : [],
       explanation: q?.explanation || '',
-      points: typeof q?.points === 'number' ? q.points : 1,
       questionNumber: typeof q?.questionNumber === 'number' ? q.questionNumber : null,
     }));
     const sig = JSON.stringify({ sectionsSig, questionsSig });
@@ -1095,7 +1094,6 @@ const EditPracticePage: React.FC = () => {
         options: Array.isArray(q?.options) ? q.options.map((op: any) => ({ text: op?.text || '', isCorrect: !!op?.isCorrect })) : [],
         correctAnswers: Array.isArray(q?.correctAnswers) ? q.correctAnswers.map((x: any) => String(x || '')) : [],
         explanation: q?.explanation || '',
-        points: typeof q?.points === 'number' ? q.points : 1,
         questionNumber: typeof q?.questionNumber === 'number' ? q.questionNumber : null,
       }));
       lastContentSigRef.current = JSON.stringify({ sectionsSig, questionsSig });
@@ -1663,10 +1661,6 @@ const EditPracticePage: React.FC = () => {
                                               Cho phép chọn nhiều đáp án đúng
                                             </label>
                                           )}
-                                        </div>
-                                        <div className="w-full md:w-40">
-                                          <label className="block text-sm font-medium">Điểm</label>
-                                          <input type="number" min={0} value={q.points ?? 1} onChange={(e) => updateQuestion(idx, (qq) => ({ ...qq, points: Number(e.target.value || 0) }))} className="w-full px-3 py-2 border rounded-lg" />
                                         </div>
                                       </div>
                                       <label className="block text-sm font-medium">Nội dung</label>

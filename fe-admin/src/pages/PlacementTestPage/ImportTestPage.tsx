@@ -54,8 +54,7 @@ const ImportTestPage: React.FC = () => {
       multiChoice,
       dropdown,
       shortAnswer,
-      matching,
-      totalPoints: preview.totalPoints || preview.questions.reduce((sum, q) => sum + (q.points || 0), 0)
+      matching
     };
   }, [preview]);
 
@@ -165,8 +164,7 @@ const ImportTestPage: React.FC = () => {
         })),
         matchingPairs: question.matchingPairs || [],
         correctAnswers: question.correctAnswers || [],
-        explanation: question.explanation || '',
-        points: question.points || 1
+        explanation: question.explanation || ''
       }))
     };
 
@@ -350,7 +348,6 @@ const ImportTestPage: React.FC = () => {
                       <li><span className="font-medium text-slate-700">Kỹ năng:</span> {categoryLabel[meta.category]}</li>
                       <li><span className="font-medium text-slate-700">Loại bài:</span> {testTypeLabel[meta.testType]}</li>
                       <li><span className="font-medium text-slate-700">Thời gian:</span> {meta.timeLimit} phút</li>
-                      <li><span className="font-medium text-slate-700">Tổng điểm:</span> {summary.totalPoints}</li>
                     </ul>
                   </div>
                 </div>
@@ -366,7 +363,6 @@ const ImportTestPage: React.FC = () => {
                           <div className="text-sm font-semibold text-slate-800">Câu {question.questionNumber || idx + 1}</div>
                           <div className="text-xs text-indigo-600 font-medium uppercase tracking-wide">{typeLabel[question.type] || question.type}</div>
                         </div>
-                        <div className="text-xs text-slate-500">{question.points || 1} điểm</div>
                       </div>
                       <p className="mt-2 text-sm text-slate-700 whitespace-pre-line">
                         {(question.content || question.text || '').substring(0, 250)}

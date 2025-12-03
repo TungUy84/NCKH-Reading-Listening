@@ -328,7 +328,6 @@ const updatePracticeContent = async (req, res) => {
     }
 
     practice.totalQuestions = practice.questions?.length || 0;
-    practice.totalPoints = (practice.questions || []).reduce((sum, question) => sum + (question.points || 1), 0);
 
     await practice.save();
 
@@ -501,8 +500,8 @@ const submitPracticeAttempt = async (req, res) => {
       skill: practice.skill,
       levelGroup: practice.levelGroup,
       totalQuestions: scoring.totalQuestions,
-      totalPoints: scoring.totalPoints,
       earnedPoints: scoring.earnedPoints,
+      score: scoring.score,
       percentage: scoring.percentage,
       correctCount: scoring.correctCount,
       incorrectCount: scoring.incorrectCount,
@@ -524,8 +523,7 @@ const submitPracticeAttempt = async (req, res) => {
           title: practice.title,
           skill: practice.skill,
           levelGroup: practice.levelGroup,
-          totalQuestions: scoring.totalQuestions,
-          totalPoints: scoring.totalPoints
+          totalQuestions: scoring.totalQuestions
         }
       }
     });
@@ -557,7 +555,7 @@ const getMyPracticeAttempts = async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .select('-answers')
-        .populate('practiceId', 'title skill levelGroup totalQuestions totalPoints')
+        .populate('practiceId', 'title skill levelGroup totalQuestions')
         .lean(),
       PracticeAttempt.countDocuments(query)
     ]);
@@ -597,7 +595,7 @@ const getPracticeAttemptsForAdmin = async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .select('-answers')
-        .populate('practiceId', 'title skill levelGroup totalQuestions totalPoints')
+        .populate('practiceId', 'title skill levelGroup totalQuestions')
         .populate('userId', 'firstName lastName email username role')
         .lean(),
       PracticeAttempt.countDocuments(query)
@@ -626,7 +624,7 @@ const getPracticeAttemptDetails = async (req, res) => {
   try {
     const { attemptId } = req.params;
     const attemptDoc = await PracticeAttempt.findById(attemptId)
-      .populate('practiceId', 'title skill levelGroup totalQuestions totalPoints sections questions')
+      .populate('practiceId', 'title skill levelGroup totalQuestions sections questions')
       .populate('userId', 'firstName lastName email username role');
 
     if (!attemptDoc) {
@@ -651,7 +649,6 @@ const getPracticeAttemptDetails = async (req, res) => {
       skill: practiceDoc.skill,
       levelGroup: practiceDoc.levelGroup,
       totalQuestions: practiceDoc.totalQuestions,
-      totalPoints: practiceDoc.totalPoints,
       sections: (practiceDoc.sections || []).map((section) => ({
         _id: section._id,
         title: section.title,
@@ -669,8 +666,7 @@ const getPracticeAttemptDetails = async (req, res) => {
         options: question.options,
         matchingPairs: question.matchingPairs,
         correctAnswers: question.correctAnswers,
-        explanation: question.explanation,
-        points: question.points
+        explanation: question.explanation
       }))
     } : null;
 

@@ -49,10 +49,6 @@ const answerSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  points: {
-    type: Number,
-    default: 0
-  },
   isCorrect: {
     type: Boolean,
     default: false
@@ -88,11 +84,11 @@ const practiceAttemptSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  totalPoints: {
+  earnedPoints: {
     type: Number,
     default: 0
   },
-  earnedPoints: {
+  score: {
     type: Number,
     default: 0
   },

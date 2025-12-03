@@ -101,10 +101,6 @@ const questionSchema = new mongoose.Schema({
   explanation: {
     type: String,
     default: ''
-  },
-  points: {
-    type: Number,
-    default: 1
   }
 });
 
@@ -145,10 +141,6 @@ const placementTestSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  totalPoints: {
-    type: Number,
-    default: 0
-  },
   isActive: {
     type: Boolean,
     default: true
@@ -162,10 +154,9 @@ const placementTestSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Tự động tính totalQuestions và totalPoints
+// Tự động tính totalQuestions
 placementTestSchema.pre('save', function(next) {
   this.totalQuestions = this.questions.length;
-  this.totalPoints = this.questions.reduce((sum, question) => sum + question.points, 0);
   next();
 });
 
@@ -206,7 +197,6 @@ const placementResultSchema = new mongoose.Schema({
     pointsEarned: Number
   }],
   score: {
-    totalPoints: Number,
     earnedPoints: Number,
     percentage: Number
   },

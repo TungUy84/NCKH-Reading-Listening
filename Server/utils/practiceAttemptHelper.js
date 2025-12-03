@@ -1,5 +1,3 @@
-const DEFAULT_POINTS = 0;
-
 // Hàm chuyển mọi giá trị về chuỗi dùng làm khóa tạm cho câu hỏi.
 const toStringId = (value) => {
   if (!value) return '';
@@ -119,10 +117,9 @@ const isMatchingCorrect = (question, submittedPairs) => {
   });
 };
 
-// Hàm chấm điểm cho từng câu hỏi dựa trên dữ liệu chuẩn hóa.
+// Hàm chấm điểm cho từng câu hỏi dựa trên dữ liệu chuẩn hóa (mỗi câu = 1 điểm).
 const evaluateQuestion = (question, submission) => {
   const questionId = question?._id || submission?.questionId || undefined;
-  const points = Number.isFinite(question.points) ? Number(question.points) : DEFAULT_POINTS;
   const allowMultiple = Boolean(question.allowMultiple);
   const correctAnswers = getCorrectAnswers(question);
 
@@ -137,7 +134,6 @@ const evaluateQuestion = (question, submission) => {
       matchingAnswers: [],
       correctAnswers,
       earnedPoints: 0,
-      points,
       isCorrect: false,
       isSkipped: true
     };
@@ -195,7 +191,7 @@ const evaluateQuestion = (question, submission) => {
       isAnswered = false;
   }
 
-  const earnedPoints = isCorrect ? points : 0;
+  const earnedPoints = isCorrect ? 1 : 0;
 
   return {
     questionId,
@@ -207,7 +203,6 @@ const evaluateQuestion = (question, submission) => {
     matchingAnswers,
     correctAnswers,
     earnedPoints,
-    points,
     isCorrect,
     isSkipped: !isAnswered
   };
@@ -240,7 +235,6 @@ const scorePracticeSubmission = (practice, rawAnswers = []) => {
   });
 
   const totalQuestions = evaluatedAnswers.length;
-  const totalPoints = evaluatedAnswers.reduce((sum, answer) => sum + (Number.isFinite(answer.points) ? Number(answer.points) : DEFAULT_POINTS), 0);
   const earnedPoints = evaluatedAnswers.reduce((sum, answer) => sum + (Number.isFinite(answer.earnedPoints) ? Number(answer.earnedPoints) : 0), 0);
 
   let correctCount = 0;
@@ -257,12 +251,13 @@ const scorePracticeSubmission = (practice, rawAnswers = []) => {
     }
   });
 
-  const percentage = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
+  const percentage = totalQuestions > 0 ? Math.round((earnedPoints / totalQuestions) * 100) : 0;
+  const score = totalQuestions > 0 ? Number(((earnedPoints / totalQuestions) * 10).toFixed(2)) : 0;
 
   return {
     totalQuestions,
-    totalPoints,
     earnedPoints,
+    score,
     percentage,
     correctCount,
     incorrectCount,

@@ -1,9 +1,9 @@
 import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState, } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, UserAnswer } from '../../types';
-import { getTestForTaking, submitTest } from '../../services/api';
+import { getTestForTaking, submitPlacementTest, submitCheckpoint } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { 
   ClockIcon, 
@@ -319,9 +319,11 @@ const PassageRenderer: React.FC<{
 };
 
 // Trang làm bài kiểm tra đầu vào với đồng hồ đếm ngược và xử lý gửi bài
-const TakeTestPage: React.FC = () => {
+const TakeCheckpointPage: React.FC = () => {
   const { testId } = useParams<{ testId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const levelGroup = location.state?.levelGroup;
 
   const [test, setTest] = useState<PlacementTest | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -597,16 +599,34 @@ const TakeTestPage: React.FC = () => {
         return { questionId: q._id ?? '', selectedOptions: a.selectedOptions ?? [], userAnswer: a.userAnswer?.trim() ?? '', matchingAnswers: m.length ? m : undefined };
       }).filter(i => i.questionId);
 
-      const res = await submitTest({ testId: test._id, answers: payload });
+      const durationSeconds = Math.max(0, (test.timeLimit * 60) - timeRemaining);
+      const res = await submitPlacementTest(test._id, { answers: payload, durationSeconds });
       
+      // Update Roadmap Progress if taking a checkpoint
+      if (levelGroup && res?.data) {
+        const resultId = res.data.resultId;
+        // Extract percentage directly from the result object
+        const percentage = res.data.result?.percentage ?? 0;
+        
+        try {
+          await submitCheckpoint({
+            levelGroup,
+            testId: resultId,
+            score: percentage
+          });
+        } catch (err) {
+          console.error('Failed to update roadmap progress', err);
+        }
+      }
+
       // Clear saved progress upon successful submission
       localStorage.removeItem(`test_progress_${test._id}`);
       localStorage.removeItem(`test_order_${test._id}`);
       
       toast[isAuto ? 'info' : 'success'](isAuto ? 'Time up. Auto submitted.' : 'Submitted successfully!');
-      navigate(`/test/${test._id}/result`, { state: { result: res?.result } });
+      navigate(`/roadmap/checkpoint/result/${res?.data?.resultId}`);
     } catch (e) { console.error(e); toast.error('Submit error.'); setIsSubmitting(false); }
-  }, [answers, isSubmitting, navigate, test]);
+  }, [answers, isSubmitting, navigate, test, timeRemaining, levelGroup]);
 
   useEffect(() => {
     if (!test || isLoading || isSubmitting) {
@@ -751,12 +771,12 @@ const TakeTestPage: React.FC = () => {
     }
 
     const result = await Swal.fire({
-      title: 'Are you sure you want to submit?',
-      text: 'After submitting you will not be able to modify your answers.',
+      title: 'Bạn có chắc chắn muốn nộp bài?',
+      text: 'Sau khi nộp, bạn sẽ không thể thay đổi câu trả lời.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Submit',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: 'Nộp bài',
+      cancelButtonText: 'Hủy',
       confirmButtonColor: '#2563eb',
       cancelButtonColor: '#d33',
       reverseButtons: true,
@@ -771,17 +791,17 @@ const TakeTestPage: React.FC = () => {
 
   const handleExit = useCallback(async () => {
     if (!test) {
-      navigate('/tests');
+      navigate('/roadmap');
       return;
     }
 
     const result = await Swal.fire({
-      title: 'Are you sure you want to exit?',
-      text: 'Your progress and answers will be lost if you exit now.',
+      title: 'Bạn có chắc chắn muốn thoát?',
+      text: 'Tiến độ làm bài của bạn sẽ bị mất nếu thoát ngay bây giờ.',
       icon: 'warning',
       showCancelButton: true,
-      confirmButtonText: 'Exit',
-      cancelButtonText: 'Stay',
+      confirmButtonText: 'Thoát',
+      cancelButtonText: 'Ở lại',
       confirmButtonColor: '#d33',
       cancelButtonColor: '#2563eb',
       reverseButtons: true,
@@ -791,7 +811,7 @@ const TakeTestPage: React.FC = () => {
       // Clear saved progress and order
       localStorage.removeItem(`test_progress_${test._id}`);
       localStorage.removeItem(`test_order_${test._id}`);
-      navigate('/tests');
+      navigate('/roadmap');
     }
   }, [navigate, test]);
 
@@ -800,7 +820,7 @@ const TakeTestPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="h-12 w-12 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin mx-auto" />
-          <p className="text-sm text-gray-600">Loading test...</p>
+          <p className="text-sm text-gray-600">Đang tải bài kiểm tra...</p>
         </div>
       </div>
     );
@@ -812,19 +832,19 @@ const TakeTestPage: React.FC = () => {
         <div className="text-center p-8 bg-white rounded-2xl shadow-2xl border border-red-100" data-aos="zoom-in">
           <XCircleIcon className="mx-auto mb-6 h-20 w-20 text-red-500" aria-hidden="true" />
           <h1 className="text-3xl font-bold bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text text-transparent mb-4">
-            Test not found
+            Không tìm thấy bài kiểm tra
           </h1>
           <p className="text-gray-600 mb-8 leading-relaxed">
-            This test may have been deleted or is unavailable
+            Bài kiểm tra này có thể đã bị xóa hoặc không khả dụng.
           </p>
           <button
-            onClick={() => navigate('/tests')}
+            onClick={() => navigate('/roadmap')}
             className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
           >
             <span className="mr-2 inline-flex items-center justify-center">
               <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
             </span>
-            Back to test list
+            Quay lại lộ trình
           </button>
         </div>
       </div>
@@ -841,10 +861,6 @@ const TakeTestPage: React.FC = () => {
               <ArrowLeftIcon className="h-5 w-5" />
             </Button>
             <div className="flex flex-col">
-              <div className={clsx("flex items-center gap-2 text-xs font-bold uppercase tracking-wider", theme.text)}>
-                {theme.isListening ? <SpeakerWaveIcon className="h-3.5 w-3.5" /> : <DocumentTextIcon className="h-3.5 w-3.5" />}
-                {test.category}
-              </div>
               <h1 className="text-lg font-bold text-slate-900 leading-tight truncate max-w-xs sm:max-w-md">
                 {test.title}
               </h1>
@@ -881,7 +897,7 @@ const TakeTestPage: React.FC = () => {
               size="md"
               loading={isSubmitting}
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Test'}
+              {isSubmitting ? 'Đang nộp...' : 'Nộp bài'}
             </Button>
           </div>
         </div>
@@ -1026,8 +1042,6 @@ const TakeTestPage: React.FC = () => {
     </div>
   );
 };
-
-export default TakeTestPage;
 
 interface SectionPanelProps {
   section: TestSection | null;
@@ -1296,3 +1310,5 @@ function QuestionPanel({ sectionQuestions, answers, currentQuestionIndex, onFocu
     </div>
   );
 }
+
+export default TakeCheckpointPage;

@@ -72,7 +72,6 @@ const buildQuestions = (questions = [], sections = []) => {
 			matchingPairs: pairs,
 			correctAnswers: answers,
 			explanation: typeof question?.explanation === 'string' ? question.explanation : '',
-			points: Number.isFinite(question?.points) ? Number(question.points) : 1,
 			sectionId: question?.sectionId || sectionFromIndex?._id || fallbackSectionId || undefined
 		};
 

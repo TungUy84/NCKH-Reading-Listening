@@ -17,7 +17,6 @@ export interface PlacementTest {
   questions: Question[];
   sections?: TestSection[];
   totalQuestions: number;
-  totalPoints: number;
   isActive: boolean;
   createdBy: string;
   createdAt: string;
@@ -67,7 +66,6 @@ export interface PracticeQuestion {
   matchingPairs?: PracticeMatchingPair[];
   correctAnswers?: string[];
   explanation?: string;
-  points: number;
 }
 
 export interface Practice {
@@ -80,7 +78,6 @@ export interface Practice {
   sections: PracticeSection[];
   questions: PracticeQuestion[];
   totalQuestions: number;
-  totalPoints: number;
   isActive: boolean;
   createdBy: string | AdminUser;
   createdAt: string;
@@ -106,7 +103,6 @@ export interface PracticeImportPreview {
   estimatedTime: number;
   sections: PracticeSection[];
   questions: PracticeQuestion[];
-  totalPoints: number;
   totalQuestions: number;
   source?: string;
 }
@@ -239,7 +235,6 @@ export interface PlacementTestImportPreview {
   instructions: string[];
   sections?: TestSection[];
   questions: Question[];
-  totalPoints?: number;
   totalQuestions?: number;
   source?: string;
 }
@@ -383,7 +378,6 @@ export interface QuestionFormData {
   allowMultiple?: boolean;
   matchingPairs?: MatchingPair[];
   correctAnswers: string[];
-  points: number;
   explanation?: string;
 }
 

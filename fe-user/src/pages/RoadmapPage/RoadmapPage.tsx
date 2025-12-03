@@ -244,7 +244,7 @@ const RoadmapPage: React.FC = () => {
                             {stage.checkpointResult && (
                               <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
                                 <TrophyIcon className="h-4 w-4" />
-                                Điểm thi: {stage.checkpointResult.score}
+                                Điểm thi: {stage.checkpointResult.score || 0}/10
                               </div>
                             )}
                           </div>
@@ -279,6 +279,40 @@ const RoadmapPage: React.FC = () => {
             })}
           </div>
         </div>
+
+        {/* --- COMPLETION CTA --- */}
+        {overallProgress === 100 && (
+          <div className="mt-16 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 md:p-12 text-center shadow-2xl border border-slate-700">
+            {/* Background Effects */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-3xl opacity-30 pointer-events-none">
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[100px]" />
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-purple-500/30 rounded-full blur-[80px]" />
+            </div>
+
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-orange-500/30 mb-6 animate-bounce">
+                <TrophyIcon className="w-10 h-10 text-white" />
+              </div>
+              
+              <h2 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight">
+                Chúc mừng bạn đã hoàn thành lộ trình!
+              </h2>
+              
+              <p className="text-slate-300 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
+                Bạn đã xuất sắc vượt qua tất cả các chặng đường. Đừng dừng lại ở đây, hãy thiết lập một mục tiêu mới để tiếp tục nâng cao trình độ của mình.
+              </p>
+
+              <button
+                onClick={() => navigate('/roadmap/setup')}
+                className="group relative inline-flex items-center gap-3 px-8 py-4 bg-white text-slate-900 rounded-2xl font-bold text-lg shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300"
+              >
+                <RocketLaunchIcon className="w-6 h-6 text-indigo-600 group-hover:rotate-12 transition-transform" />
+                <span>Bắt đầu lộ trình mới</span>
+                <div className="absolute inset-0 rounded-2xl ring-2 ring-white/50 group-hover:ring-white/80 transition-all" />
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

@@ -22,7 +22,6 @@ interface ResultData {
   testTitle: string;
   category: string;
   totalQuestions: number;
-  totalPoints: number;
   earnedPoints: number;
   percentage: number;
   correctCount: number;

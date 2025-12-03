@@ -15,12 +15,6 @@ interface AttemptDetailResponse {
   };
 }
 
-// Hàm đổi điểm sang thang 10 để hiển thị.
-const convertToTenScale = (earnedPoints: number, totalPoints: number): number => {
-  if (!totalPoints) return 0;
-  return parseFloat(((earnedPoints / totalPoints) * 10).toFixed(2));
-};
-
 // Trang hiển thị chi tiết kết quả một lần làm bài ôn luyện.
 const PracticeResultPage: React.FC = () => {
   const navigate = useNavigate();
@@ -34,10 +28,9 @@ const PracticeResultPage: React.FC = () => {
   const summary = useMemo(() => {
     if (!attempt) return null;
     return {
-      score10: convertToTenScale(attempt.earnedPoints, attempt.totalPoints),
+      score10: attempt.score || 0,
       percentage: attempt.percentage,
       earnedPoints: attempt.earnedPoints,
-      totalPoints: attempt.totalPoints,
       correctCount: attempt.correctCount,
       incorrectCount: attempt.incorrectCount,
       skippedCount: attempt.skippedCount
@@ -163,9 +156,6 @@ const PracticeResultPage: React.FC = () => {
                     <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1">
                       {practice.totalQuestions} câu hỏi
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1">
-                      {practice.totalPoints} điểm
-                    </span>
                   </div>
                 </div>
               )}
@@ -176,7 +166,7 @@ const PracticeResultPage: React.FC = () => {
                     <p className="text-sm text-blue-600">Điểm quy đổi</p>
                     <p className="text-3xl font-bold text-blue-900 mt-2">{summary.score10}/10</p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {summary.earnedPoints}/{summary.totalPoints} điểm gốc
+                      {summary.earnedPoints}/{practice?.totalQuestions || 0} câu đúng
                     </p>
                   </div>
                   <div className="bg-white border border-green-100 rounded-2xl shadow-sm p-5">
@@ -218,7 +208,7 @@ const PracticeResultPage: React.FC = () => {
                           {answer.isCorrect ? 'Đúng' : answer.isSkipped ? 'Bỏ qua' : 'Sai'}
                         </span>
                         <span className="text-xs text-gray-500">
-                          {answer.earnedPoints}/{answer.points} điểm
+                          {answer.earnedPoints === 1 ? '+1 điểm' : '0 điểm'}
                         </span>
                       </div>
 

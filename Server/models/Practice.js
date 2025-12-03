@@ -99,10 +99,6 @@ const questionSchema = new mongoose.Schema({
   explanation: {
     type: String,
     default: ''
-  },
-  points: {
-    type: Number,
-    default: 1
   }
 });
 
@@ -143,10 +139,6 @@ const practiceSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  totalPoints: {
-    type: Number,
-    default: 0
-  },
   isActive: {
     type: Boolean,
     default: true
@@ -160,10 +152,9 @@ const practiceSchema = new mongoose.Schema({
   timestamps: true 
 });
 
-// Tự động tính tổng câu hỏi và điểm trước khi lưu
+// Tự động tính tổng câu hỏi trước khi lưu
 practiceSchema.pre('save', function handleAggregateFields(next) {
   this.totalQuestions = this.questions.length;
-  this.totalPoints = this.questions.reduce((sum, question) => sum + (question.points || 0), 0);
   next();
 });
 

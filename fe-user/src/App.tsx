@@ -18,7 +18,7 @@ import RegisterPage from './pages/UserPage/RegisterPage';
 import ProfilePage from './pages/UserPage/ProfilePage';
 import ForgotPasswordPage from './pages/UserPage/ForgotPasswordPage';
 import ResetPasswordPage from './pages/UserPage/ResetPasswordPage';
-import PracticeListPage from './pages/PracticePage/PracticeListPage';
+import PracticeListPage from './pages/PracticePage/PracticePage';
 import PracticeDetailPage from './pages/PracticePage/PracticeDetailPage';
 import PracticeTakePage from './pages/PracticePage/PracticeTakePage';
 import PracticeResultPage from './pages/PracticePage/PracticeResultPage';
@@ -34,6 +34,10 @@ import MyBlogsPage from './pages/BlogPage/MyBlogsPage';
 import RoadmapPage from './pages/RoadmapPage/RoadmapPage';
 import RoadmapSetupPage from './pages/RoadmapPage/RoadmapSetupPage';
 import StageDetailPage from './pages/RoadmapPage/StageDetailPage';
+import CheckpointDetailPage from './pages/RoadmapPage/CheckpointDetailPage';
+import TakeCheckpointPage from './pages/RoadmapPage/TakeCheckpointPage';
+import CheckpointResultPage from './pages/RoadmapPage/CheckpointResultPage';
+import CheckpointReviewPage from './pages/RoadmapPage/CheckpointReviewPage';
 
 import 'react-toastify/dist/ReactToastify.css';
 import 'aos/dist/aos.css';
@@ -55,7 +59,7 @@ const GlobalBackground = () => (
 
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
-  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname) || /^\/test\/[^/]+\/result\/details$/.test(pathname);
+  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname) || /^\/test\/[^/]+\/result\/details$/.test(pathname) || /^\/roadmap\/checkpoint\/[^/]+\/take$/.test(pathname) || /^\/roadmap\/checkpoint\/review\/[^/]+$/.test(pathname);
   const isPracticeTakingPage = /^\/practice\/[^/]+\/take$/.test(pathname);
   const hideLayoutChrome = isTestTakingPage || isPracticeTakingPage;
 
@@ -95,6 +99,10 @@ const AppShell: React.FC = () => {
           <Route path="/roadmap" element={<ProtectedRoute><RoadmapPage /></ProtectedRoute>} />
           <Route path="/roadmap/setup" element={<ProtectedRoute><RoadmapSetupPage /></ProtectedRoute>} />
           <Route path="/roadmap/stage/:levelGroup" element={<ProtectedRoute><StageDetailPage /></ProtectedRoute>} />
+          <Route path="/roadmap/checkpoint/:testId" element={<ProtectedRoute><CheckpointDetailPage /></ProtectedRoute>} />
+          <Route path="/roadmap/checkpoint/:testId/take" element={<ProtectedRoute><TakeCheckpointPage /></ProtectedRoute>} />
+          <Route path="/roadmap/checkpoint/result/:resultId" element={<ProtectedRoute><CheckpointResultPage /></ProtectedRoute>} />
+          <Route path="/roadmap/checkpoint/review/:resultId" element={<ProtectedRoute><CheckpointReviewPage /></ProtectedRoute>} />
           <Route
             path="*"
             element={

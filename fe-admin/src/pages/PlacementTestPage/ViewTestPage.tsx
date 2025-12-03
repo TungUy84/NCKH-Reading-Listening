@@ -356,7 +356,6 @@ const ViewTestPage: React.FC = () => {
       { label: 'Thời lượng', value: test?.timeLimit ? `${test.timeLimit} phút` : '—' },
       { label: 'Số phần', value: `${totalSections} phần` },
       { label: 'Tổng câu hỏi', value: `${totalQuestions} câu` },
-      { label: 'Tổng điểm', value: `${test?.totalPoints ?? 0} điểm` },
       { label: 'Người tạo', value: formatUserDisplay(test?.createdBy) },
       { label: 'Ngày tạo', value: formatDateTime(test?.createdAt) },
       { label: 'Cập nhật', value: formatDateTime(test?.updatedAt) },
@@ -655,16 +654,13 @@ const ViewTestPage: React.FC = () => {
                             </div>
                           ) : null}
 
-                          <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
-                            <span className="rounded-full bg-slate-200/60 px-3 py-1 font-semibold text-slate-700">
-                              Điểm: {typeof question.points === 'number' ? question.points : 0}
-                            </span>
-                            {question.allowMultiple ? (
+                          {question.allowMultiple ? (
+                            <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
                               <span className="rounded-full bg-slate-200/60 px-3 py-1 font-semibold text-slate-700">
                                 Cho phép nhiều đáp án
                               </span>
-                            ) : null}
-                          </div>
+                            </div>
+                          ) : null}
                         </div>
                       );
                     })}

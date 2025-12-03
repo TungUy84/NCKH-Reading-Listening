@@ -254,8 +254,8 @@ const checkPlacementTest = async (req, res) => {
         }
 
         if (isCorrect) {
-          pointsEarned = question.points;
-          earnedPoints += pointsEarned;
+          pointsEarned = 1;
+          earnedPoints += 1;
         }
       }
 
@@ -292,7 +292,7 @@ const checkPlacementTest = async (req, res) => {
       });
     });
 
-    const percentage = Math.round((earnedPoints / test.totalPoints) * 100);
+    const percentage = Math.round((earnedPoints / test.totalQuestions) * 100);
 
     // Tính điểm IELTS và level AV (không cần lưu database)
   // Quy đổi phần trăm sang thang điểm nội bộ để gợi ý lộ trình học
@@ -326,14 +326,17 @@ const checkPlacementTest = async (req, res) => {
 
     const { ieltsScore, avLevel, recommendation } = getIELTSAndLevel(percentage);
 
+    const score = Number(((earnedPoints / test.totalQuestions) * 10).toFixed(2));
+
     res.json({
       message: 'Chấm bài thành công',
       result: {
         testTitle: test.title,
         category: test.category,
         score: {
-          totalPoints: test.totalPoints,
+          totalQuestions: test.totalQuestions,
           earnedPoints,
+          score,
           percentage
         },
         ieltsScore,
@@ -521,7 +524,6 @@ const createPlacementTest = async (req, res) => {
             ? question.correctAnswers.map((ans) => String(ans || '').trim()).filter(Boolean)
             : [],
           explanation: question.explanation || '',
-          points: typeof question.points === 'number' && question.points > 0 ? question.points : 1,
           sectionId,
           sectionIndex,
         };
@@ -675,9 +677,8 @@ const updateTestContent = async (req, res) => {
       test.questions = normalized;
     }
 
-    // Tính lại tổng số câu hỏi và điểm
+    // Tính lại tổng số câu hỏi
     test.totalQuestions = test.questions?.length || 0;
-    test.totalPoints = (test.questions || []).reduce((sum, q) => sum + (q.points || 1), 0);
 
     await test.save();
 
@@ -990,8 +991,8 @@ const submitPlacementTest = async (req, res) => {
       category: test.category,
       testTitle: test.title,
       totalQuestions: scoring.totalQuestions,
-      totalPoints: scoring.totalPoints,
       earnedPoints: scoring.earnedPoints,
+      score: scoring.score,
       percentage: scoring.percentage,
       correctCount: scoring.correctCount,
       incorrectCount: scoring.incorrectCount,
@@ -1011,7 +1012,7 @@ const submitPlacementTest = async (req, res) => {
         result: {
           percentage: result.percentage,
           earnedPoints: result.earnedPoints,
-          totalPoints: result.totalPoints,
+          score: result.score,
           correctCount: result.correctCount,
           incorrectCount: result.incorrectCount,
           skippedCount: result.skippedCount
@@ -1021,8 +1022,7 @@ const submitPlacementTest = async (req, res) => {
           title: test.title,
           testType: test.testType,
           category: test.category,
-          totalQuestions: scoring.totalQuestions,
-          totalPoints: scoring.totalPoints
+          totalQuestions: scoring.totalQuestions
         }
       }
     });
@@ -1055,7 +1055,7 @@ const getMyTestAttempts = async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .select('-answers')
-        .populate('testId', 'title category testType totalQuestions totalPoints')
+        .populate('testId', 'title category testType totalQuestions')
         .lean(),
       PlacementTestResult.countDocuments(query)
     ]);
@@ -1087,7 +1087,7 @@ const getTestAttemptDetails = async (req, res) => {
     const attemptDoc = await PlacementTestResult.findById(attemptId)
       .populate({
         path: 'testId',
-        select: 'title category testType totalQuestions totalPoints sections questions'
+        select: 'title category testType totalQuestions sections questions'
       })
       .populate('userId', 'firstName lastName email username role');
 
@@ -1158,7 +1158,7 @@ const getAllMyTestAttempts = async (req, res) => {
         .skip((page - 1) * limit)
         .limit(limit)
         .select('-answers')
-        .populate('testId', 'title category testType totalQuestions totalPoints')
+        .populate('testId', 'title category testType totalQuestions')
         .lean(),
       PlacementTestResult.countDocuments(query)
     ]);

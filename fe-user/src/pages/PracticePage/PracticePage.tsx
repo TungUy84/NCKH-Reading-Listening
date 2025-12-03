@@ -203,7 +203,7 @@ const PracticeListPage: React.FC = () => {
                     <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
                       <span className="flex items-center gap-1">
                         <TrophyIcon className="h-4 w-4 text-amber-400" />
-                        {practice.totalPoints} pts
+                        {practice.totalQuestions} câu
                       </span>
                       <span className="flex items-center gap-1">
                         <ClockIcon className="h-4 w-4" />

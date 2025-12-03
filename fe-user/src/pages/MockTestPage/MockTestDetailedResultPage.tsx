@@ -50,7 +50,6 @@ interface ResultData {
   testTitle: string;
   category: string;
   totalQuestions: number;
-  totalPoints: number;
   earnedPoints: number;
   percentage: number;
   correctCount: number;
@@ -248,7 +247,7 @@ const MockTestDetailedResultPage: React.FC = () => {
             </h3>
           </div>
           <div className={`px-3 py-1 rounded-full text-sm font-semibold ${colors.badge}`}>
-            {isSkipped ? 'Bỏ qua' : isCorrect ? 'Đúng' : 'Sai'} ({answer.earnedPoints}/{answer.points} điểm)
+            {isSkipped ? 'Bỏ qua' : isCorrect ? 'Đúng' : 'Sai'} ({answer.earnedPoints === 1 ? '+1 điểm' : '0 điểm'})
           </div>
         </div>
 
