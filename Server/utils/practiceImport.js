@@ -91,7 +91,6 @@ const normalizeQuestions = (questions = []) => {
       ? question.correctAnswers.map((answer) => String(answer || '').trim()).filter(Boolean)
       : [],
     explanation: String(question?.explanation || '').trim(),
-    points: Number.isFinite(question?.points) ? Number(question.points) : 1,
     sectionIndex:
       typeof question?.sectionIndex === 'number' && question.sectionIndex >= 0
         ? question.sectionIndex
@@ -104,8 +103,6 @@ const transformTestPreviewToPractice = (preview = {}) => {
   const sections = normalizeSections(preview.sections);
   const questions = normalizeQuestions(preview.questions);
 
-  const totalPoints = questions.reduce((sum, question) => sum + (question.points || 0), 0);
-
   return {
     title: String(preview.title || '').trim(),
     description: String(preview.description || '').trim(),
@@ -114,7 +111,6 @@ const transformTestPreviewToPractice = (preview = {}) => {
     estimatedTime: Number.isFinite(preview.timeLimit) ? Number(preview.timeLimit) : 45,
     sections,
     questions,
-    totalPoints,
     totalQuestions: questions.length,
     source: preview.source || undefined
   };

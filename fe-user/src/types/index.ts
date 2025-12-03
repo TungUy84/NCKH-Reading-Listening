@@ -18,7 +18,6 @@ export interface PlacementTest {
   sections: TestSection[];
   questions: TestQuestion[];
   totalQuestions: number;
-  totalPoints: number;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -59,7 +58,6 @@ export interface TestQuestion {
   options?: Option[];
   correctAnswers?: string[];
   explanation?: string;
-  points: number;
   level?: 'AV1' | 'AV2' | 'AV3' | 'AV4' | 'AV5' | 'AV6' | 'AV7';
   passage?: string; // dùng cho bối cảnh đọc hiểu
   media?: QuestionMedia; // dùng cho bài nghe hoặc câu hỏi có hình
@@ -81,7 +79,6 @@ export interface Question {
   correctAnswers?: string[]; // Only visible to admin
   allowMultiple?: boolean;
   matchingPairs?: MatchingPair[];
-  points: number;
   explanation?: string; // Only visible after submission
 }
 
@@ -116,14 +113,38 @@ export interface TestResult {
   testTitle: string;
   category: string;
   score: {
-    totalPoints: number;
+    totalQuestions: number;
     earnedPoints: number;
+    score: number;
     percentage: number;
   };
   ieltsScore: string;
   avLevel: string;
   recommendation: string;
   detailedResults: DetailedResult[];
+}
+
+export interface TestAttempt {
+  _id: string;
+  testId: string | { _id: string; title: string; category: string };
+  userId: string;
+  testType: string;
+  category: string;
+  testTitle: string;
+  totalQuestions: number;
+  earnedPoints: number;
+  score?: number;
+  percentage: number;
+  correctCount: number;
+  incorrectCount: number;
+  skippedCount: number;
+  durationSeconds: number;
+  startedAt: string;
+  completedAt: string;
+  answers: any[];
+  avLevel?: string;
+  ieltsScore?: string;
+  recommendation?: string;
 }
 
 export interface DetailedResult {
@@ -293,7 +314,6 @@ export interface PracticeSummary {
   levelGroup: PracticeLevelGroup;
   estimatedTime?: number;
   totalQuestions: number;
-  totalPoints: number;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -317,7 +337,6 @@ export interface PracticeQuestion {
   content: string;
   options?: Option[];
   matchingPairs?: MatchingPair[];
-  points: number;
   passage?: string;
 }
 
@@ -344,7 +363,6 @@ export interface PracticeAttemptAnswer {
   matchingAnswers?: { prompt: string; selected: string }[];
   correctAnswers?: string[];
   earnedPoints: number;
-  points: number;
   isCorrect: boolean;
   isSkipped?: boolean;
 }
@@ -356,8 +374,8 @@ export interface PracticeAttemptSummary {
   skill: PracticeSkill;
   levelGroup: PracticeLevelGroup;
   totalQuestions: number;
-  totalPoints: number;
   earnedPoints: number;
+  score: number;
   percentage: number;
   correctCount: number;
   incorrectCount: number;

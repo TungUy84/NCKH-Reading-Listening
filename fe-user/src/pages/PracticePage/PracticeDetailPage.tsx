@@ -19,11 +19,6 @@ import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
 
 // --- HELPER FUNCTIONS ---
-const convertToTenScale = (earnedPoints: number, totalPoints: number): number => {
-  if (!totalPoints) return 0;
-  return parseFloat(((earnedPoints / totalPoints) * 10).toFixed(2));
-};
-
 const getLevelGradient = (level: string) => {
   if (['AV1-AV3'].includes(level)) return 'from-emerald-400 to-teal-500 shadow-emerald-200';
   if (['AV4-AV5'].includes(level)) return 'from-amber-400 to-orange-500 shadow-amber-200';
@@ -100,9 +95,8 @@ const PracticeDetailPage: React.FC = () => {
       id: attempt._id,
       createdAt: new Date(attempt.createdAt).toLocaleString('vi-VN'),
       earnedPoints: attempt.earnedPoints,
-      totalPoints: attempt.totalPoints,
       percentage: attempt.percentage,
-      score10: convertToTenScale(attempt.earnedPoints, attempt.totalPoints)
+      score: attempt.score || 0
     }));
   }, [attempts]);
 
@@ -218,8 +212,8 @@ const PracticeDetailPage: React.FC = () => {
               <div className="h-10 w-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 shadow-inner">
                 <TrophyIcon className="h-6 w-6" />
               </div>
-              <p className="text-sm font-medium text-slate-500">Điểm tối đa</p>
-              <p className="text-2xl font-black text-slate-800">{practice.totalPoints}</p>
+              <p className="text-sm font-medium text-slate-500">Tổng số câu</p>
+              <p className="text-2xl font-black text-slate-800">{practice.totalQuestions}</p>
             </div>
           </div>
         </div>
@@ -261,11 +255,11 @@ const PracticeDetailPage: React.FC = () => {
                       {/* Score Badge */}
                       <div className={clsx(
                         "flex flex-col items-center justify-center w-16 h-16 rounded-xl font-bold border",
-                        item.score10 >= 8 ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
-                          item.score10 >= 5 ? "bg-amber-50 text-amber-600 border-amber-100" :
+                        item.score >= 8 ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                          item.score >= 5 ? "bg-amber-50 text-amber-600 border-amber-100" :
                             "bg-rose-50 text-rose-600 border-rose-100"
                       )}>
-                        <span className="text-xl">{item.score10}</span>
+                        <span className="text-xl">{item.score}</span>
                         <span className="text-[10px] uppercase opacity-70">Điểm</span>
                       </div>
 
@@ -282,7 +276,7 @@ const PracticeDetailPage: React.FC = () => {
                             Đúng {item.percentage}%
                           </span>
                           <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                          <span>{item.earnedPoints}/{item.totalPoints} điểm gốc</span>
+                          <span>Điểm: {item.score || 0}/10</span>
                         </div>
                       </div>
                     </div>

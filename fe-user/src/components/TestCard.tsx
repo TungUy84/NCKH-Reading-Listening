@@ -70,8 +70,8 @@ const TestCard: React.FC<TestCardProps> = ({ test, onStart, isLoading = false })
           <p className="font-medium text-gray-900">{formatDuration(test.timeLimit)}</p>
         </div>
         <div className="rounded-lg bg-gray-50 p-2">
-          <p className="text-gray-500 mb-1">Tổng điểm</p>
-          <p className="font-medium text-gray-900">{test.totalPoints}</p>
+          <p className="text-gray-500 mb-1">Số câu hỏi</p>
+          <p className="font-medium text-gray-900">{test.totalQuestions}</p>
         </div>
       </div>
       {test.instructions && test.instructions.length > 0 && (

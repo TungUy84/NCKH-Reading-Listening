@@ -94,7 +94,6 @@ const parseKeyValueQuestionBlock = (lines, fallbackNumber) => {
     questionNumber: fallbackNumber,
     type: 'multi_choice',
     content: '',
-    points: 1,
     allowMultiple: false,
     options: [],
     correctAnswers: [],
@@ -168,9 +167,6 @@ const parseKeyValueQuestionBlock = (lines, fallbackNumber) => {
         break;
       case 'content':
         question.content = value;
-        break;
-      case 'points':
-        question.points = coerceNumber(value, 1);
         break;
       case 'allowmultiple':
       case 'allow multiple':
@@ -389,7 +385,6 @@ const parseLegacyFormat = (lines) => {
         type: 'multi_choice',
         content: questionMatch[2].trim(),
         level: questionMatch[3].toUpperCase(),
-        points: Number(questionMatch[4]),
         options: [],
         correctAnswers: [],
         allowMultiple: false,
@@ -639,8 +634,6 @@ const finalizePreview = (metadata, questions) => {
     }
   });
 
-  const totalPoints = normalizedQuestions.reduce((sum, q) => sum + (q.points || 0), 0);
-
   return {
     title: metadata.title,
     description: metadata.description,
@@ -650,7 +643,6 @@ const finalizePreview = (metadata, questions) => {
     instructions: Array.isArray(metadata.instructions) ? metadata.instructions : [],
     sections: resolvedSections,
     questions: normalizedQuestions,
-    totalPoints,
     totalQuestions: normalizedQuestions.length
   };
 };
@@ -813,7 +805,6 @@ const parseExcelBuffer = (buffer) => {
       questionNumber: coerceNumber(row.QuestionNumber || row['Question Number'], index + 1),
       type: type || (matchingPairs.length ? 'matching' : options.length ? 'multi_choice' : 'short_answer'),
       content: String(row.Content || row.Question || '').trim(),
-      points: coerceNumber(row.Points, 1),
       allowMultiple,
       options,
       correctAnswers,

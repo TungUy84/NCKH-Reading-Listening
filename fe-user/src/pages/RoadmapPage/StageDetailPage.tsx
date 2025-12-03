@@ -10,7 +10,6 @@ import {
   PlayCircleIcon, 
   ChevronLeftIcon,
   TrophyIcon,
-  LockClosedIcon,
   DocumentTextIcon
 } from '@heroicons/react/24/solid';
 import clsx from 'clsx';
@@ -117,22 +116,39 @@ const StageDetailPage: React.FC = () => {
         </div>
 
         {/* Checkpoint Banner */}
-        {stage.status === 'checkpoint-ready' && checkpointTest && (
-          <div className="bg-gradient-to-r from-amber-100 to-orange-50 border border-amber-200 rounded-2xl p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm animate-pulse">
+        {(stage.status === 'checkpoint-ready' || stage.status === 'completed') && checkpointTest && (
+          <div className={clsx(
+            "border rounded-2xl p-6 mb-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm",
+            stage.status === 'completed' 
+              ? "bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200" 
+              : "bg-gradient-to-r from-amber-100 to-orange-50 border-amber-200 animate-pulse"
+          )}>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-md">
+              <div className={clsx(
+                "w-12 h-12 text-white rounded-xl flex items-center justify-center shadow-md",
+                stage.status === 'completed' ? "bg-emerald-500" : "bg-amber-500"
+              )}>
                 <TrophyIcon className="h-6 w-6" />
               </div>
               <div>
-                <h3 className="font-black text-amber-900 text-2xl mb-1">Đã mở khóa bài kiểm tra chặng!</h3>
-                <p className="text-amber-800 font-medium">Bạn đã đủ điều kiện để thực hiện bài kiểm tra đánh giá năng lực.</p>
+                <h3 className={clsx("font-black text-2xl mb-1", stage.status === 'completed' ? "text-emerald-900" : "text-amber-900")}>
+                  {stage.status === 'completed' ? "Đã hoàn thành chặng!" : "Đã mở khóa bài kiểm tra chặng!"}
+                </h3>
+                <p className={clsx("font-medium", stage.status === 'completed' ? "text-emerald-800" : "text-amber-800")}>
+                  {stage.status === 'completed' 
+                    ? "Bạn đã vượt qua bài kiểm tra này. Bạn có thể xem lại hoặc làm lại để cải thiện điểm số." 
+                    : "Bạn đã đủ điều kiện để thực hiện bài kiểm tra đánh giá năng lực."}
+                </p>
               </div>
             </div>
             <button 
-              onClick={() => navigate(`/placement-test/${checkpointTest._id}/take`)}
-              className="px-8 py-4 bg-amber-600 text-white font-bold rounded-2xl hover:bg-amber-700 shadow-lg hover:shadow-xl transition-all hover:-translate-y-1"
+              onClick={() => navigate(`/roadmap/checkpoint/${checkpointTest._id}`, { state: { levelGroup: stage.levelGroup } })}
+              className={clsx(
+                "px-8 py-4 text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1",
+                stage.status === 'completed' ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700"
+              )}
             >
-              Làm bài ngay
+              {stage.status === 'completed' ? "Xem lại bài thi" : "Làm bài ngay"}
             </button>
           </div>
         )}

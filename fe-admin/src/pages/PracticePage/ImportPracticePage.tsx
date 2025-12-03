@@ -89,11 +89,10 @@ const ImportPracticePage: React.FC = () => {
     const counts = preview.questions.reduce(
       (acc, question) => {
         acc.total += 1;
-        acc.totalPoints += question.points || 1;
         acc[question.type] = (acc[question.type] || 0) + 1;
         return acc;
       },
-      { total: 0, totalPoints: 0, multi_choice: 0, dropdown: 0, short_answer: 0, matching: 0 } as Record<string, number>
+      { total: 0, multi_choice: 0, dropdown: 0, short_answer: 0, matching: 0 } as Record<string, number>
     );
     return counts;
   }, [preview]);
@@ -180,7 +179,6 @@ const ImportPracticePage: React.FC = () => {
       matchingPairs: question.matchingPairs || [],
       correctAnswers: question.correctAnswers || [],
       explanation: question.explanation || '',
-      points: question.points || 1,
       sectionIndex: typeof question.sectionIndex === 'number' ? question.sectionIndex : 0
     }));
 
@@ -440,10 +438,6 @@ const ImportPracticePage: React.FC = () => {
                   <div className="rounded-xl border bg-white p-4 shadow-sm">
                     <p className="text-sm text-slate-500">Tổng số câu</p>
                     <p className="mt-1 text-2xl font-semibold text-slate-900">{summary.total}</p>
-                  </div>
-                  <div className="rounded-xl border bg-white p-4 shadow-sm">
-                    <p className="text-sm text-slate-500">Điểm tổng</p>
-                    <p className="mt-1 text-2xl font-semibold text-blue-600">{summary.totalPoints}</p>
                   </div>
                   <div className="rounded-xl border bg-white p-4 shadow-sm">
                     <p className="text-sm text-slate-500">Multiple choice</p>
