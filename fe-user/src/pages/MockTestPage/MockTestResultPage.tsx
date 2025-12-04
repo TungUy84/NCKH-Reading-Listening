@@ -1,40 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import { CheckCircle, XCircle, FileText, ArrowLeft, Eye, Clock } from 'lucide-react';
-import { getTestAttemptDetail } from '../../services/api';
-import Card from '../../components/ui/Card';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { TestAttempt, PlacementTest } from '../../types';
 import Button from '../../components/ui/Button';
-
-interface Answer {
-  questionId: string;
-  questionNumber: number;
-  type: string;
-  selectedOptions: string[];
-  correctAnswers: string[];
-  isCorrect: boolean;
-  earnedPoints: number;
-  isSkipped?: boolean;
-}
-
-interface ResultData {
-  _id: string;
-  testTitle: string;
-  category: string;
-  totalQuestions: number;
-  earnedPoints: number;
-  percentage: number;
-  correctCount: number;
-  incorrectCount: number;
-  skippedCount: number;
-  ieltsScore?: number;
-  avLevel?: string;
-  recommendation?: string;
-  durationSeconds: number;
-  startedAt: string;
-  completedAt: string;
-  answers: Answer[];
-}
+import { 
+  CheckCircleIcon, 
+  XCircleIcon, 
+  MinusCircleIcon,
+  TrophyIcon,
+  MapIcon,
+  ArrowPathIcon,
+  EyeIcon,
+  ChartBarIcon,
+  ListBulletIcon
+} from '@heroicons/react/24/outline';
+import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import clsx from 'clsx';
+import { getTestAttemptDetail } from '../../services/api';
+import Loader from '../../components/ui/Loader';
 
 interface QuestionTypeStats {
   total: number;
@@ -44,273 +26,302 @@ interface QuestionTypeStats {
 }
 
 const MockTestResultPage: React.FC = () => {
-  const navigate = useNavigate();
   const { resultId } = useParams<{ resultId: string }>();
-
-  const [result, setResult] = useState<ResultData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  const [attempt, setAttempt] = useState<TestAttempt | null>(location.state?.result || null);
+  const [test, setTest] = useState<PlacementTest | null>(null);
+  const [loading, setLoading] = useState(!attempt);
 
   useEffect(() => {
     const fetchResult = async () => {
-      console.log('MockTestResultPage - resultId from URL:', resultId);
-      
-      if (!resultId) {
-        setError('Result ID not found');
-        setLoading(false);
-        return;
-      }
-
+      if (!resultId || resultId === 'undefined') return;
       try {
         setLoading(true);
-        console.log('Fetching result for ID:', resultId);
-        const response = await getTestAttemptDetail(resultId);
-        console.log('Result response:', response);
-        console.log('Attempt data:', response?.data?.attempt);
-        setResult(response?.data?.attempt);
-      } catch (err: any) {
-        console.error('Failed to fetch result:', err);
-        console.error('Error response:', err.response);
-        setError(err.response?.data?.message || 'Failed to load result');
-        toast.error('Failed to load result');
+        const res = await getTestAttemptDetail(resultId);
+        // Handle different response structures if necessary
+        const attemptData = res.data?.attempt || res.attempt;
+        const testData = res.data?.test || res.test;
+        setAttempt(attemptData);
+        setTest(testData);
+      } catch (err) {
+        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchResult();
   }, [resultId]);
 
-  // Calculate statistics by question type
-  const statsByType = React.useMemo(() => {
-    if (!result?.answers) return {};
+  // Calculate statistics
+  const stats = useMemo(() => {
+    if (!attempt || !attempt.answers) return null;
 
-    const stats: Record<string, QuestionTypeStats> = {};
-    
-    result.answers.forEach((ans) => {
-      if (!stats[ans.type]) {
-        stats[ans.type] = { total: 0, correct: 0, incorrect: 0, skipped: 0 };
+    let correct = 0;
+    let incorrect = 0;
+    let skipped = 0;
+    const byType: Record<string, QuestionTypeStats> = {};
+
+    attempt.answers.forEach(ans => {
+      if (ans.isSkipped) skipped++;
+      else if (ans.isCorrect) correct++;
+      else incorrect++;
+
+      const type = ans.type;
+      if (!byType[type]) {
+        byType[type] = { total: 0, correct: 0, incorrect: 0, skipped: 0 };
       }
       
-      stats[ans.type].total++;
-      if (ans.isSkipped) {
-        stats[ans.type].skipped++;
-      } else if (ans.isCorrect) {
-        stats[ans.type].correct++;
-      } else {
-        stats[ans.type].incorrect++;
-      }
+      byType[type].total++;
+      if (ans.isSkipped) byType[type].skipped++;
+      else if (ans.isCorrect) byType[type].correct++;
+      else byType[type].incorrect++;
     });
 
-    return stats;
-  }, [result]);
+    return { correct, incorrect, skipped, byType };
+  }, [attempt]);
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader /></div>;
+  if (!attempt) return <div className="text-center p-10">Không tìm thấy kết quả</div>;
+
+  const isPassed = attempt.percentage >= 50; // Mock test pass threshold might be different, using 50% as generic "Good"
+  const isListening = attempt.category === 'listening';
+  
+  const theme = {
+    gradient: isListening ? 'from-violet-600 via-fuchsia-600 to-purple-600' : 'from-cyan-500 via-blue-600 to-indigo-600',
+    shadow: isListening ? 'shadow-fuchsia-500/30' : 'shadow-cyan-500/30',
+    text: isListening ? 'text-fuchsia-600' : 'text-cyan-600',
+    bg: isListening ? 'bg-fuchsia-50' : 'bg-cyan-50',
+    border: isListening ? 'border-fuchsia-200' : 'border-cyan-200',
+    lightBg: isListening ? 'bg-fuchsia-50/50' : 'bg-cyan-50/50',
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="h-12 w-12 rounded-full border-4 border-purple-200 border-t-purple-600 animate-spin mx-auto" />
-          <p className="text-sm text-gray-600">Đang tải kết quả...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !result) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-8 text-center">
-          <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Lỗi tải kết quả</h2>
-          <p className="text-gray-600 mb-6">{error || 'Không tìm thấy kết quả'}</p>
-          <Button variant="primary" onClick={() => navigate('/mock-test')}>
-            <ArrowLeft className="w-4 h-4" />
-            Quay lại danh sách
-          </Button>
-        </Card>
-      </div>
-    );
-  }
+  const testId = typeof attempt.testId === 'string' ? attempt.testId : attempt.testId?._id;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-8">
-      <div className="section-container max-w-5xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans pb-20">
+      {/* Background Decoration */}
+      <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-indigo-50 via-white to-slate-50 -z-10" />
+      <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-3xl -z-10 animate-pulse" />
+      <div className="absolute top-40 left-0 w-[400px] h-[400px] bg-purple-400/10 rounded-full blur-3xl -z-10" />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Navigation */}
         <div className="mb-8">
-          <Button
-            variant="outline"
-            onClick={() => navigate('/mock-test')}
-            className="mb-4"
+          <button
+            onClick={() => navigate(`/mock-test/${testId}`)}
+            className="group flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors mb-6 font-medium w-fit bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200 shadow-sm hover:shadow-md"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Quay lại danh sách
-          </Button>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{result.testTitle}</h1>
-          <p className="text-gray-600">Kết quả thi thử</p>
+            <ArrowLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            <span>Quay về bài thi thử</span>
+          </button>
+          
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-4">
+              Kết quả <span className={clsx("text-transparent bg-clip-text bg-gradient-to-r", theme.gradient)}>Mock Test</span>
+            </h1>
+            <p className="text-lg text-slate-600 font-medium">{attempt.testTitle}</p>
+          </div>
         </div>
 
-        {/* Overall Statistics */}
-        <Card className="mb-8 overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-500 to-violet-600 text-white p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Score */}
-              <div className="text-center">
-                <div className="text-5xl font-black mb-2">{result.percentage.toFixed(1)}%</div>
-                <div className="text-purple-100">Điểm tổng</div>
+        {/* Top Summary Card */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-xl shadow-slate-200/50 overflow-hidden mb-8 relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-slate-50/50 -z-10" />
+          
+          <div className="p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-12">
+            
+            {/* Left: Score Circle & Level */}
+            <div className="flex flex-col xl:flex-row items-center gap-12 flex-1">
+              <div className="flex flex-col sm:flex-row gap-8">
+                {/* Circle 2: Score */}
+                <div className="relative w-48 h-48 flex-shrink-0 flex flex-col items-center justify-center">
+                  {/* Decorative background */}
+                  <div className={clsx("absolute inset-0 rounded-[2rem] rotate-6 opacity-10", `bg-gradient-to-br ${theme.gradient}`)} />
+                  <div className="absolute inset-0 bg-white rounded-[2rem] shadow-xl border border-slate-100" />
+                  
+                  <div className="relative flex flex-col items-center z-10">
+                    <span className={clsx("text-6xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-br", theme.gradient)}>
+                      {(attempt.percentage / 10).toFixed(1)}
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">Điểm số</span>
+                  </div>
+                </div>
+
+                {/* Circle 1: Correct Answers */}
+                <div className="relative w-48 h-48 flex-shrink-0">
+                  {/* Circular Progress */}
+                  <svg className="w-full h-full transform -rotate-90 drop-shadow-2xl" viewBox="0 0 224 224">
+                    <circle
+                      cx="112"
+                      cy="112"
+                      r="90"
+                      stroke="#f1f5f9"
+                      strokeWidth="16"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="112"
+                      cy="112"
+                      r="90"
+                      stroke={attempt.percentage >= 50 ? "url(#gradient-score)" : "#f43f5e"}
+                      strokeWidth="16"
+                      fill="transparent"
+                      strokeDasharray={565.48}
+                      strokeDashoffset={565.48 - (565.48 * attempt.percentage) / 100}
+                      className="transition-all duration-1000 ease-out"
+                      strokeLinecap="round"
+                    />
+                    <defs>
+                      <linearGradient id="gradient-score" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor={isListening ? "#8b5cf6" : "#06b6d4"} />
+                        <stop offset="100%" stopColor={isListening ? "#d946ef" : "#3b82f6"} />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className={clsx("text-4xl font-black tracking-tighter", attempt.percentage >= 50 ? "text-slate-800" : "text-rose-600")}>
+                      {attempt.correctCount}<span className="text-2xl text-slate-400">/{attempt.totalQuestions}</span>
+                    </span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">Câu đúng</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Duration */}
-              <div className="text-center">
-                <div className="text-5xl font-black mb-2">{formatDuration(result.durationSeconds)}</div>
-                <div className="text-purple-100">Thời gian làm bài</div>
+              <div className="text-center xl:text-left space-y-6">
+                <div>
+                  <h2 className="text-3xl font-black text-slate-900 mb-3">
+                    {attempt.percentage >= 80 ? "Xuất sắc!" : attempt.percentage >= 50 ? "Làm tốt lắm!" : "Cần cố gắng hơn!"}
+                  </h2>
+                  
+                  {attempt.ieltsScore && (
+                    <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-200 text-amber-800 font-bold text-xl shadow-sm mb-4">
+                      <TrophyIcon className="w-6 h-6 text-amber-500" />
+                      <span>IELTS: {attempt.ieltsScore}</span>
+                    </div>
+                  )}
+                  
+                  <p className="text-slate-500 text-lg max-w-md leading-relaxed">
+                    {attempt.percentage >= 50 
+                      ? 'Bạn đã hoàn thành bài thi thử này với kết quả khả quan.' 
+                      : 'Hãy ôn tập thêm và thử lại để cải thiện điểm số nhé.'}
+                  </p>
+                </div>
+                
+                <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm">
+                  <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-5 py-2.5 rounded-2xl border border-emerald-100 shadow-sm" title="Đúng">
+                    <CheckCircleIcon className="w-5 h-5" />
+                    <span className="font-bold text-lg">{stats?.correct}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-rose-50 text-rose-700 px-5 py-2.5 rounded-2xl border border-rose-100 shadow-sm" title="Sai">
+                    <XCircleIcon className="w-5 h-5" />
+                    <span className="font-bold text-lg">{stats?.incorrect}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-slate-100 text-slate-600 px-5 py-2.5 rounded-2xl border border-slate-200 shadow-sm" title="Bỏ qua">
+                    <MinusCircleIcon className="w-5 h-5" />
+                    <span className="font-bold text-lg">{stats?.skipped}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="p-6 bg-white">
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-2xl font-bold text-green-600">{result.correctCount}</span>
-                </div>
-                <div className="text-sm text-gray-600">Đúng</div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <XCircle className="w-5 h-5 text-red-600" />
-                  <span className="text-2xl font-bold text-red-600">{result.incorrectCount}</span>
-                </div>
-                <div className="text-sm text-gray-600">Sai</div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <FileText className="w-5 h-5 text-gray-400" />
-                  <span className="text-2xl font-bold text-gray-400">{result.skippedCount}</span>
-                </div>
-                <div className="text-sm text-gray-600">Bỏ qua</div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Statistics by Question Type */}
-        {Object.keys(statsByType).length > 0 && (
-          <Card className="mb-8 p-6">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <FileText className="w-6 h-6 text-purple-600" />
-              Thống kê theo dạng câu hỏi
-            </h3>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b-2 border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Dạng câu hỏi</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-700">Tổng</th>
-                    <th className="text-center py-3 px-4 font-semibold text-green-600">Đúng</th>
-                    <th className="text-center py-3 px-4 font-semibold text-red-600">Sai</th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-500">Bỏ qua</th>
-                    <th className="text-center py-3 px-4 font-semibold text-purple-600">Độ chính xác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(statsByType).map(([type, stats]) => {
-                    const accuracy = stats.total > 0 ? (stats.correct / stats.total * 100).toFixed(1) : '0.0';
-                    return (
-                      <tr key={type} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 font-medium text-gray-900 capitalize">
-                          {type.replace('_', ' ')}
-                        </td>
-                        <td className="text-center py-3 px-4 text-gray-700">{stats.total}</td>
-                        <td className="text-center py-3 px-4 text-green-600 font-semibold">{stats.correct}</td>
-                        <td className="text-center py-3 px-4 text-red-600 font-semibold">{stats.incorrect}</td>
-                        <td className="text-center py-3 px-4 text-gray-500">{stats.skipped}</td>
-                        <td className="text-center py-3 px-4 text-purple-600 font-bold">{accuracy}%</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        )}
-
-        {/* Answer Key Grid */}
-        <Card className="mb-8 p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <CheckCircle className="w-6 h-6 text-purple-600" />
-            Đáp án
-          </h3>
-          <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
-            {result.answers.map((ans, index) => (
-              <div
-                key={index}
-                className={`
-                  aspect-square flex items-center justify-center rounded-lg text-sm font-bold
-                  ${ans.isSkipped 
-                    ? 'bg-gray-200 text-gray-500' 
-                    : ans.isCorrect 
-                    ? 'bg-green-100 text-green-700 border-2 border-green-300' 
-                    : 'bg-red-100 text-red-700 border-2 border-red-300'
-                  }
-                `}
-                title={`Question ${ans.questionNumber}: ${ans.isSkipped ? 'Skipped' : ans.isCorrect ? 'Correct' : 'Incorrect'}`}
+            {/* Right: Action Buttons */}
+            <div className="flex flex-col gap-4 w-full lg:w-80">
+              <Button
+                variant="primary"
+                onClick={() => navigate(`/mock-test/result/${resultId}/details`, { state: { result: attempt } })}
+                className={clsx(
+                  "w-full py-4 rounded-2xl border-none text-lg font-bold shadow-lg shadow-indigo-200 transition-all hover:-translate-y-1", 
+                  `bg-gradient-to-r ${theme.gradient}`
+                )}
               >
-                {ans.questionNumber}
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-6 mt-6 text-sm">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-green-100 border-2 border-green-300 rounded"></div>
-              <span className="text-gray-700">Đúng</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-red-100 border-2 border-red-300 rounded"></div>
-              <span className="text-gray-700">Sai</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 bg-gray-200 rounded"></div>
-              <span className="text-gray-700">Bỏ qua</span>
-            </div>
-          </div>
-        </Card>
+                <div className="flex items-center justify-center gap-2">
+                  <EyeIcon className="w-6 h-6" />
+                  <span>Xem chi tiết đáp án</span>
+                </div>
+              </Button>
+              
+              <Button
+                variant="primary"
+                onClick={() => navigate('/mock-test')}
+                className="w-full py-4 rounded-2xl border-none text-lg font-bold shadow-lg shadow-blue-200 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 transition-all hover:-translate-y-1"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <ListBulletIcon className="w-6 h-6" />
+                  <span>Danh sách bài thi</span>
+                </div>
+              </Button>
 
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-4 justify-center">
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={() => navigate(`/mock-test/result/${resultId}/details`)}
-            className="bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700"
-          >
-            <Eye className="w-5 h-5" />
-            Xem chi tiết đáp án
-          </Button>
-
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => navigate('/mock-test')}
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Quay lại danh sách
-          </Button>
+              <Button
+                variant="ghost"
+                onClick={() => navigate(`/mock-test/${testId}`)}
+                className="w-full py-3 rounded-2xl text-slate-500 hover:bg-slate-100 hover:text-slate-700 font-semibold"
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <ArrowPathIcon className="w-5 h-5" />
+                  <span>Làm lại bài thi</span>
+                </div>
+              </Button>
+            </div>
+          </div>
         </div>
 
-        {/* Metadata */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <div className="flex items-center justify-center gap-2">
-            <Clock className="w-4 h-4" />
-            <span>Hoàn thành lúc {new Date(result.completedAt).toLocaleString('vi-VN')}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-2">
+            {/* Statistics Table */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-lg overflow-hidden h-full">
+              <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+                <div className={clsx("p-2 rounded-xl", theme.bg)}>
+                  <ChartBarIcon className={clsx("w-6 h-6", theme.text)} />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Thống kê theo dạng bài</h3>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                      <th className="px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-wider">Dạng bài</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Tổng câu</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-emerald-600 uppercase tracking-wider">Đúng</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-rose-600 uppercase tracking-wider">Sai</th>
+                      <th className="px-6 py-4 text-center text-xs font-bold text-slate-400 uppercase tracking-wider">Bỏ qua</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {stats && Object.entries(stats.byType).map(([type, stat]) => (
+                      <tr key={type} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="font-bold text-slate-700 capitalize">{type.replace('_', ' ')}</span>
+                        </td>
+                        <td className="px-6 py-4 text-center font-medium text-slate-600">{stat.total}</td>
+                        <td className="px-6 py-4 text-center font-bold text-emerald-600">{stat.correct}</td>
+                        <td className="px-6 py-4 text-center font-bold text-rose-600">{stat.incorrect}</td>
+                        <td className="px-6 py-4 text-center font-medium text-slate-400">{stat.skipped}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            {/* Time & Info Card */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-lg overflow-hidden h-full p-6 space-y-6">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 mb-4">Thông tin bài làm</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span className="text-slate-500 font-medium">Thời gian làm bài</span>
+                    <span className="font-bold text-slate-900">{Math.floor(attempt.durationSeconds / 60)} phút {attempt.durationSeconds % 60} giây</span>
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span className="text-slate-500 font-medium">Ngày làm bài</span>
+                    <span className="font-bold text-slate-900">{new Date(attempt.completedAt || attempt.startedAt).toLocaleDateString('vi-VN')}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

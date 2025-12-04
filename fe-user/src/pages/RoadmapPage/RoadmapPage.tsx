@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getCurrentUserRoadmap, syncRoadmapContent } from '../../services/api';
+import { getCurrentUserRoadmap, syncRoadmapContent, getAllMyTestAttempts } from '../../services/api';
 import { UserRoadmap, RoadmapStage } from '../../types';
 import {
   MapIcon,
@@ -12,8 +12,7 @@ import {
   ArrowRightIcon,
   ChartBarIcon,
   RocketLaunchIcon,
-  FireIcon,
-  ClockIcon
+  FireIcon
 } from '@heroicons/react/24/solid';
 import clsx from 'clsx';
 import Loader from '../../components/ui/Loader';
@@ -22,11 +21,61 @@ const RoadmapPage: React.FC = () => {
   const navigate = useNavigate();
   const [roadmap, setRoadmap] = useState<UserRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     loadRoadmap();
+    loadStreak();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadStreak = async () => {
+    try {
+      const response = await getAllMyTestAttempts({ limit: 50 });
+      const attempts = response.data?.items || [];
+      setStreak(calculateStreak(attempts));
+    } catch (err) {
+      console.error('Failed to load streak:', err);
+      setStreak(0);
+    }
+  };
+
+  const calculateStreak = (attempts: any[]) => {
+    if (!attempts.length) return 0;
+
+    const uniqueDates = Array.from(new Set(
+      attempts.map(a => new Date(a.createdAt).toISOString().split('T')[0])
+    )).sort().reverse();
+
+    if (uniqueDates.length === 0) return 0;
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    
+    const lastActivity = uniqueDates[0];
+    
+    if (lastActivity !== today && lastActivity !== yesterday) {
+      return 0;
+    }
+
+    let streakCount = 1;
+    let currentDateStr = lastActivity;
+
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const prevDate = new Date(currentDateStr);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const expectedPrevDateStr = prevDate.toISOString().split('T')[0];
+      
+      if (uniqueDates[i] === expectedPrevDateStr) {
+        streakCount++;
+        currentDateStr = expectedPrevDateStr;
+      } else {
+        break;
+      }
+    }
+
+    return streakCount;
+  };
 
   const loadRoadmap = async () => {
     try {
@@ -158,13 +207,13 @@ const RoadmapPage: React.FC = () => {
                 <FireIcon className="h-8 w-8" />
               </div>
               <div>
-                <p className="font-bold text-slate-900">Đang học tập</p>
-                <p className="text-xs text-slate-500">Giữ vững phong độ nhé!</p>
+                <p className="font-bold text-slate-900">{streak > 0 ? 'Đang học tập' : 'Chưa bắt đầu'}</p>
+                <p className="text-xs text-slate-500">{streak > 0 ? 'Giữ vững phong độ nhé!' : 'Hãy bắt đầu ngay hôm nay!'}</p>
               </div>
             </div>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5, 6, 7].map(d => (
-                <div key={d} className={clsx("h-2 flex-1 rounded-full", d <= 3 ? "bg-orange-400" : "bg-slate-200")} />
+                <div key={d} className={clsx("h-2 flex-1 rounded-full", d <= (streak > 7 ? 7 : streak) ? "bg-orange-400" : "bg-slate-200")} />
               ))}
             </div>
             <p className="text-xs text-slate-400 mt-2 text-right">Tuần này</p>

@@ -39,3 +39,18 @@ export const getUserDisplayName = (user: any): string => {
   }
   return user?.username || 'User';
 };
+
+// Xử lý URL avatar
+export const getAvatarUrl = (avatarPath: string | undefined): string | undefined => {
+  if (!avatarPath) return undefined;
+  if (avatarPath.startsWith('http') || avatarPath.startsWith('data:')) return avatarPath;
+  
+  const apiUrl = process.env.REACT_APP_API_URL || '';
+  // Remove /api suffix if present to get base URL
+  const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+  
+  // Ensure path doesn't start with /
+  const cleanPath = avatarPath.startsWith('/') ? avatarPath.slice(1) : avatarPath;
+  
+  return `${baseUrl}/${cleanPath}`;
+};

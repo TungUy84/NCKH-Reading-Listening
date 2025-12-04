@@ -16,6 +16,7 @@ import TestSummaryPage from './pages/PlacementTestPage/TestSummaryPage';
 import LoginPage from './pages/UserPage/LoginPage';
 import RegisterPage from './pages/UserPage/RegisterPage';
 import ProfilePage from './pages/UserPage/ProfilePage';
+import StatisticsPage from './pages/UserPage/StatisticsPage';
 import ForgotPasswordPage from './pages/UserPage/ForgotPasswordPage';
 import ResetPasswordPage from './pages/UserPage/ResetPasswordPage';
 import PracticeListPage from './pages/PracticePage/PracticePage';
@@ -27,7 +28,7 @@ import MockTestPage from './pages/MockTestPage/MockTestPage';
 import MockTestDetailPage from './pages/MockTestPage/MockTestDetailPage';
 import TakeMockTestPage from './pages/MockTestPage/TakeMockTestPage';
 import MockTestResultPage from './pages/MockTestPage/MockTestResultPage';
-import MockTestDetailedResultPage from './pages/MockTestPage/MockTestDetailedResultPage';
+import MockTestDetailedResultPage from './pages/MockTestPage/MockTestReviewPage';
 import LessonsPage from './pages/LessonsPage/LessonsPage';
 import LessonDetailPage from './pages/LessonsPage/LessonDetailPage';
 import BlogPage from './pages/BlogPage/BlogPage';
@@ -60,7 +61,7 @@ const GlobalBackground = () => (
 
 const AppShell: React.FC = () => {
   const { pathname } = useLocation();
-  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname) || /^\/test\/[^/]+\/result\/details$/.test(pathname) || /^\/roadmap\/checkpoint\/[^/]+\/take$/.test(pathname) || /^\/roadmap\/checkpoint\/review\/[^/]+$/.test(pathname);
+  const isTestTakingPage = /^\/test\/[^/]+$/.test(pathname) || /^\/mock-test\/[^/]+\/take$/.test(pathname) || /^\/test\/[^/]+\/result\/details$/.test(pathname) || /^\/roadmap\/checkpoint\/[^/]+\/take$/.test(pathname) || /^\/roadmap\/checkpoint\/review\/[^/]+$/.test(pathname) || /^\/mock-test\/result\/[^/]+\/details$/.test(pathname);
   const isPracticeTakingPage = /^\/practice\/[^/]+\/take$/.test(pathname) || /^\/practice\/[^/]+\/review\/[^/]+$/.test(pathname);
   const hideLayoutChrome = isTestTakingPage || isPracticeTakingPage;
 
@@ -82,6 +83,7 @@ const AppShell: React.FC = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          <Route path="/statistics" element={<ProtectedRoute><StatisticsPage /></ProtectedRoute>} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
           <Route path="/practice" element={<PracticeListPage />} />
