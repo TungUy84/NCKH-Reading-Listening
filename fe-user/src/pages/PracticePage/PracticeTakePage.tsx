@@ -899,7 +899,7 @@ const PracticeTakePage: React.FC = () => {
             itemId: practiceId
           });
         } catch (err) {
-          console.log('Không cập nhật roadmap progress:', err);
+          // Silent roadmap progress update failure
         }
 
         if (isAutoSubmit) {

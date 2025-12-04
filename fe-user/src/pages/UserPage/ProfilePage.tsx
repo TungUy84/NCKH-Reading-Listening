@@ -154,14 +154,14 @@ const ProfilePage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-50/50 py-12">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="mb-8">
+                <div className="mb-8" data-aos="fade-up">
                     <h1 className="text-2xl font-bold text-gray-900">Cài đặt tài khoản</h1>
                     <p className="text-gray-500 mt-1">Quản lý thông tin cá nhân và bảo mật</p>
                 </div>
 
                 <div className="flex flex-col lg:flex-row gap-8">
                     {/* Sidebar Navigation */}
-                    <div className="w-full lg:w-64 flex-shrink-0 space-y-2">
+                    <div className="w-full lg:w-64 flex-shrink-0 space-y-2" data-aos="fade-right" data-aos-delay="100">
                         <button
                             onClick={() => setActiveTab('general')}
                             className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all ${activeTab === 'general'
@@ -195,7 +195,7 @@ const ProfilePage: React.FC = () => {
                     </div>
 
                     {/* Main Content Area */}
-                    <div className="flex-1">
+                    <div className="flex-1" data-aos="fade-left" data-aos-delay="200">
                         {activeTab === 'general' ? (
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                                 {/* Cover & Avatar */}

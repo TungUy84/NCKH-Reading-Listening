@@ -261,6 +261,7 @@ export interface BlogComment {
     username: string;
     firstName: string;
     lastName: string;
+    avatar?: string;
   };
   content: string;
   createdAt: string;
@@ -276,6 +277,7 @@ export interface Blog {
     username: string;
     firstName: string;
     lastName: string;
+    avatar?: string;
   };
   status: 'pending' | 'approved' | 'rejected';
   approvedAt?: string;

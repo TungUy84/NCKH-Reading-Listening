@@ -80,7 +80,7 @@ const RoadmapPage: React.FC = () => {
   const loadRoadmap = async () => {
     try {
       setLoading(true);
-      try { await syncRoadmapContent(); } catch (err) { console.log('Sync skipped'); }
+      try { await syncRoadmapContent(); } catch (err) { /* Silent sync */ }
       const res = await getCurrentUserRoadmap();
       if (!res.hasRoadmap || !res.data) {
         navigate('/roadmap/setup');
@@ -129,7 +129,7 @@ const RoadmapPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-12" data-aos="fade-up">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-white/50 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-4 shadow-sm animate-bounce">
               <MapIcon className="h-4 w-4" />
@@ -157,7 +157,7 @@ const RoadmapPage: React.FC = () => {
         {/* --- STATS DASHBOARD --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {/* Card 1: Overall Progress */}
-          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-indigo-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-indigo-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all" data-aos="fade-up" data-aos-delay="100">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <ChartBarIcon className="h-24 w-24 text-indigo-600" />
             </div>
@@ -174,7 +174,7 @@ const RoadmapPage: React.FC = () => {
           </div>
 
           {/* Card 2: Current Focus */}
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden group hover:-translate-y-1 transition-all">
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden group hover:-translate-y-1 transition-all" data-aos="fade-up" data-aos-delay="200">
             <div className="absolute -right-4 -bottom-4 bg-white/10 w-32 h-32 rounded-full blur-2xl" />
             <p className="text-sm font-bold text-indigo-200 uppercase tracking-wider mb-2">Đang tập trung</p>
             {currentStageIndex !== -1 ? (
@@ -197,7 +197,7 @@ const RoadmapPage: React.FC = () => {
           </div>
 
           {/* Card 3: Streak/Motivation */}
-          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-orange-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-orange-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all" data-aos="fade-up" data-aos-delay="300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <FireIcon className="h-24 w-24 text-orange-500" />
             </div>
@@ -233,7 +233,7 @@ const RoadmapPage: React.FC = () => {
               const isLocked = stage.status === 'locked';
 
               return (
-                <div key={stage._id} className="relative md:grid md:grid-cols-[100px_1fr] gap-8 group">
+                <div key={stage._id} className="relative md:grid md:grid-cols-[100px_1fr] gap-8 group" data-aos="fade-up" data-aos-delay={index * 100}>
 
                   {/* Timeline Marker (Desktop) */}
                   <div className="hidden md:flex flex-col items-center">

@@ -105,7 +105,7 @@ const LessonsPage: React.FC = () => {
     <div className="min-h-screen font-sans pb-20">
       {/* --- HERO HEADER (Giống trang Ôn luyện) --- */}
       <div className="pt-10 pb-5 mb-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="max-w-7xl mx-auto px-4 text-center" data-aos="fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-bold text-slate-700 mb-6 animate-bounce">
             <BookOpenIcon className="h-4 w-4 text-indigo-400" />
             Thư viện kiến thức
@@ -124,7 +124,7 @@ const LessonsPage: React.FC = () => {
 
           {/* === SIDEBAR FILTERS (Sticky) === */}
           {/* Thêm nền kính mờ nhẹ cho Sidebar để dễ đọc hơn trên nền Gradient */}
-          <div className="lg:col-span-1 space-y-8 lg:sticky lg:top-24 bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/50 shadow-sm">
+          <div className="lg:col-span-1 space-y-8 lg:sticky lg:top-24 bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/50 shadow-sm" data-aos="fade-right">
 
             {/* Search */}
             <div className="space-y-3">
@@ -237,10 +237,12 @@ const LessonsPage: React.FC = () => {
                 </div>
               ))
             ) : lessons.length > 0 ? (
-              lessons.map((lesson) => (
+              lessons.map((lesson, index) => (
                 <div
                   key={lesson._id}
                   onClick={() => navigate(`/lessons/${lesson._id}`)}
+                  data-aos="fade-up"
+                  data-aos-delay={index * 100}
                   className="group relative flex flex-col md:flex-row bg-white/90 backdrop-blur-sm rounded-2xl border border-white/50 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
                 >
                   {/* --- Left: Image Section --- */}

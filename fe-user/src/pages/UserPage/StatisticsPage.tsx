@@ -165,14 +165,14 @@ const StatisticsPage: React.FC = () => {
     <div className="min-h-screen bg-slate-50/50 py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-8" data-aos="fade-up">
           <h1 className="text-3xl font-bold text-slate-900">Thống kê học tập</h1>
           <p className="text-slate-500 mt-2">Theo dõi tiến độ và kết quả học tập của bạn</p>
         </div>
 
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 transition-transform hover:scale-105">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 transition-transform hover:scale-105" data-aos="fade-up" data-aos-delay="100">
             <div className="p-4 bg-blue-50 rounded-xl text-blue-600">
               <ChartBarIcon className="w-8 h-8" />
             </div>
@@ -182,7 +182,7 @@ const StatisticsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 transition-transform hover:scale-105">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 transition-transform hover:scale-105" data-aos="fade-up" data-aos-delay="200">
             <div className="p-4 bg-green-50 rounded-xl text-green-600">
               <TrophyIcon className="w-8 h-8" />
             </div>
@@ -192,7 +192,7 @@ const StatisticsPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 transition-transform hover:scale-105">
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex items-center gap-4 transition-transform hover:scale-105" data-aos="fade-up" data-aos-delay="300">
             <div className="p-4 bg-purple-50 rounded-xl text-purple-600">
               <ClockIcon className="w-8 h-8" />
             </div>
@@ -203,7 +203,7 @@ const StatisticsPage: React.FC = () => {
           </div>
 
           {/* Streak Card - Updated Design */}
-          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-2xl shadow-lg shadow-orange-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-2xl shadow-lg shadow-orange-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all" data-aos="fade-up" data-aos-delay="400">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <FireIcon className="h-24 w-24 text-orange-500" />
             </div>
@@ -229,7 +229,7 @@ const StatisticsPage: React.FC = () => {
         {/* Charts Section */}
         <div className="mb-8">
           {/* Score History Chart */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6" data-aos="fade-up" data-aos-delay="500">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <ArrowTrendingUpIcon className="w-5 h-5 text-blue-500" />
@@ -263,7 +263,7 @@ const StatisticsPage: React.FC = () => {
         </div>
 
         {/* Recent Activity */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" data-aos="fade-up" data-aos-delay="600">
           <div className="px-6 py-5 border-b border-slate-100">
             <h3 className="text-lg font-bold text-slate-900">Hoạt động gần đây</h3>
           </div>

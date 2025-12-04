@@ -103,6 +103,7 @@ const MockTestDetailPage: React.FC = () => {
         {/* Navigation */}
         <button 
           onClick={() => navigate('/mock-test')}
+          data-aos="fade-up"
           className="group flex items-center gap-2 text-slate-500 hover:text-slate-900 transition-colors mb-8 font-medium w-fit bg-white/50 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200"
         >
           <ArrowLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> 
@@ -115,7 +116,7 @@ const MockTestDetailPage: React.FC = () => {
           <div className="lg:col-span-8 space-y-8">
             
             {/* Hero Card */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden relative p-8 md:p-12">
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden relative p-8 md:p-12" data-aos="fade-up" data-aos-delay="100">
               <div className={clsx("absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br opacity-10 rounded-full blur-3xl -z-10 translate-x-1/3 -translate-y-1/3", gradientClass)} />
               
               <div className="flex items-center gap-3 mb-6">
@@ -157,7 +158,7 @@ const MockTestDetailPage: React.FC = () => {
             </div>
 
             {/* History List */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8">
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-8" data-aos="fade-up" data-aos-delay="200">
               <h3 className="font-bold text-slate-900 text-xl mb-6 flex items-center gap-2">
                 <ChartBarIcon className={clsx("h-6 w-6", textClass)} />
                 Lịch sử làm bài
@@ -231,7 +232,7 @@ const MockTestDetailPage: React.FC = () => {
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
             
             {/* CTA Card */}
-            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 p-8 text-center relative overflow-hidden group">
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 p-8 text-center relative overflow-hidden group" data-aos="fade-left" data-aos-delay="100">
               <div className={clsx("absolute top-0 left-0 w-full h-2 bg-gradient-to-r", gradientClass)} />
               
               <div className={clsx("mx-auto w-20 h-20 rounded-full flex items-center justify-center mb-6 shadow-xl bg-gradient-to-br text-white transform group-hover:scale-110 transition-transform duration-500", gradientClass)}>

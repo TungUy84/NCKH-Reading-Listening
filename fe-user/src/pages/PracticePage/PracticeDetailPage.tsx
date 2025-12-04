@@ -127,6 +127,7 @@ const PracticeDetailPage: React.FC = () => {
 
         <button
           onClick={() => navigate('/practice')}
+          data-aos="fade-up"
           className="group flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-8 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200/50 w-fit"
         >
           <ChevronLeftIcon className="h-4 w-4" />
@@ -136,7 +137,7 @@ const PracticeDetailPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 lg:gap-12 items-start">
 
           {/* === LEFT COLUMN: INFO & ACTIONS === */}
-          <div>
+          <div data-aos="fade-up" data-aos-delay="100">
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <span className={clsx(
                 "px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-lg bg-gradient-to-r uppercase tracking-wide flex items-center gap-2",
@@ -188,7 +189,7 @@ const PracticeDetailPage: React.FC = () => {
           </div>
 
           {/* === RIGHT COLUMN: STATS CARDS === */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4" data-aos="fade-left" data-aos-delay="200">
             <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-5 rounded-3xl shadow-xl shadow-slate-200/50 flex flex-col justify-center min-h-[140px]">
               <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-4 shadow-inner">
                 <RectangleStackIcon className="h-6 w-6" />
