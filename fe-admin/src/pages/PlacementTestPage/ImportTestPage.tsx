@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { FileAPI, PlacementTestAPI } from '../../services/api';
 import { PlacementTestImportPreview } from '../../types';
 
-const ACCEPTED_EXT = '.docx,.pdf,.xlsx';
+const ACCEPTED_EXT = '.xlsx';
 
 const typeLabel: Record<string, string> = {
   multi_choice: 'Nhiều lựa chọn',
@@ -187,7 +187,7 @@ const ImportTestPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Import bài test</h1>
-          <p className="text-slate-500">Hỗ trợ định dạng Word (.docx), PDF (.pdf) và Excel (.xlsx)</p>
+          <p className="text-slate-500">Hỗ trợ định dạng Excel (.xlsx)</p>
         </div>
         <button
           onClick={() => navigate('/admin/placement-tests')}
@@ -207,7 +207,7 @@ const ImportTestPage: React.FC = () => {
               </p>
             </div>
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">File Word / PDF / Excel</span>
+              <span className="text-sm font-medium text-slate-700">File Excel (.xlsx)</span>
               <input
                 type="file"
                 accept={ACCEPTED_EXT}
@@ -426,24 +426,34 @@ const ImportTestPage: React.FC = () => {
 
         <aside className="space-y-6">
           <div className="bg-white border rounded-2xl shadow-sm p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-800">Hướng dẫn định dạng</h2>
+            <h2 className="text-lg font-semibold text-slate-800">Hướng dẫn định dạng Excel</h2>
             <div className="space-y-3 text-sm text-slate-600">
               <div>
-                <div className="font-semibold text-slate-700">Word / PDF</div>
-                <ul className="mt-1 list-disc list-inside space-y-1">
-                  <li>Dòng đầu ghi rõ <strong>Title</strong>, tiếp theo là <strong>Description</strong>, <strong>Category</strong>, <strong>TimeLimit</strong>.</li>
-                  <li>Dùng dòng <code>---</code> để ngăn cách phần thông tin chung và danh sách câu hỏi.</li>
-                  <li>Mỗi câu hỏi bắt đầu bằng <code>Q1</code> (hoặc <code>Question 1</code>) rồi khai báo <strong>Type</strong>, <strong>Points</strong>.</li>
-                  <li>Sử dụng <code>Option:</code> để liệt kê đáp án, thêm dấu <code>*</code> hoặc <code>[x]</code> cho đáp án đúng.</li>
-                  <li>Matching sử dụng dòng <code>Pair: Câu hỏi -&gt; Đáp án</code>.</li>
-                </ul>
-              </div>
-              <div>
-                <div className="font-semibold text-slate-700">Excel</div>
-                <ul className="mt-1 list-disc list-inside space-y-1">
-                  <li>Sheet <strong>Metadata</strong> chứa các cột <em>Field</em> &amp; <em>Value</em> (Title, Description, Category, TimeLimit, Instructions).</li>
-                  <li>Sheet <strong>Questions</strong> gồm các cột: QuestionNumber, Type, Content, Points, SectionIndex, AllowMultiple, Options, CorrectAnswers, MatchingPairs.</li>
-                  <li>Tách nhiều lựa chọn hoặc đáp án bằng dấu <code>|</code>.</li>
+                <div className="font-semibold text-slate-700 mb-2">Cấu trúc file Excel (.xlsx)</div>
+                <ul className="mt-1 list-disc list-inside space-y-2">
+                  <li>
+                    <strong>Sheet "Metadata":</strong>
+                    <ul className="ml-4 mt-1 space-y-1">
+                      <li>Cột <em>Field</em>: Title, Description, Category, TimeLimit, TestType, Instructions</li>
+                      <li>Cột <em>Value</em>: Giá trị tương ứng cho từng field</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Sheet "Questions":</strong>
+                    <ul className="ml-4 mt-1 space-y-1">
+                      <li>QuestionNumber: Số thứ tự câu hỏi</li>
+                      <li>Type: multi_choice, dropdown, short_answer, matching</li>
+                      <li>Content: Nội dung câu hỏi</li>
+                      <li>Points: Điểm số (thường là 1)</li>
+                      <li>SectionIndex: Chỉ số phần (0, 1, 2...)</li>
+                      <li>Options: Các đáp án, phân cách bằng <code>|</code></li>
+                      <li>CorrectAnswers: Đáp án đúng, phân cách bằng <code>|</code></li>
+                      <li>MatchingPairs: Cặp ghép (Prompt→Answer), phân cách bằng <code>|</code></li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Lưu ý:</strong> Tải file mẫu bên dưới để xem cấu trúc chi tiết
+                  </li>
                 </ul>
               </div>
             </div>
@@ -451,26 +461,28 @@ const ImportTestPage: React.FC = () => {
 
           <div className="bg-white border rounded-2xl shadow-sm p-6 space-y-4">
             <h2 className="text-lg font-semibold text-slate-800">Tải mẫu tham khảo</h2>
-            <p className="text-sm text-slate-600">Sử dụng các file mẫu dưới đây để bắt đầu nhanh hơn.</p>
+            <p className="text-sm text-slate-600">Sử dụng file mẫu Excel dưới đây để bắt đầu nhanh hơn.</p>
             <div className="flex flex-col gap-2">
-              <a
-                href="/import-samples/sample-placement-test.docx"
-                download
-                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
-              >
-                📄 Mẫu bài test (Word)
-              </a>
               <a
                 href="/import-samples/sample-placement-test.xlsx"
                 download
-                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+                className="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 flex items-center gap-2"
               >
-                📊 Mẫu bài test (Excel)
+                <span className="text-xl">📊</span>
+                <div>
+                  <div className="font-medium">Mẫu bài test (Excel)</div>
+                  <div className="text-xs text-slate-500">Định dạng .xlsx chuẩn</div>
+                </div>
               </a>
             </div>
-            <p className="text-xs text-slate-400">
-              Lưu ý: PDF nên được tạo từ các file Word theo mẫu để giữ nguyên định dạng text.
-            </p>
+            <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800">
+              <p className="font-medium mb-1">💡 Mẹo:</p>
+              <ul className="space-y-1 list-disc list-inside">
+                <li>Điền đầy đủ thông tin trong sheet Metadata</li>
+                <li>Đánh dấu đáp án đúng bằng cách liệt kê trong cột CorrectAnswers</li>
+                <li>Sử dụng dấu <code>|</code> để phân tách nhiều options hoặc answers</li>
+              </ul>
+            </div>
           </div>
         </aside>
       </div>

@@ -449,6 +449,21 @@ export class PlacementTestAPI {
 
 // API quản lý bài ôn luyện
 export class PracticeAPI {
+  // Lấy thống kê bài ôn luyện
+  static async getStats(): Promise<{
+    totalPractices: number;
+    listeningPractices: number;
+    readingPractices: number;
+  }> {
+    try {
+      const response = await api.get('/practices/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Get practice stats error:', error);
+      return { totalPractices: 0, listeningPractices: 0, readingPractices: 0 };
+    }
+  }
+
   // Lấy danh sách bài ôn luyện (admin)
   static async getPractices(params: PracticeQueryParams = {}): Promise<PracticeListResult> {
     try {
@@ -576,6 +591,21 @@ export class PracticeAPI {
 
 // API quản lý bài học lý thuyết
 export class LessonAPI {
+  // Lấy thống kê bài học
+  static async getStats(): Promise<{
+    totalLessons: number;
+    listeningLessons: number;
+    readingLessons: number;
+  }> {
+    try {
+      const response = await api.get('/lessons/admin/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Get lesson stats error:', error);
+      return { totalLessons: 0, listeningLessons: 0, readingLessons: 0 };
+    }
+  }
+
   // Lấy danh sách bài học cho admin (kèm phân trang và bộ lọc)
   static async getLessons(params: LessonQueryParams = {}): Promise<LessonListResult> {
     try {
@@ -890,6 +920,24 @@ export const adminApiUtils = {
 // ========== BLOG API ==========
 
 export class BlogAPI {
+  /**
+   * Lấy thống kê blog
+   */
+  static async getStats(): Promise<{
+    totalBlogs: number;
+    pendingBlogs: number;
+    approvedBlogs: number;
+    rejectedBlogs: number;
+  }> {
+    try {
+      const response = await api.get('/blogs/admin/stats');
+      return response.data;
+    } catch (error) {
+      console.error('Get blog stats error:', error);
+      return { totalBlogs: 0, pendingBlogs: 0, approvedBlogs: 0, rejectedBlogs: 0 };
+    }
+  }
+
   /**
    * Lấy danh sách blog đang chờ duyệt (Approval Page)
    */

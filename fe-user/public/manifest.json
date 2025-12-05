@@ -1,15 +1,25 @@
 {
-  "short_name": "IELTS Test",
-  "name": "IELTS Placement Test Application",
+  "short_name": "UNSkills",
+  "name": "UNSkills - Luyện thi Nghe Đọc tiếng Anh",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "img/logo.ico",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/x-icon"
+    },
+    {
+      "src": "img/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
+  "theme_color": "#4f46e5",
   "background_color": "#ffffff"
 }

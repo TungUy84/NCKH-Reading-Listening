@@ -11,10 +11,9 @@ import {
   PracticeSection
 } from '../../types';
 
-const ACCEPTED_EXT = '.docx,.xlsx';
+const ACCEPTED_EXT = '.xlsx';
 
 const SAMPLE_FILES: Array<{ label: string; href: string }> = [
-  { label: 'Tải mẫu Word', href: '/import-samples/sample-practice-import.docx' },
   { label: 'Tải mẫu Excel', href: '/import-samples/sample-practice-import.xlsx' }
 ];
 
@@ -296,7 +295,7 @@ const ImportPracticePage: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-800">Import bài ôn luyện</h1>
-          <p className="text-slate-500">Hỗ trợ định dạng Word (.docx) và Excel (.xlsx)</p>
+          <p className="text-slate-500">Hỗ trợ định dạng Excel (.xlsx)</p>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -321,7 +320,7 @@ const ImportPracticePage: React.FC = () => {
           <div className="bg-white border rounded-2xl shadow-sm p-6 space-y-4">
             <div>
               <h2 className="text-lg font-semibold text-slate-800">1. Chọn file cần import</h2>
-              <p className="text-sm text-slate-500">Chỉ hỗ trợ file Word (.docx) hoặc Excel (.xlsx). Có thể tải mẫu bên dưới.</p>
+              <p className="text-sm text-slate-500">Chỉ hỗ trợ file Excel (.xlsx). Có thể tải mẫu bên dưới.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <input
@@ -354,7 +353,7 @@ const ImportPracticePage: React.FC = () => {
               <button
                 onClick={handleUpload}
                 disabled={!selectedFile || isUploading}
-                className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isUploading ? 'Đang phân tích...' : 'Phân tích file'}
               </button>
@@ -479,8 +478,8 @@ const ImportPracticePage: React.FC = () => {
           <div className="rounded-2xl border bg-white p-6 shadow-sm">
             <h3 className="text-lg font-semibold text-slate-800">Bước thực hiện</h3>
             <ol className="mt-4 space-y-3 text-sm text-slate-600">
-              <li>1. Tải file mẫu Word hoặc Excel và điền câu hỏi theo định dạng chuẩn.</li>
-              <li>2. Upload file (.docx/.xlsx) và đợi hệ thống phân tích.</li>
+              <li>1. Tải file mẫu Excel và điền câu hỏi theo định dạng chuẩn.</li>
+              <li>2. Upload file (.xlsx) và đợi hệ thống phân tích.</li>
               <li>3. Kiểm tra lại thông tin, chỉnh sửa siêu dữ liệu nếu cần.</li>
               <li>4. Nhấn "Lưu bài ôn luyện" để tạo mới.</li>
             </ol>

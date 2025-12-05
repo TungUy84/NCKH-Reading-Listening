@@ -47,18 +47,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Logo and Header */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-white rounded-full flex items-center justify-center mb-4">
-            <Squares2X2Icon className="h-8 w-8 text-primary-600" />
+            <img src="/img/logo.png" alt="UNSkills Logo" className="h-10 w-10 object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
-            Admin Portal
+            UNSkills Admin
           </h1>
-          <p className="text-primary-100">
-            Hệ thống quản lý kiểm tra đầu vào
+          <p className="text-blue-100">
+            Hệ thống quản lý UNSkills
           </p>
         </div>
 
@@ -112,7 +112,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                 <button
                   type="button"
                   onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition hover:text-primary-600"
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 transition hover:text-indigo-600"
                   aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
                 >
                   {showPassword ? (
@@ -130,7 +130,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Ghi nhớ đăng nhập
@@ -140,7 +140,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               <div className="text-sm">
                 <a
                   href="/forgot-password"
-                  className="font-medium text-primary-600 hover:text-primary-500"
+                  className="font-medium text-indigo-600 hover:text-indigo-500"
                 >
                   Quên mật khẩu?
                 </a>
@@ -150,7 +150,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {loading ? (
                 <>
@@ -175,7 +175,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
         {/* Footer */}
         <div className="text-center">
-          <p className="text-primary-100 text-sm">
+          <p className="text-blue-100 text-sm">
             © 2025 Đại học Văn Lang. Nghiên cứu khoa học.
           </p>
         </div>

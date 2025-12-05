@@ -16,7 +16,8 @@ const {
   submitPracticeAttempt,
   getMyPracticeAttempts,
   getPracticeAttemptsForAdmin,
-  getPracticeAttemptDetails
+  getPracticeAttemptDetails,
+  getPracticeStats
 } = require('../controllers/practiceController');
 const { protect, authorize, optionalProtect } = require('../middleware/auth');
 
@@ -75,7 +76,7 @@ const practiceImportStorage = multer.diskStorage({
   }
 });
 
-// Bộ lọc file để chỉ chấp nhận các định dạng Word, PDF, Excel
+// Bộ lọc file để chỉ chấp nhận định dạng Excel
 const practiceImportUpload = multer({
   storage: practiceImportStorage,
   limits: {
@@ -85,10 +86,18 @@ const practiceImportUpload = multer({
     if (allowedImportMimeTypes[file.mimetype]) {
       cb(null, true);
     } else {
-      cb(new Error('Định dạng không hỗ trợ. Vui lòng sử dụng file Word (.docx) hoặc Excel (.xlsx).'), false);
+      cb(new Error('Định dạng không hỗ trợ. Vui lòng chỉ sử dụng file Excel (.xlsx).'), false);
     }
   }
 });
+
+// ====== ROUTE ADMIN - Specific paths first (tránh conflict với :practiceId) ======
+router.get('/stats', protect, isAdmin, getPracticeStats);
+router.post('/media', protect, isAdmin, practiceMediaUpload.array('files', 10), uploadPracticeMedia);
+router.post('/import', protect, isAdmin, practiceImportUpload.single('practiceFile'), importPractice);
+
+// ====== ROUTE ATTEMPT - Đặt trước :practiceId ======
+router.get('/attempts/:attemptId', protect, getPracticeAttemptDetails);
 
 // ====== ROUTE CÔNG KHAI ======
 router.get('/', optionalProtect, (req, res, next) => {
@@ -98,21 +107,18 @@ router.get('/', optionalProtect, (req, res, next) => {
   return getPublicPractices(req, res, next);
 });
 
-// ====== ROUTE ADMIN ======
+// ====== ROUTE ADMIN - Continue with parameterized routes ======
 router.get('/', protect, isAdmin, getAdminPractices);
 router.post('/', protect, isAdmin, createPractice);
 router.get('/:practiceId/details', protect, isAdmin, getPracticeDetails);
-router.post('/media', protect, isAdmin, practiceMediaUpload.array('files', 10), uploadPracticeMedia);
-router.post('/import', protect, isAdmin, practiceImportUpload.single('practiceFile'), importPractice);
+router.get('/:practiceId/attempts', protect, isAdmin, getPracticeAttemptsForAdmin);
 router.put('/:practiceId/content', protect, isAdmin, updatePracticeContent);
 router.put('/:practiceId', protect, isAdmin, updatePracticeInfo);
 router.delete('/:practiceId', protect, isAdmin, deletePractice);
-router.get('/:practiceId/attempts', protect, isAdmin, getPracticeAttemptsForAdmin);
 
-// ====== ROUTE CHO NGƯỜI HỌC ======
-router.post('/:practiceId/submit', protect, submitPracticeAttempt);
+// ====== ROUTE CHO NGƯỜI HỌC - Parameterized routes last ======
 router.get('/:practiceId/attempts/mine', protect, getMyPracticeAttempts);
-router.get('/attempts/:attemptId', protect, getPracticeAttemptDetails);
+router.post('/:practiceId/submit', protect, submitPracticeAttempt);
 router.get('/:practiceId', getPracticeForLearner);
 
 module.exports = router;

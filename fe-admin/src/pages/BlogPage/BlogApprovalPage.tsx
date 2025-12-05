@@ -84,7 +84,7 @@ const BlogApprovalPage: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Duyệt bài viết Blog</h1>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Duyệt bài viết Blog</h1>
         <p className="text-gray-600 mt-2">Kiểm tra và phê duyệt các bài viết do người dùng tạo</p>
       </div>
 

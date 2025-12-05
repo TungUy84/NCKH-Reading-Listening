@@ -94,11 +94,9 @@ const Header: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4 h-16">
           {/* Logo thương hiệu */}
-          <Link to="/" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 transition-colors group">
-            <div className="p-1.5 bg-blue-50 rounded-xl group-hover:bg-blue-100 transition-colors">
-              <AcademicCapIcon className="h-7 w-7" />
-            </div>
-            <span className="text-xl font-bold tracking-tight text-slate-900">VLU English</span>
+          <Link to="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity group">
+            <img src="/img/logo.png" alt="UNSkills Logo" className="h-10 w-10 object-contain" />
+            <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">UNSkills</span>
           </Link>
 
           {/* Điều hướng trên desktop */}

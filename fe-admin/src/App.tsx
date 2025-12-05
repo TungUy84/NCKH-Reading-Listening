@@ -23,7 +23,6 @@ import LessonsPage from './pages/LessonsPage/LessonsPage';
 import CreateLessonPage from './pages/LessonsPage/CreateLessonPage';
 import EditLessonPage from './pages/LessonsPage/EditLessonPage';
 import ViewLessonPage from './pages/LessonsPage/ViewLessonPage';
-import MockExamPage from './pages/MockExamPage/MockExamPage';
 import BlogApprovalPage from './pages/BlogPage/BlogApprovalPage';
 import BlogPage from './pages/BlogPage/BlogPage';
 import UsersPage from './pages/UsersPage/UsersPage';
@@ -132,8 +131,6 @@ const App: React.FC = () => {
               <Route path="/admin/lessons/create" element={<CreateLessonPage />} />
               <Route path="/admin/lessons/:lessonId" element={<ViewLessonPage />} />
               <Route path="/admin/lessons/edit/:lessonId" element={<EditLessonPage />} />
-              
-              <Route path="/admin/mock-exams" element={<MockExamPage />} />
               
               {/* Blog Management */}
               <Route path="/admin/blog/approval" element={<BlogApprovalPage />} />

@@ -175,6 +175,11 @@ const getPracticeForLearner = async (req, res) => {
     const { practiceId } = req.params;
     const { randomize } = req.query;
 
+    // Validate ObjectId format
+    if (!practiceId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'ID bài ôn luyện không hợp lệ' });
+    }
+
     const practice = await Practice.findById(practiceId)
       .select('-questions.correctAnswers -questions.explanation');
 
@@ -778,6 +783,24 @@ const getPracticeAttemptDetails = async (req, res) => {
   }
 };
 
+// Lấy thống kê bài ôn luyện
+const getPracticeStats = async (req, res) => {
+  try {
+    const totalPractices = await Practice.countDocuments({ isActive: true });
+    const listeningPractices = await Practice.countDocuments({ skill: 'listening', isActive: true });
+    const readingPractices = await Practice.countDocuments({ skill: 'reading', isActive: true });
+
+    return res.status(200).json({
+      totalPractices,
+      listeningPractices,
+      readingPractices
+    });
+  } catch (error) {
+    console.error('[practiceController][getPracticeStats] Error:', error);
+    return res.status(500).json({ message: 'Không thể lấy thống kê bài ôn luyện' });
+  }
+};
+
 // === exports ===
 module.exports = {
   getPublicPractices,
@@ -793,5 +816,6 @@ module.exports = {
   getPracticeAttemptsForAdmin,
   getPracticeAttemptDetails,
   uploadPracticeMedia,
-  importPractice
+  importPractice,
+  getPracticeStats
 };

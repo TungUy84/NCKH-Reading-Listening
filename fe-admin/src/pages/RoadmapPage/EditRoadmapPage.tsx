@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
+import { ArrowLeft, Save, Loader2, Trash2, BookOpen, Headphones, Target } from 'lucide-react';
 import { RoadmapAPI, PlacementTestAPI } from '../../services/api';
 import { Roadmap, Lesson, Practice, PlacementTest } from '../../types';
 
@@ -137,7 +138,7 @@ const ContentSelector: React.FC<ContentSelectorProps> = ({
             </button>
             <button
               onClick={handleConfirm}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
               Thêm vào lộ trình
             </button>
@@ -296,7 +297,7 @@ const EditRoadmapPage: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
           <p className="mt-2 text-slate-600">Đang tải...</p>
         </div>
       </div>
@@ -325,9 +326,10 @@ const EditRoadmapPage: React.FC = () => {
               <span className="flex-1 text-sm">{itemObj?.title || itemId}</span>
               <button
                 onClick={() => removeContent(type, skill, itemId)}
-                className="text-red-500 hover:text-red-700 p-1"
+                title="Xóa"
+                className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 transition-all"
               >
-                🗑️
+                <Trash2 className="w-4 h-4" />
               </button>
             </div>
           );
@@ -341,22 +343,23 @@ const EditRoadmapPage: React.FC = () => {
       <div className="space-y-6 max-w-5xl mx-auto pb-12">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-slate-800">
+            <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
               Chỉnh sửa lộ trình: {roadmap.levelGroup}
             </h1>
             <p className="text-slate-500">Cấu hình nội dung và checkpoint test</p>
           </div>
           <button
             onClick={() => navigate('/admin/roadmap')}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-all flex items-center gap-2"
           >
-            ← Quay lại
+            <ArrowLeft className="w-4 h-4" />
+            <span>Quay lại</span>
           </button>
         </div>
 
         {/* Basic Info */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-4">
-          <h2 className="font-semibold text-lg">Thông tin cơ bản</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <h2 className="font-semibold text-lg text-slate-800">Thông tin cơ bản</h2>
           
           <div>
             <label className="block text-sm font-medium mb-1">Level Group (Cố định)</label>
@@ -374,7 +377,7 @@ const EditRoadmapPage: React.FC = () => {
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
               placeholder="VD: Lộ trình AV1-AV3 - Nền tảng cơ bản"
             />
           </div>
@@ -385,7 +388,7 @@ const EditRoadmapPage: React.FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
               placeholder="Mô tả về lộ trình này..."
             />
           </div>
@@ -398,7 +401,7 @@ const EditRoadmapPage: React.FC = () => {
                 value={estimatedDuration}
                 onChange={(e) => setEstimatedDuration(Number(e.target.value))}
                 min={1}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
               />
             </div>
             <div>
@@ -409,22 +412,25 @@ const EditRoadmapPage: React.FC = () => {
                 onChange={(e) => setPassingScore(Number(e.target.value))}
                 min={0}
                 max={100}
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
               />
             </div>
           </div>
         </div>
 
         {/* Reading Content */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-4">
-          <h2 className="font-semibold text-lg">📚 READING CONTENT</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <h2 className="font-semibold text-lg text-slate-800 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-blue-600" />
+            <span>Reading Content</span>
+          </h2>
           
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium">Lessons</label>
               <button
                 onClick={() => openSelector('lesson', 'reading')}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
               >
                 + Thêm
               </button>
@@ -441,7 +447,7 @@ const EditRoadmapPage: React.FC = () => {
               <label className="text-sm font-medium">Practices</label>
               <button
                 onClick={() => openSelector('practice', 'reading')}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
               >
                 + Thêm
               </button>
@@ -455,15 +461,18 @@ const EditRoadmapPage: React.FC = () => {
         </div>
 
         {/* Listening Content */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-4">
-          <h2 className="font-semibold text-lg">🎧 LISTENING CONTENT</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <h2 className="font-semibold text-lg text-slate-800 flex items-center gap-2">
+            <Headphones className="w-5 h-5 text-purple-600" />
+            <span>Listening Content</span>
+          </h2>
           
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-sm font-medium">Lessons</label>
               <button
                 onClick={() => openSelector('lesson', 'listening')}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
               >
                 + Thêm
               </button>
@@ -480,7 +489,7 @@ const EditRoadmapPage: React.FC = () => {
               <label className="text-sm font-medium">Practices</label>
               <button
                 onClick={() => openSelector('practice', 'listening')}
-                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
               >
                 + Thêm
               </button>
@@ -494,15 +503,18 @@ const EditRoadmapPage: React.FC = () => {
         </div>
 
         {/* Checkpoint Test */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-4">
-          <h2 className="font-semibold text-lg">🎯 CHECKPOINT TEST</h2>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+          <h2 className="font-semibold text-lg text-slate-800 flex items-center gap-2">
+            <Target className="w-5 h-5 text-green-600" />
+            <span>Checkpoint Test</span>
+          </h2>
           
           <div>
             <label className="block text-sm font-medium mb-1">Chọn bài test</label>
             <select
               value={checkpointTestId}
               onChange={(e) => setCheckpointTestId(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:outline-none transition-all"
             >
               <option value="">-- Chưa chọn --</option>
               {tests.map(test => (
@@ -519,16 +531,26 @@ const EditRoadmapPage: React.FC = () => {
           <button
             onClick={() => navigate('/admin/roadmap')}
             disabled={saving}
-            className="px-6 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            className="px-6 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition-all"
           >
             Hủy
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 hover:shadow-md disabled:opacity-50 flex items-center gap-2 transition-all"
           >
-            💾 {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {saving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Đang lưu...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                <span>Lưu thay đổi</span>
+              </>
+            )}
           </button>
         </div>
       </div>

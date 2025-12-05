@@ -41,10 +41,8 @@ const Footer: React.FC = () => {
           {/* Khối thông tin thương hiệu - span 4 columns */}
           <div className="lg:col-span-4">
             <Link to="/" className="flex items-center gap-3 mb-6 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg group-hover:shadow-blue-500/50 transition-all">
-                <GraduationCap className="w-6 h-6" />
-              </div>
-              <span className="text-2xl font-bold text-white">VLU English</span>
+              <img src="/img/logo.png" alt="UNSkills Logo" className="w-12 h-12 object-contain" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">UNSkills</span>
             </Link>
             <p className="text-sm leading-relaxed text-gray-400 mb-6">
               Nền tảng học tiếng Anh chính thức của Đại học Văn Lang, giúp sinh viên nâng cao kỹ năng Nghe và Đọc một cách hiệu quả.
