@@ -39,10 +39,38 @@ const getPublicPractices = async (req, res) => {
       Practice.countDocuments(filters)
     ]);
 
+    let itemsWithScore = items.map(item => item.toObject());
+
+    // Nếu user đã đăng nhập, lấy điểm cao nhất của họ cho từng bài
+    if (req.user) {
+      const practiceIds = items.map(p => p._id);
+      const attempts = await PracticeAttempt.aggregate([
+        { 
+          $match: { 
+            userId: req.user._id, 
+            practiceId: { $in: practiceIds } 
+          } 
+        },
+        { 
+          $group: { 
+            _id: '$practiceId', 
+            maxScore: { $max: '$score' } 
+          } 
+        }
+      ]);
+
+      const attemptMap = new Map(attempts.map(a => [String(a._id), a.maxScore]));
+      
+      itemsWithScore = itemsWithScore.map(item => ({
+        ...item,
+        highestScore: attemptMap.has(String(item._id)) ? attemptMap.get(String(item._id)) : null
+      }));
+    }
+
     return res.status(200).json({
       message: 'Lấy danh sách bài ôn luyện thành công',
       data: {
-        items,
+        items: itemsWithScore,
         pagination: {
           page,
           limit,
@@ -132,9 +160,25 @@ const createPractice = async (req, res) => {
 };
 
 // Hàm lấy chi tiết bài ôn luyện cho học viên làm bài (ẩn đáp án).
+// Hàm shuffle array (Fisher-Yates algorithm)
+const shuffleArray = (array) => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
 const getPracticeForLearner = async (req, res) => {
   try {
     const { practiceId } = req.params;
+    const { randomize } = req.query;
+
+    // Validate ObjectId format
+    if (!practiceId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'ID bài ôn luyện không hợp lệ' });
+    }
 
     const practice = await Practice.findById(practiceId)
       .select('-questions.correctAnswers -questions.explanation');
@@ -147,9 +191,43 @@ const getPracticeForLearner = async (req, res) => {
       return res.status(400).json({ message: 'Bài ôn luyện này đang bị vô hiệu hóa' });
     }
 
+    const practiceObj = practice.toObject();
+
+    // Randomize questions if requested
+    // Only shuffle questions WITHIN the same section, keeping section order
+    if (randomize === 'true') {
+      const questionsBySectionId = new Map();
+      const sectionOrder = []; // Track section order
+      
+      practiceObj.questions.forEach(q => {
+        const sectionKey = q.sectionId ? q.sectionId.toString() : 'no-section';
+        
+        if (!questionsBySectionId.has(sectionKey)) {
+          questionsBySectionId.set(sectionKey, []);
+          sectionOrder.push(sectionKey);
+        }
+        
+        questionsBySectionId.get(sectionKey).push(q);
+      });
+
+      const shuffledQuestions = [];
+      sectionOrder.forEach(sectionKey => {
+        const sectionQuestions = questionsBySectionId.get(sectionKey);
+        const shuffled = shuffleArray(sectionQuestions);
+        shuffledQuestions.push(...shuffled);
+      });
+
+      // Re-assign question numbers for display consistency if needed
+      shuffledQuestions.forEach((q, idx) => {
+        q.questionNumber = idx + 1;
+      });
+
+      practiceObj.questions = shuffledQuestions;
+    }
+
     return res.status(200).json({
       message: 'Lấy chi tiết bài ôn luyện thành công',
-      practice
+      practice: practiceObj
     });
   } catch (error) {
     console.error('[practiceController][getPracticeForLearner] Lỗi lấy chi tiết', error);
@@ -659,6 +737,7 @@ const getPracticeAttemptDetails = async (req, res) => {
       })),
       questions: (practiceDoc.questions || []).map((question) => ({
         _id: question._id,
+        sectionId: question.sectionId,
         questionNumber: question.questionNumber,
         type: question.type,
         allowMultiple: question.allowMultiple,
@@ -704,6 +783,24 @@ const getPracticeAttemptDetails = async (req, res) => {
   }
 };
 
+// Lấy thống kê bài ôn luyện
+const getPracticeStats = async (req, res) => {
+  try {
+    const totalPractices = await Practice.countDocuments({ isActive: true });
+    const listeningPractices = await Practice.countDocuments({ skill: 'listening', isActive: true });
+    const readingPractices = await Practice.countDocuments({ skill: 'reading', isActive: true });
+
+    return res.status(200).json({
+      totalPractices,
+      listeningPractices,
+      readingPractices
+    });
+  } catch (error) {
+    console.error('[practiceController][getPracticeStats] Error:', error);
+    return res.status(500).json({ message: 'Không thể lấy thống kê bài ôn luyện' });
+  }
+};
+
 // === exports ===
 module.exports = {
   getPublicPractices,
@@ -719,5 +816,6 @@ module.exports = {
   getPracticeAttemptsForAdmin,
   getPracticeAttemptDetails,
   uploadPracticeMedia,
-  importPractice
+  importPractice,
+  getPracticeStats
 };

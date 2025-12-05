@@ -10,7 +10,8 @@ import {
   ListBulletIcon,
   CheckBadgeIcon,
   CalendarDaysIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  RectangleStackIcon
 } from '@heroicons/react/24/solid';
 import clsx from 'clsx';
 import { getMyPracticeAttempts, getPracticeForLearner } from '../../services/api';
@@ -126,6 +127,7 @@ const PracticeDetailPage: React.FC = () => {
 
         <button
           onClick={() => navigate('/practice')}
+          data-aos="fade-up"
           className="group flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-8 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200/50 w-fit"
         >
           <ChevronLeftIcon className="h-4 w-4" />
@@ -135,7 +137,7 @@ const PracticeDetailPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 lg:gap-12 items-start">
 
           {/* === LEFT COLUMN: INFO & ACTIONS === */}
-          <div>
+          <div data-aos="fade-up" data-aos-delay="100">
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <span className={clsx(
                 "px-4 py-1.5 rounded-full text-xs font-bold text-white shadow-lg bg-gradient-to-r uppercase tracking-wide flex items-center gap-2",
@@ -187,17 +189,13 @@ const PracticeDetailPage: React.FC = () => {
           </div>
 
           {/* === RIGHT COLUMN: STATS CARDS === */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 bg-white/70 backdrop-blur-xl border border-white/60 p-6 rounded-3xl shadow-xl shadow-slate-200/50 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-500 mb-1">Thời gian</p>
-                <p className="text-3xl font-black text-slate-800">
-                  {practice.estimatedTime || 15} <span className="text-lg font-bold text-slate-400">phút</span>
-                </p>
+          <div className="grid grid-cols-2 gap-4" data-aos="fade-left" data-aos-delay="200">
+            <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-5 rounded-3xl shadow-xl shadow-slate-200/50 flex flex-col justify-center min-h-[140px]">
+              <div className="h-10 w-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-4 shadow-inner">
+                <RectangleStackIcon className="h-6 w-6" />
               </div>
-              <div className="h-14 w-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-inner">
-                <ClockIcon className="h-8 w-8" />
-              </div>
+              <p className="text-sm font-medium text-slate-500">Số phần</p>
+              <p className="text-2xl font-black text-slate-800">{practice.sections.length}</p>
             </div>
 
             <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-5 rounded-3xl shadow-xl shadow-slate-200/50 flex flex-col justify-center min-h-[140px]">
@@ -209,11 +207,21 @@ const PracticeDetailPage: React.FC = () => {
             </div>
 
             <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-5 rounded-3xl shadow-xl shadow-slate-200/50 flex flex-col justify-center min-h-[140px]">
+              <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center mb-4 shadow-inner">
+                <ClockIcon className="h-6 w-6" />
+              </div>
+              <p className="text-sm font-medium text-slate-500">Thời gian</p>
+              <p className="text-2xl font-black text-slate-800">
+                {practice.estimatedTime} <span className="text-sm font-bold text-slate-400">phút</span>
+              </p>
+            </div>
+
+            <div className="bg-white/70 backdrop-blur-xl border border-white/60 p-5 rounded-3xl shadow-xl shadow-slate-200/50 flex flex-col justify-center min-h-[140px]">
               <div className="h-10 w-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mb-4 shadow-inner">
                 <TrophyIcon className="h-6 w-6" />
               </div>
-              <p className="text-sm font-medium text-slate-500">Tổng số câu</p>
-              <p className="text-2xl font-black text-slate-800">{practice.totalQuestions}</p>
+              <p className="text-sm font-medium text-slate-500">Thang điểm</p>
+              <p className="text-2xl font-black text-slate-800">10</p>
             </div>
           </div>
         </div>
@@ -259,7 +267,7 @@ const PracticeDetailPage: React.FC = () => {
                           item.score >= 5 ? "bg-amber-50 text-amber-600 border-amber-100" :
                             "bg-rose-50 text-rose-600 border-rose-100"
                       )}>
-                        <span className="text-xl">{item.score}</span>
+                        <span className="text-xl">{Number(item.score).toFixed(1)}</span>
                         <span className="text-[10px] uppercase opacity-70">Điểm</span>
                       </div>
 
@@ -276,7 +284,7 @@ const PracticeDetailPage: React.FC = () => {
                             Đúng {item.percentage}%
                           </span>
                           <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                          <span>Điểm: {item.score || 0}/10</span>
+                          <span>Điểm: {Number(item.score).toFixed(1)}/10</span>
                         </div>
                       </div>
                     </div>

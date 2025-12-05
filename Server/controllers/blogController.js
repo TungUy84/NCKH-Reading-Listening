@@ -613,6 +613,33 @@ const deleteBlogAdmin = async (req, res) => {
   }
 };
 
+/**
+ * Lấy thống kê blog
+ * GET /api/blogs/admin/stats
+ */
+const getBlogStats = async (req, res) => {
+  try {
+    const totalBlogs = await Blog.countDocuments();
+    const pendingBlogs = await Blog.countDocuments({ status: 'pending' });
+    const approvedBlogs = await Blog.countDocuments({ status: 'approved' });
+    const rejectedBlogs = await Blog.countDocuments({ status: 'rejected' });
+
+    res.json({
+      totalBlogs,
+      pendingBlogs,
+      approvedBlogs,
+      rejectedBlogs
+    });
+  } catch (error) {
+    console.error('Error getting blog stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi khi lấy thống kê blog',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   uploadBlogImages,
   createBlog,
@@ -627,4 +654,5 @@ module.exports = {
   approveBlog,
   rejectBlog,
   deleteBlogAdmin,
+  getBlogStats,
 };

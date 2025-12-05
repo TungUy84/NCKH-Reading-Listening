@@ -261,6 +261,7 @@ export interface BlogComment {
     username: string;
     firstName: string;
     lastName: string;
+    avatar?: string;
   };
   content: string;
   createdAt: string;
@@ -276,6 +277,7 @@ export interface Blog {
     username: string;
     firstName: string;
     lastName: string;
+    avatar?: string;
   };
   status: 'pending' | 'approved' | 'rejected';
   approvedAt?: string;
@@ -317,6 +319,7 @@ export interface PracticeSummary {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  highestScore?: number | null;
 }
 
 export interface PracticeSection {
@@ -338,6 +341,7 @@ export interface PracticeQuestion {
   options?: Option[];
   matchingPairs?: MatchingPair[];
   passage?: string;
+  media?: QuestionMedia;
 }
 
 export interface PracticeDetail extends PracticeSummary {

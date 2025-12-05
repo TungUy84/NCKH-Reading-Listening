@@ -6,7 +6,8 @@ const {
   getLessonForLearner,
   createLesson,
   updateLesson,
-  deleteLesson
+  deleteLesson,
+  getLessonStats
 } = require('../controllers/lessonController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -14,6 +15,7 @@ const router = express.Router();
 const adminRouter = express.Router();
 const isAdmin = authorize('admin');
 
+adminRouter.get('/stats', getLessonStats);
 adminRouter.get('/', getAdminLessons);
 adminRouter.post('/', createLesson);
 adminRouter.get('/:lessonId', getLessonDetails);

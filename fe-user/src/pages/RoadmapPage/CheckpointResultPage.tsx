@@ -214,8 +214,8 @@ const CheckpointResultPage: React.FC = () => {
                   
                   <p className="text-slate-500 text-lg max-w-md leading-relaxed">
                     {isPassed 
-                      ? 'Bạn đã hoàn thành xuất sắc bài kiểm tra checkpoint này.' 
-                      : 'Đừng nản lòng, hãy ôn tập lại và thử sức lần nữa nhé.'}
+                      ? 'Bạn đã hoàn thành bài kiểm tra checkpoint này.' 
+                      : 'Lần sao hãy cố gắng hơn nhé.'}
                   </p>
                 </div>
                 

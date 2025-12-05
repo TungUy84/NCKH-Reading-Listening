@@ -22,8 +22,10 @@ import {
 } from '../../services/api';
 import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
+import { useAuth } from '../../contexts/AuthContext';
 
 const BlogPage: React.FC = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,14 @@ const BlogPage: React.FC = () => {
   useEffect(() => {
     fetchBlogs();
   }, []);
+
+  const getImageUrl = (imagePath?: string) => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+    return `${baseUrl}${imagePath}`;
+  };
 
   const fetchBlogs = async () => {
     setLoading(true);
@@ -142,7 +152,7 @@ const BlogPage: React.FC = () => {
 
       {/* --- CREATIVE HERO SECTION --- */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
-        <div className="relative bg-white/60 backdrop-blur-3xl rounded-[3rem] border border-white/50 shadow-2xl shadow-rose-500/10 overflow-hidden p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-12">
+        <div className="relative bg-white/60 backdrop-blur-3xl rounded-[3rem] border border-white/50 shadow-2xl shadow-rose-500/10 overflow-hidden p-10 md:p-16 flex flex-col md:flex-row items-center justify-between gap-12" data-aos="fade-up">
 
           {/* Background Decor */}
           <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-rose-200 via-orange-100 to-transparent rounded-full blur-3xl -z-10 opacity-60 translate-x-1/3 -translate-y-1/3" />
@@ -227,15 +237,23 @@ const BlogPage: React.FC = () => {
                 </Button>
               </div>
             ) : (
-              blogs.map((blog) => (
-                <article key={blog._id} className="group bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-rose-500/10 hover:border-rose-100 transition-all duration-500 overflow-hidden">
+              blogs.map((blog, index) => (
+                <article key={blog._id} data-aos="fade-up" data-aos-delay={index * 100} className="group bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:shadow-rose-500/10 hover:border-rose-100 transition-all duration-500 overflow-hidden">
 
                   {/* Blog Header */}
                   <div className="p-8 pb-0 flex items-center gap-5">
                     <div className="relative shrink-0">
-                      <div className="w-14 h-14 bg-gradient-to-br from-rose-400 to-orange-400 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-rose-500/20 transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                        {blog.authorId.firstName.charAt(0)}
-                      </div>
+                      {blog.authorId.avatar ? (
+                        <img
+                          src={getImageUrl(blog.authorId.avatar)}
+                          alt={blog.authorId.firstName}
+                          className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-rose-500/20 transform -rotate-3 group-hover:rotate-0 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 bg-gradient-to-br from-rose-400 to-orange-400 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-rose-500/20 transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
+                          {blog.authorId.firstName.charAt(0)}
+                        </div>
+                      )}
                       {/* Online status dot */}
                       <span className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
                     </div>
@@ -278,10 +296,10 @@ const BlogPage: React.FC = () => {
                             // Logic xử lý grid layout cho đẹp
                             (blog.images.length === 3 && idx === 0) ? "md:col-span-2 md:row-span-2" : ""
                           )}
-                          onClick={() => window.open(`${process.env.REACT_APP_API_URL?.replace('/api', '')}${img}`, '_blank')}
+                          onClick={() => window.open(getImageUrl(img), '_blank')}
                         >
                           <img
-                            src={`${process.env.REACT_APP_API_URL?.replace('/api', '')}${img}`}
+                            src={getImageUrl(img)}
                             alt={`Blog ${idx}`}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-700"
                           />
@@ -337,9 +355,17 @@ const BlogPage: React.FC = () => {
                       <div className="space-y-6 mb-8 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                         {blog.comments.map((comment) => (
                           <div key={comment._id} className="flex gap-4 group/comment">
-                            <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 text-sm font-black shadow-sm shrink-0">
-                              {comment.authorId.firstName.charAt(0)}
-                            </div>
+                            {comment.authorId.avatar ? (
+                              <img
+                                src={getImageUrl(comment.authorId.avatar)}
+                                alt={comment.authorId.firstName}
+                                className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 text-sm font-black shadow-sm shrink-0">
+                                {comment.authorId.firstName.charAt(0)}
+                              </div>
+                            )}
                             <div className="flex-1">
                               <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-200/60">
                                 <div className="flex justify-between items-center mb-1">
@@ -358,9 +384,17 @@ const BlogPage: React.FC = () => {
                       </div>
 
                       <div className="relative flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl flex items-center justify-center text-white font-bold shadow-md shrink-0">
-                          Me
-                        </div>
+                        {user?.avatar ? (
+                          <img
+                            src={getImageUrl(user.avatar)}
+                            alt={user.firstName}
+                            className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-md shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-900 rounded-xl flex items-center justify-center text-white font-bold shadow-md shrink-0">
+                            {user?.firstName?.charAt(0) || 'Me'}
+                          </div>
+                        )}
                         <div className="relative flex-1">
                           <input
                             type="text"

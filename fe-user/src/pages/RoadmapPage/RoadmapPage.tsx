@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { getCurrentUserRoadmap, syncRoadmapContent } from '../../services/api';
+import { getCurrentUserRoadmap, syncRoadmapContent, getAllMyTestAttempts } from '../../services/api';
 import { UserRoadmap, RoadmapStage } from '../../types';
-import { 
-  MapIcon, 
-  CheckCircleIcon, 
-  LockClosedIcon, 
-  PlayCircleIcon, 
-  TrophyIcon, 
+import {
+  MapIcon,
+  CheckCircleIcon,
+  LockClosedIcon,
+  PlayCircleIcon,
+  TrophyIcon,
   ArrowRightIcon,
   ChartBarIcon,
   RocketLaunchIcon,
-  FireIcon,
-  ClockIcon
+  FireIcon
 } from '@heroicons/react/24/solid';
 import clsx from 'clsx';
 import Loader from '../../components/ui/Loader';
@@ -22,16 +21,66 @@ const RoadmapPage: React.FC = () => {
   const navigate = useNavigate();
   const [roadmap, setRoadmap] = useState<UserRoadmap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [streak, setStreak] = useState(0);
 
   useEffect(() => {
     loadRoadmap();
+    loadStreak();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadStreak = async () => {
+    try {
+      const response = await getAllMyTestAttempts({ limit: 50 });
+      const attempts = response.data?.items || [];
+      setStreak(calculateStreak(attempts));
+    } catch (err) {
+      console.error('Failed to load streak:', err);
+      setStreak(0);
+    }
+  };
+
+  const calculateStreak = (attempts: any[]) => {
+    if (!attempts.length) return 0;
+
+    const uniqueDates = Array.from(new Set(
+      attempts.map(a => new Date(a.createdAt).toISOString().split('T')[0])
+    )).sort().reverse();
+
+    if (uniqueDates.length === 0) return 0;
+
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+    
+    const lastActivity = uniqueDates[0];
+    
+    if (lastActivity !== today && lastActivity !== yesterday) {
+      return 0;
+    }
+
+    let streakCount = 1;
+    let currentDateStr = lastActivity;
+
+    for (let i = 1; i < uniqueDates.length; i++) {
+      const prevDate = new Date(currentDateStr);
+      prevDate.setDate(prevDate.getDate() - 1);
+      const expectedPrevDateStr = prevDate.toISOString().split('T')[0];
+      
+      if (uniqueDates[i] === expectedPrevDateStr) {
+        streakCount++;
+        currentDateStr = expectedPrevDateStr;
+      } else {
+        break;
+      }
+    }
+
+    return streakCount;
+  };
 
   const loadRoadmap = async () => {
     try {
       setLoading(true);
-      try { await syncRoadmapContent(); } catch (err) { console.log('Sync skipped'); }
+      try { await syncRoadmapContent(); } catch (err) { /* Silent sync */ }
       const res = await getCurrentUserRoadmap();
       if (!res.hasRoadmap || !res.data) {
         navigate('/roadmap/setup');
@@ -60,7 +109,7 @@ const RoadmapPage: React.FC = () => {
     const totalStages = roadmap.stages.length;
     const completedStages = roadmap.stages.filter(s => s.status === 'completed').length;
     const activeStage = roadmap.stages.find(s => s.status === 'in-progress' || s.status === 'checkpoint-ready');
-    
+
     let progress = (completedStages / totalStages) * 100;
     if (activeStage) {
       progress += (activeStage.progress.overallPercentage / 100) * (100 / totalStages);
@@ -78,9 +127,9 @@ const RoadmapPage: React.FC = () => {
     <div className="min-h-screen font-sans pb-20 pt-8">
       {/* Mở rộng max-width lên 7xl để đồng bộ với các trang khác */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-12">
+        <div className="flex flex-col md:flex-row items-end justify-between gap-6 mb-12" data-aos="fade-up">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-white/50 text-indigo-600 text-xs font-bold uppercase tracking-wider mb-4 shadow-sm animate-bounce">
               <MapIcon className="h-4 w-4" />
@@ -93,7 +142,7 @@ const RoadmapPage: React.FC = () => {
               </span>
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-4 text-sm font-medium text-slate-500 bg-white/60 backdrop-blur-md p-2 rounded-2xl border border-white/50 shadow-sm">
             <div className="px-4 py-2 rounded-xl bg-white border border-slate-100 shadow-sm">
               Bắt đầu: <span className="font-bold text-slate-900">{roadmap.currentLevel}</span>
@@ -108,7 +157,7 @@ const RoadmapPage: React.FC = () => {
         {/* --- STATS DASHBOARD --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {/* Card 1: Overall Progress */}
-          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-indigo-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-indigo-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all" data-aos="fade-up" data-aos-delay="100">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <ChartBarIcon className="h-24 w-24 text-indigo-600" />
             </div>
@@ -125,14 +174,14 @@ const RoadmapPage: React.FC = () => {
           </div>
 
           {/* Card 2: Current Focus */}
-          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden group hover:-translate-y-1 transition-all">
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-[2rem] shadow-xl shadow-indigo-500/20 text-white relative overflow-hidden group hover:-translate-y-1 transition-all" data-aos="fade-up" data-aos-delay="200">
             <div className="absolute -right-4 -bottom-4 bg-white/10 w-32 h-32 rounded-full blur-2xl" />
             <p className="text-sm font-bold text-indigo-200 uppercase tracking-wider mb-2">Đang tập trung</p>
             {currentStageIndex !== -1 ? (
               <>
                 <h3 className="text-3xl font-black mb-1">{roadmap.stages[currentStageIndex].levelGroup}</h3>
                 <p className="text-indigo-100 text-sm opacity-90">Chặng {currentStageIndex + 1} trên tổng số {roadmap.stages.length}</p>
-                <button 
+                <button
                   onClick={() => navigate(`/roadmap/stage/${roadmap.stages[currentStageIndex].levelGroup}`)}
                   className="mt-6 px-5 py-2.5 bg-white/20 backdrop-blur-md border border-white/20 rounded-xl text-sm font-bold hover:bg-white/30 transition-colors flex items-center gap-2"
                 >
@@ -148,7 +197,7 @@ const RoadmapPage: React.FC = () => {
           </div>
 
           {/* Card 3: Streak/Motivation */}
-          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-orange-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/60 p-6 rounded-[2rem] shadow-lg shadow-orange-500/5 relative overflow-hidden group hover:-translate-y-1 transition-all" data-aos="fade-up" data-aos-delay="300">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <FireIcon className="h-24 w-24 text-orange-500" />
             </div>
@@ -158,13 +207,13 @@ const RoadmapPage: React.FC = () => {
                 <FireIcon className="h-8 w-8" />
               </div>
               <div>
-                <p className="font-bold text-slate-900">Đang học tập</p>
-                <p className="text-xs text-slate-500">Giữ vững phong độ nhé!</p>
+                <p className="font-bold text-slate-900">{streak > 0 ? 'Đang học tập' : 'Chưa bắt đầu'}</p>
+                <p className="text-xs text-slate-500">{streak > 0 ? 'Giữ vững phong độ nhé!' : 'Hãy bắt đầu ngay hôm nay!'}</p>
               </div>
             </div>
             <div className="flex gap-2">
-              {[1,2,3,4,5,6,7].map(d => (
-                <div key={d} className={clsx("h-2 flex-1 rounded-full", d <= 3 ? "bg-orange-400" : "bg-slate-200")} />
+              {[1, 2, 3, 4, 5, 6, 7].map(d => (
+                <div key={d} className={clsx("h-2 flex-1 rounded-full", d <= (streak > 7 ? 7 : streak) ? "bg-orange-400" : "bg-slate-200")} />
               ))}
             </div>
             <p className="text-xs text-slate-400 mt-2 text-right">Tuần này</p>
@@ -184,19 +233,19 @@ const RoadmapPage: React.FC = () => {
               const isLocked = stage.status === 'locked';
 
               return (
-                <div key={stage._id} className="relative md:grid md:grid-cols-[100px_1fr] gap-8 group">
-                  
+                <div key={stage._id} className="relative md:grid md:grid-cols-[100px_1fr] gap-8 group" data-aos="fade-up" data-aos-delay={index * 100}>
+
                   {/* Timeline Marker (Desktop) */}
                   <div className="hidden md:flex flex-col items-center">
                     <div className={clsx(
                       "w-14 h-14 rounded-2xl flex items-center justify-center border-4 z-10 transition-all duration-500",
                       isCompleted ? "bg-emerald-500 border-emerald-100 text-white shadow-emerald-200" :
-                      isActive ? "bg-white border-indigo-600 text-indigo-600 shadow-xl scale-110" :
-                      "bg-white border-slate-200 text-slate-300"
+                        isActive ? "bg-white border-indigo-600 text-indigo-600 shadow-xl scale-110" :
+                          "bg-white border-slate-200 text-slate-300"
                     )}>
-                      {isCompleted ? <CheckCircleIcon className="h-8 w-8" /> : 
-                       isActive ? <PlayCircleIcon className="h-8 w-8" /> :
-                       <span className="font-bold text-lg">{index + 1}</span>}
+                      {isCompleted ? <CheckCircleIcon className="h-8 w-8" /> :
+                        isActive ? <PlayCircleIcon className="h-8 w-8" /> :
+                          <span className="font-bold text-lg">{index + 1}</span>}
                     </div>
                     {/* Date or Label below marker */}
                     <div className="mt-2 text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -205,7 +254,7 @@ const RoadmapPage: React.FC = () => {
                   </div>
 
                   {/* Card Content */}
-                  <div 
+                  <div
                     onClick={() => !isLocked && navigate(`/roadmap/stage/${stage.levelGroup}`)}
                     className={clsx(
                       "relative rounded-[2rem] p-8 border transition-all duration-300 cursor-pointer overflow-hidden",
@@ -227,11 +276,11 @@ const RoadmapPage: React.FC = () => {
                         <h3 className={clsx("text-2xl font-black mb-2", isLocked ? "text-slate-400" : "text-slate-900")}>
                           {stage.levelGroup}
                         </h3>
-                        
+
                         <p className={clsx("text-sm max-w-lg leading-relaxed", isLocked ? "text-slate-400" : "text-slate-600")}>
-                          {isCompleted ? "Bạn đã hoàn thành xuất sắc các nội dung và bài kiểm tra của chặng này." : 
-                           isActive ? "Tập trung hoàn thành các bài học và bài tập thực hành để mở khóa bài kiểm tra." :
-                           "Hoàn thành chặng trước để mở khóa nội dung này."}
+                          {isCompleted ? "Bạn đã hoàn thành xuất sắc các nội dung và bài kiểm tra của chặng này." :
+                            isActive ? "Tập trung hoàn thành các bài học và bài tập thực hành để mở khóa bài kiểm tra." :
+                              "Hoàn thành chặng trước để mở khóa nội dung này."}
                         </p>
 
                         {/* Stats Row */}
@@ -244,7 +293,7 @@ const RoadmapPage: React.FC = () => {
                             {stage.checkpointResult && (
                               <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">
                                 <TrophyIcon className="h-4 w-4" />
-                                Điểm thi: {stage.checkpointResult.score || 0}/10
+                                Điểm thi: {Number((stage.checkpointResult.score || 0) > 10 ? (stage.checkpointResult.score || 0) / 10 : (stage.checkpointResult.score || 0)).toFixed(1)}/10
                               </div>
                             )}
                           </div>
@@ -256,14 +305,14 @@ const RoadmapPage: React.FC = () => {
                         <div className="shrink-0">
                           <button className={clsx(
                             "h-14 w-14 rounded-full flex items-center justify-center transition-all",
-                            isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:scale-110" : 
-                            "bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200"
+                            isActive ? "bg-indigo-600 text-white shadow-lg shadow-indigo-500/30 hover:scale-110" :
+                              "bg-white border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-200"
                           )}>
                             <ArrowRightIcon className="h-6 w-6" />
                           </button>
                         </div>
                       )}
-                      
+
                       {isLocked && <LockClosedIcon className="h-8 w-8 text-slate-300 md:mr-4" />}
                     </div>
 
@@ -285,19 +334,19 @@ const RoadmapPage: React.FC = () => {
           <div className="mt-16 relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 to-slate-800 p-8 md:p-12 text-center shadow-2xl border border-slate-700">
             {/* Background Effects */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-3xl opacity-30 pointer-events-none">
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[100px]" />
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-purple-500/30 rounded-full blur-[80px]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[100px]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-purple-500/30 rounded-full blur-[80px]" />
             </div>
 
             <div className="relative z-10 flex flex-col items-center">
               <div className="inline-flex p-4 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg shadow-orange-500/30 mb-6 animate-bounce">
                 <TrophyIcon className="w-10 h-10 text-white" />
               </div>
-              
+
               <h2 className="text-3xl md:text-5xl font-black text-white mb-4 tracking-tight">
                 Chúc mừng bạn đã hoàn thành lộ trình!
               </h2>
-              
+
               <p className="text-slate-300 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
                 Bạn đã xuất sắc vượt qua tất cả các chặng đường. Đừng dừng lại ở đây, hãy thiết lập một mục tiêu mới để tiếp tục nâng cao trình độ của mình.
               </p>

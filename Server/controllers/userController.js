@@ -234,7 +234,27 @@ const updateUser = async (req, res) => {
     if (phoneNumber !== undefined) user.phoneNumber = phoneNumber;
     if (studentId !== undefined) user.studentId = studentId;
     if (dateOfBirth !== undefined) user.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
-    if (avatar !== undefined) user.avatar = avatar;
+    
+    // Xử lý cập nhật avatar - xóa avatar cũ nếu có
+    if (avatar !== undefined && avatar !== user.avatar) {
+      // Delete old avatar file if it exists
+      if (user.avatar) {
+        try {
+          const fs = require('fs');
+          const path = require('path');
+          const oldAvatarPath = path.join(__dirname, '..', user.avatar);
+          if (fs.existsSync(oldAvatarPath)) {
+            fs.unlinkSync(oldAvatarPath);
+            console.log(`Đã xóa avatar cũ: ${oldAvatarPath}`);
+          }
+        } catch (deleteError) {
+          console.error('Lỗi khi xóa avatar cũ:', deleteError);
+          // Continue even if delete fails
+        }
+      }
+      user.avatar = avatar;
+    }
+    
     if (role !== undefined) user.role = role;
     if (isActive !== undefined) user.isActive = isActive;
 
@@ -265,6 +285,22 @@ const deleteUser = async (req, res) => {
     // Ngăn admin xóa chính mình
     if (req.user.id === user._id.toString()) {
       return res.status(400).json({ message: 'Bạn không thể xóa tài khoản của chính mình' });
+    }
+
+    // Delete avatar file if it exists
+    if (user.avatar) {
+      try {
+        const fs = require('fs');
+        const path = require('path');
+        const avatarPath = path.join(__dirname, '..', user.avatar);
+        if (fs.existsSync(avatarPath)) {
+          fs.unlinkSync(avatarPath);
+          console.log(`Đã xóa avatar khi xóa user: ${avatarPath}`);
+        }
+      } catch (deleteError) {
+        console.error('Lỗi khi xóa avatar:', deleteError);
+        // Continue even if delete fails
+      }
     }
 
     await User.findByIdAndDelete(req.params.id);

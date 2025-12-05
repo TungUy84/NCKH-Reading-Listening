@@ -77,7 +77,7 @@ const PracticeListPage: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         
         {/* --- HEADER SECTION --- */}
-        <div className="text-center max-w-3xl mx-auto mb-10 relative">
+        <div className="text-center max-w-3xl mx-auto mb-10 relative" data-aos="fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-bold text-slate-700 mb-6 animate-bounce">
             <AcademicCapIcon className="h-4 w-4 text-amber-400" />
             <span>Thư viện Ôn luyện</span>
@@ -90,7 +90,7 @@ const PracticeListPage: React.FC = () => {
 
         {/* --- FLOATING FILTER BAR --- */}
         <div className="sticky top-20 z-30 mb-12">
-          <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl shadow-slate-200/50 rounded-2xl p-2 max-w-4xl mx-auto flex flex-col md:flex-row gap-2">
+          <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl shadow-slate-200/50 rounded-2xl p-2 max-w-4xl mx-auto flex flex-col md:flex-row gap-2" data-aos="fade-down">
             
             {/* Tabs Switcher */}
             <div className="bg-slate-100/80 p-1 rounded-xl flex shrink-0">
@@ -164,10 +164,12 @@ const PracticeListPage: React.FC = () => {
         {/* --- CONTENT GRID --- */}
         {!isLoading && practices.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {practices.map((practice) => (
+            {practices.map((practice, index) => (
               <div 
                 key={practice._id}
                 onClick={() => navigate(`/practice/${practice._id}`)}
+                data-aos="fade-up"
+                data-aos-delay={index * 100}
                 className="group relative bg-white rounded-[2rem] p-1 border border-white shadow-lg shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 transition-all duration-300 cursor-pointer"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white to-slate-50 rounded-[2rem] -z-10" />
@@ -201,10 +203,12 @@ const PracticeListPage: React.FC = () => {
                   {/* Card Footer */}
                   <div className="flex items-center justify-between pt-6 border-t border-slate-100">
                     <div className="flex items-center gap-4 text-xs font-bold text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <TrophyIcon className="h-4 w-4 text-amber-400" />
-                        {practice.totalQuestions} câu
-                      </span>
+                      {practice.highestScore != null && (
+                        <span className="flex items-center gap-1">
+                          <TrophyIcon className="h-4 w-4 text-amber-400" />
+                          {practice.highestScore.toFixed(1)} pts
+                        </span>
+                      )}
                       <span className="flex items-center gap-1">
                         <ClockIcon className="h-4 w-4" />
                         {practice.estimatedTime || 15}'

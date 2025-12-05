@@ -285,6 +285,9 @@ const logoutUser = async (req, res) => {
 
 // Upload avatar
 const uploadAvatar = async (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Vui lòng chọn file hình ảnh' });
@@ -292,6 +295,27 @@ const uploadAvatar = async (req, res) => {
 
     // Get user from token
     const userId = req.user.id;
+
+    // Get current user to check if they have an old avatar
+    const currentUser = await User.findById(userId);
+    
+    if (!currentUser) {
+      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
+    }
+
+    // Delete old avatar file if it exists
+    if (currentUser.avatar) {
+      try {
+        const oldAvatarPath = path.join(__dirname, '..', currentUser.avatar);
+        if (fs.existsSync(oldAvatarPath)) {
+          fs.unlinkSync(oldAvatarPath);
+          console.log(`Đã xóa avatar cũ: ${oldAvatarPath}`);
+        }
+      } catch (deleteError) {
+        console.error('Lỗi khi xóa avatar cũ:', deleteError);
+        // Continue even if delete fails
+      }
+    }
 
     // Create avatar URL
     const avatarUrl = `/uploads/avatars/${req.file.filename}`;
@@ -302,10 +326,6 @@ const uploadAvatar = async (req, res) => {
       { avatar: avatarUrl },
       { new: true, runValidators: true }
     ).select('-password');
-
-    if (!user) {
-      return res.status(404).json({ message: 'Không tìm thấy người dùng' });
-    }
 
     res.status(200).json({
       success: true,

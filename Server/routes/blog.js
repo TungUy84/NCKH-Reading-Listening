@@ -14,6 +14,7 @@ const {
   approveBlog,
   rejectBlog,
   deleteBlogAdmin,
+  getBlogStats,
 } = require('../controllers/blogController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -70,6 +71,9 @@ router.post('/:id/like', protect, likeBlog);
 router.post('/:id/comments', protect, addComment);
 
 // ========== ADMIN ROUTES ==========
+// Get blog statistics
+router.get('/admin/stats', protect, authorize('admin'), getBlogStats);
+
 // Get pending blogs
 router.get('/admin/pending', protect, authorize('admin'), getPendingBlogs);
 

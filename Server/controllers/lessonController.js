@@ -87,6 +87,12 @@ const getAdminLessons = async (req, res) => {
 const getLessonDetails = async (req, res) => {
   try {
     const { lessonId } = req.params;
+    
+    // Validate ObjectId format
+    if (!lessonId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'ID bài học không hợp lệ' });
+    }
+
     const lesson = await Lesson.findById(lessonId)
       .populate('createdBy', 'firstName lastName email username');
 
@@ -108,6 +114,11 @@ const getLessonDetails = async (req, res) => {
 const getLessonForLearner = async (req, res) => {
   try {
     const { lessonId } = req.params;
+
+    // Validate ObjectId format
+    if (!lessonId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'ID bài học không hợp lệ' });
+    }
 
     const lesson = await Lesson.findOneAndUpdate(
       { _id: lessonId, isActive: true },
@@ -279,6 +290,24 @@ const deleteLesson = async (req, res) => {
   }
 };
 
+// Lấy thống kê bài học
+const getLessonStats = async (req, res) => {
+  try {
+    const totalLessons = await Lesson.countDocuments();
+    const listeningLessons = await Lesson.countDocuments({ skill: 'listening' });
+    const readingLessons = await Lesson.countDocuments({ skill: 'reading' });
+
+    return res.status(200).json({
+      totalLessons,
+      listeningLessons,
+      readingLessons
+    });
+  } catch (error) {
+    console.error('[lessonController][getLessonStats] Error:', error);
+    return res.status(500).json({ message: 'Không thể lấy thống kê bài học' });
+  }
+};
+
 module.exports = {
   getPublicLessons,
   getAdminLessons,
@@ -286,5 +315,6 @@ module.exports = {
   getLessonForLearner,
   createLesson,
   updateLesson,
-  deleteLesson
+  deleteLesson,
+  getLessonStats
 };

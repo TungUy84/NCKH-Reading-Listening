@@ -98,7 +98,7 @@ const MockTestPage: React.FC = () => {
 
       {/* --- HERO HEADER --- */}
       <div className="pt-10 pb-10 mb-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="max-w-7xl mx-auto px-4 text-center" data-aos="fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-sm border border-white/50 text-amber-600 text-xs font-bold uppercase tracking-wider mb-6 animate-bounce shadow-sm">
             <StarIcon className="h-4 w-4 text-amber-500" />
             Cổng thi thử
@@ -116,7 +116,7 @@ const MockTestPage: React.FC = () => {
         <div className="grid lg:grid-cols-4 gap-8 items-start relative">
 
           {/* === SIDEBAR FILTERS (STICKY) === */}
-          <div className="lg:col-span-1 space-y-8 lg:sticky lg:top-24 bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/50 shadow-sm transition-all duration-300 z-10">
+          <div className="lg:col-span-1 space-y-8 lg:sticky lg:top-24 bg-white/60 backdrop-blur-md p-6 rounded-3xl border border-white/50 shadow-sm transition-all duration-300 z-10" data-aos="fade-right">
 
             {/* Search */}
             <div className="space-y-3">
@@ -202,10 +202,12 @@ const MockTestPage: React.FC = () => {
                 <div key={i} className="bg-white rounded-3xl h-64 w-full shadow-sm border border-slate-100 animate-pulse" />
               ))
             ) : filteredTests.length > 0 ? (
-              filteredTests.map((test) => (
+              filteredTests.map((test, index) => (
                 <div
                   key={test._id}
                   onClick={() => navigate(`/mock-test/${test._id}`)}
+                  data-aos="fade-up"
+                  data-aos-delay={index * 100}
                   className="group relative flex flex-col md:flex-row bg-white/90 backdrop-blur-sm rounded-[2rem] border border-white/50 shadow-sm hover:shadow-xl hover:shadow-indigo-500/5 hover:border-indigo-100 hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
                 >
                   {/* --- Left: Image/Icon Section --- */}

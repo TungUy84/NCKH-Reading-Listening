@@ -119,7 +119,7 @@ const UsersPage: React.FC = () => {
     <>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-slate-800">Quản lý người dùng</h1>
+          <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Quản lý người dùng</h1>
           <Link to="/admin/users/create" className="px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">+ Tạo người dùng</Link>
         </div>
 
@@ -186,18 +186,18 @@ const UsersPage: React.FC = () => {
         </div>
 
         {/* Table (aligned with PlacementTestsPage) */}
-        <div className="bg-white rounded-xl shadow-sm border">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full">
-              <thead className="bg-slate-50 text-slate-600 text-sm">
+              <thead className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Họ tên</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Tài khoản</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Thông tin</th>
-                  <th className="px-4 py-3 text-left text-sm font-medium">Số điện thoại</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium">Quyền</th>
-                  <th className="px-4 py-3 text-center text-sm font-medium">Trạng thái</th>
-                  <th className="px-4 py-3 text-right text-sm font-medium">Hành động</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Họ tên</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Tài khoản</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Thông tin</th>
+                  <th className="px-4 py-3.5 text-left text-xs font-semibold text-slate-700 uppercase tracking-wider">Số điện thoại</th>
+                  <th className="px-4 py-3.5 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Quyền</th>
+                  <th className="px-4 py-3.5 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider">Trạng thái</th>
+                  <th className="px-4 py-3.5 text-right text-xs font-semibold text-slate-700 uppercase tracking-wider">Hành động</th>
                 </tr>
               </thead>
               <tbody className="relative">
@@ -206,9 +206,9 @@ const UsersPage: React.FC = () => {
                     <td colSpan={7} className="p-0">
                       <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-4">
                         <div className="flex gap-2">
-                          <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                          <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                          <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"></div>
+                          <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                          <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                          <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></div>
                         </div>
                         <p className="text-sm text-slate-600">Đang tải dữ liệu...</p>
                       </div>
@@ -279,7 +279,7 @@ const UsersPage: React.FC = () => {
                             onClick={() => openView(u._id)}
                             title="Xem"
                             aria-label="Xem"
-                            className="p-2 rounded-lg border hover:bg-slate-50 text-slate-700"
+                            className="p-2 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 transition-all"
                           >
                             {React.createElement(FiEye as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                           </button>
@@ -287,7 +287,7 @@ const UsersPage: React.FC = () => {
                             onClick={() => navigate(`/admin/users/${u._id}/edit`)}
                             title="Sửa"
                             aria-label="Sửa"
-                            className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                            className="p-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md transition-all"
                           >
                             {React.createElement(FiEdit2 as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                           </button>
@@ -295,7 +295,7 @@ const UsersPage: React.FC = () => {
                             onClick={() => onDelete(u)}
                             title="Xóa"
                             aria-label="Xóa"
-                            className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                            className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 hover:shadow-md transition-all"
                           >
                             {React.createElement(FiTrash2 as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                           </button>
@@ -310,29 +310,29 @@ const UsersPage: React.FC = () => {
         </div>
 
         {/* Pagination (with page size selector on the left) */}
-        <div className="flex items-center justify-between p-3 border-t text-sm">
+        <div className="flex items-center justify-between p-4 border-t bg-gray-50">
           <div className="flex items-center gap-2">
             <select
               value={query.limit || 10}
               onChange={(e) => setQuery((q) => ({ ...q, page: 1, limit: Number(e.target.value) }))}
-              className="px-3 py-1.5 rounded-lg border"
+              className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
             >
               <option value={10}>10 / trang</option>
               <option value={20}>20 / trang</option>
               <option value={50}>50 / trang</option>
             </select>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <button
               disabled={(query.page || 1) <= 1}
               onClick={() => setQuery((q) => ({ ...q, page: Math.max(1, (q.page || 1) - 1) }))}
-              className="px-3 py-1 rounded-lg border disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-all"
             >Trước</button>
-            <span>Trang {pagination?.page ?? query.page ?? 1}/{totalPages}</span>
+            <span className="text-sm font-medium text-slate-700">Trang {pagination?.page ?? query.page ?? 1}/{totalPages}</span>
             <button
               disabled={(query.page || 1) >= totalPages}
               onClick={() => setQuery((q) => ({ ...q, page: Math.min(totalPages, (q.page || 1) + 1) }))}
-              className="px-3 py-1 rounded-lg border disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-all"
             >Sau</button>
           </div>
         </div>

@@ -120,7 +120,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
         key={item.href}
         to={item.href!}
         className={`flex items-center p-3 rounded-xl transition-all duration-200 group ${isActive
-          ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg transform'
+          ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg transform'
           : 'text-slate-300 hover:text-white hover:bg-slate-700'
           } ${isCollapsed ? 'justify-center' : ''} ${level > 0 ? 'text-sm ml-3' : ''}`}
         title={isCollapsed ? item.label : undefined}
@@ -140,12 +140,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isCollapsed, onToggle }) => {
       {/* Branding */}
       <div className="h-14 flex items-center px-4 border-b border-slate-800/60">
         <div className="flex items-center gap-3 w-full justify-center md:justify-start">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow text-white text-sm font-semibold">
-            A
-          </div>
+          <img 
+            src="/img/logo.png" 
+            alt="UNSkills Logo" 
+            className="w-9 h-9 object-contain"
+          />
           {!isCollapsed && (
             <div className="leading-tight">
-              <p className="text-white font-semibold text-lg tracking-tight">Admin Panel</p>
+              <p className="text-lg font-bold bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 bg-clip-text text-transparent tracking-tight">UNSkills Admin</p>
             </div>
           )}
         </div>

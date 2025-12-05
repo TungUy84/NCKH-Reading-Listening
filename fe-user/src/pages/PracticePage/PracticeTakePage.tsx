@@ -2,7 +2,23 @@ import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } f
 import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
-import { Clock, Check, XCircle, ArrowLeft } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  SpeakerWaveIcon,
+  DocumentTextIcon,
+  ListBulletIcon,
+  CheckIcon,
+  XCircleIcon,
+  PlayIcon,
+  PauseIcon,
+  ChevronRightIcon,
+  ClockIcon,
+  PencilIcon,
+  ChatBubbleBottomCenterTextIcon,
+  TrashIcon,
+  XMarkIcon
+} from '@heroicons/react/24/outline';
+import clsx from 'clsx';
 import { getPracticeForLearner, submitPracticeAttempt, updateRoadmapProgress } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import {
@@ -39,6 +55,37 @@ interface PracticeSubmissionResponse {
   };
 }
 
+interface TextHighlight {
+  id: string;
+  paragraphIndex: number;
+  startOffset: number;
+  endOffset: number;
+  text: string;
+  color: string;
+  note?: string;
+}
+
+// --- THEME HELPER ---
+const getTheme = (skill?: string) => {
+  const isListening = skill === 'listening';
+  return {
+    isListening,
+    primary: isListening ? 'purple' : 'blue',
+    gradient: isListening ? 'from-purple-500 to-pink-500' : 'from-blue-500 to-cyan-500',
+    text: isListening ? 'text-purple-600' : 'text-blue-600',
+    textDark: isListening ? 'text-purple-900' : 'text-blue-900',
+    bg: isListening ? 'bg-purple-50' : 'bg-blue-50',
+    bgLight: isListening ? 'bg-purple-50/50' : 'bg-blue-50/50',
+    border: isListening ? 'border-purple-200' : 'border-blue-200',
+    borderActive: isListening ? 'border-purple-500' : 'border-blue-500',
+    shadow: isListening ? 'shadow-purple-200' : 'shadow-blue-200',
+    ring: isListening ? 'ring-purple-200' : 'ring-blue-200',
+    icon: isListening ? 'text-purple-500' : 'text-blue-500',
+    button: isListening ? 'bg-purple-600 hover:bg-purple-700' : 'bg-blue-600 hover:bg-blue-700',
+    buttonLight: isListening ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-blue-100 text-blue-700 hover:bg-blue-200',
+  };
+};
+
 const normalizeId = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
@@ -57,16 +104,6 @@ const normalizeId = (value: unknown): string => {
   }
 };
 
-const isQuestionAnswered = (answer?: PracticeAnswerState | null): boolean => {
-  if (!answer) {
-    return false;
-  }
-  const hasMatching = answer.matchingAnswers?.some((pair) => pair.selected && pair.selected.trim().length > 0) ?? false;
-  const hasSelectedOption = (answer.selectedOptions?.length ?? 0) > 0;
-  const hasInput = !!answer.userAnswer && answer.userAnswer.trim().length > 0;
-  return hasSelectedOption || hasInput || hasMatching;
-};
-
 const generateMediaId = (): string => {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -76,6 +113,13 @@ const generateMediaId = (): string => {
     /* noop */
   }
   return Math.random().toString(36).slice(2, 10);
+};
+
+const getMediaUrl = (path?: string) => {
+  if (!path) return '';
+  if (path.startsWith('http') || path.startsWith('blob:')) return path;
+  const baseUrl = (process.env.REACT_APP_API_URL || '').replace(/\/api\/?$/, '');
+  return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
 };
 
 const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
@@ -89,7 +133,7 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
       const normalized: SectionMedia = {
         id: candidate.id || candidate._id || generateMediaId(),
         type: normalizedType,
-        url: candidate.url || (candidate as unknown as { path?: string }).path || '',
+        url: getMediaUrl(candidate.url || (candidate as unknown as { path?: string }).path),
         originalName: candidate.originalName || candidate.name || '',
         transcript: typeof candidate.transcript === 'string' ? candidate.transcript : undefined
       };
@@ -102,527 +146,239 @@ const normalizeMediaBlocks = (blocks: unknown): SectionMedia[] => {
 const sanitizeSections = (sections: PracticeSection[] = []): PracticeSection[] => {
   return sections.map((section) => ({
     ...section,
+    audio: getMediaUrl(section.audio),
+    image: getMediaUrl(section.image),
     mediaBlocks: normalizeMediaBlocks(section?.mediaBlocks)
   }));
 };
 
-const renderMediaBlock = (block: SectionMedia, key: string | number): ReactNode => {
-  if (!block?.url) {
-    return (
-      <div
-        key={`media-missing-${key}`}
-        className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700"
-      >
-        Media content not found.
-      </div>
-    );
+const isQuestionAnswered = (answer?: PracticeAnswerState | null): boolean => {
+  if (!answer) {
+    return false;
   }
+  const hasMatching = answer.matchingAnswers?.some((pair) => pair.selected && pair.selected.trim().length > 0) ?? false;
+  const hasSelectedOption = (answer.selectedOptions?.length ?? 0) > 0;
+  const hasInput = !!answer.userAnswer && answer.userAnswer.trim().length > 0;
+  return hasSelectedOption || hasInput || hasMatching;
+};
 
-  if (block.type === 'audio') {
-    return (
-      <div key={`media-audio-${key}`} className="rounded-xl border border-blue-100 bg-blue-50/60 p-4 shadow-sm">
-        <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-700">Audio</div>
-        <audio
-          controls
-          controlsList="nodownload"
-          preload="auto"
-          className="w-full"
-          onContextMenu={(event) => event.preventDefault()}
-        >
-          <source src={block.url} />
-          Your browser does not support audio playback.
-        </audio>
-      </div>
-    );
-  }
+const formatTime = (seconds: number) => {
+  if (isNaN(seconds)) return "0:00";
+  const safe = Math.max(seconds, 0);
+  const h = Math.floor(safe / 3600);
+  const m = Math.floor((safe % 3600) / 60);
+  const s = Math.floor(safe % 60);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+};
+
+const AudioPlayer: React.FC<{ src: string; theme?: any }> = React.memo(({ src, theme }) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const onEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
+  const togglePlay = () => {
+    if (!audioRef.current) return;
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!audioRef.current) return;
+    const time = Number(e.target.value);
+    audioRef.current.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  // Default theme fallback if not provided
+  const activeTheme = theme || {
+    isListening: false,
+    button: 'bg-blue-600 hover:bg-blue-700',
+    text: 'text-blue-600',
+    bgLight: 'bg-blue-50',
+  };
+
+  const progressPercent = duration ? (currentTime / duration) * 100 : 0;
 
   return (
-    <figure
-      key={`media-image-${key}`}
-      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-    >
-      <img
-        src={block.url}
-        alt={block.originalName || `Media ${block.id}`}
-        className="h-auto w-full object-contain"
-      />
-      {block.originalName ? (
-        <figcaption className="border-t border-gray-100 px-4 py-2 text-xs text-gray-500">
-          {block.originalName}
-        </figcaption>
-      ) : null}
+    <div className="group relative flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
+      <audio ref={audioRef} src={src} preload="metadata" />
+      
+      <button 
+        onClick={togglePlay}
+        className={clsx(
+          "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95",
+          activeTheme.button
+        )}
+      >
+        {isPlaying ? <PauseIcon className="h-6 w-6" /> : <PlayIcon className="h-6 w-6 ml-0.5" />}
+      </button>
+
+      <div className="flex flex-1 flex-col gap-1.5">
+        <div className="flex justify-between text-xs font-bold text-slate-500">
+          <span className={activeTheme.text}>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+        <div className="relative h-2 w-full rounded-full bg-slate-100">
+          <div 
+            className={clsx("absolute h-full rounded-full transition-all", activeTheme.button)} 
+            style={{ width: `${progressPercent}%` }} 
+          />
+          <input
+            type="range"
+            min="0"
+            max={duration || 0}
+            value={currentTime}
+            onChange={handleSeek}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+          />
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const renderMediaBlock = (block: SectionMedia, key: string | number, theme?: any): ReactNode => {
+  if (!block?.url) return <div key={`missing-${key}`} className="text-xs text-amber-600 p-2 border border-amber-200 bg-amber-50 rounded">Media missing</div>;
+  if (block.type === 'audio') return <div key={`audio-${key}`} className="my-2"><AudioPlayer src={block.url} theme={theme} /></div>;
+
+  return (
+    <figure key={`img-${key}`} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden my-2">
+      <img src={block.url} alt={block.originalName || 'Media'} className="w-full h-auto object-contain" />
     </figure>
   );
 };
 
-const renderPartContent = (passage: string, mediaBlocks: SectionMedia[] = []): ReactNode => {
-  if (!passage) return null;
-  mediaPlaceholderRegex.lastIndex = 0;
+const SelectableParagraph: React.FC<{
+  text: string;
+  index: number;
+  highlights: TextHighlight[];
+  onSelection: (index: number, range: Range, rect: DOMRect, text: string) => void;
+  onHighlightClick: (h: TextHighlight, rect: DOMRect) => void;
+  theme: any;
+}> = React.memo(({ text, index, highlights, onSelection, onHighlightClick, theme }) => {
+  const pRef = useRef<HTMLParagraphElement>(null);
 
-  const nodes: ReactNode[] = [];
-  const mediaMap = new Map<string, SectionMedia>();
-  mediaBlocks.forEach((block) => {
-    if (block?.id) {
-      mediaMap.set(String(block.id), block);
-    }
-  });
+  const handleMouseUp = () => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !pRef.current) return;
+    
+    if (!pRef.current.contains(selection.anchorNode)) return;
 
-  let lastIndex = 0;
-  let key = 0;
-  let match: RegExpExecArray | null;
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+    
+    onSelection(index, range, rect, selection.toString());
+  };
 
-  while ((match = mediaPlaceholderRegex.exec(passage)) !== null) {
-    const textSegment = passage.slice(lastIndex, match.index);
-    if (textSegment) {
-      nodes.push(
-        <p key={`text-${key++}`} className="whitespace-pre-wrap leading-relaxed text-gray-800">
-          {textSegment}
-        </p>
-      );
-    }
+  const renderContent = () => {
+    if (highlights.length === 0) return text;
 
-    const mediaId = match[1]?.trim();
-    if (mediaId) {
-      const block = mediaMap.get(mediaId);
-      if (block) {
-        nodes.push(renderMediaBlock(block, key++));
-      } else {
+    const sorted = [...highlights].sort((a, b) => a.startOffset - b.startOffset);
+    const nodes: ReactNode[] = [];
+    let lastIndex = 0;
+
+    sorted.forEach((h) => {
+      const start = Math.max(h.startOffset, lastIndex);
+      const end = Math.min(h.endOffset, text.length);
+
+      if (start > lastIndex) {
+        nodes.push(text.slice(lastIndex, start));
+      }
+      
+      if (end > start) {
         nodes.push(
-          <p key={`missing-${key++}`} className="text-xs text-amber-600">
-            Media with code {mediaId} is not available.
-          </p>
+          <span 
+            key={h.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              onHighlightClick(h, rect);
+            }}
+            className={clsx(
+              "cursor-pointer transition-colors rounded px-0.5 mx-0.5 border-b-2",
+              theme.isListening ? "bg-purple-100 border-purple-300 hover:bg-purple-200" : "bg-yellow-100 border-yellow-300 hover:bg-yellow-200"
+            )}
+            title={h.note}
+          >
+            {text.slice(start, end)}
+          </span>
         );
       }
+      lastIndex = Math.max(lastIndex, end);
+    });
+
+    if (lastIndex < text.length) {
+      nodes.push(text.slice(lastIndex));
     }
-
-    lastIndex = match.index + match[0].length;
-  }
-
-  const tail = passage.slice(lastIndex);
-  if (tail) {
-    nodes.push(
-      <p key={`text-${key++}`} className="whitespace-pre-wrap leading-relaxed text-gray-800">
-        {tail}
-      </p>
-    );
-  }
-
-  return nodes;
-};
-
-interface SectionPanelProps {
-  section: PracticeSection | null;
-  panelHeight: number;
-  hasPrevSection: boolean;
-  hasNextSection: boolean;
-  onPrevSection: () => void;
-  onNextSection: () => void;
-}
-
-const formatSectionTitle = (title?: string | null): string => {
-  if (!title) return 'Current part';
-  return title.replace(/^passage\b/i, 'Part');
-};
-
-const SectionPanel: React.FC<SectionPanelProps> = ({
-  section,
-  panelHeight,
-  hasPrevSection,
-  hasNextSection,
-  onPrevSection,
-  onNextSection
-}) => {
-  const panelStyle = { minHeight: 420, height: panelHeight > 0 ? panelHeight : 'auto' };
+    return nodes;
+  };
 
   return (
-    <div
-      className="flex flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white/98 shadow-xl shadow-slate-200/60"
-      style={panelStyle}
-      data-lenis-prevent
-    >
-      <div className="border-b border-slate-200/80 px-6 py-4">
-        <div className="text-sm font-semibold text-slate-900 truncate">
-          {formatSectionTitle(section?.title)}
-        </div>
-      </div>
-
-      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: 'thin' }}>
-        {section?.passage ? (
-          <div className="prose prose-sm max-w-none text-slate-800">
-            {renderPartContent(section.passage, section.mediaBlocks || [])}
-          </div>
-        ) : section?.mediaBlocks && section.mediaBlocks.length ? (
-          <div className="space-y-4">
-            {section.mediaBlocks.map((block, index) => renderMediaBlock(block, block.id || index))}
-          </div>
-        ) : (
-          <p className="text-sm italic text-slate-500">No content for this part.</p>
-        )}
-
-        {section?.audio ? (
-          <div>
-            <audio
-              controls
-              controlsList="nodownload"
-              preload="auto"
-              className="w-full"
-              onContextMenu={(event) => event.preventDefault()}
-            >
-              <source src={section.audio} type="audio/mpeg" />
-              Your browser does not support audio playback.
-            </audio>
-          </div>
-        ) : null}
-
-        {section?.image ? (
-          <div>
-            <img
-              src={section.image}
-              alt={formatSectionTitle(section?.title) || 'Section illustration'}
-              className="w-full max-h-64 rounded-lg border border-gray-200 object-cover"
-            />
-          </div>
-        ) : null}
-      </div>
-      <div className="border-t border-slate-200/80 bg-slate-50/80 px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Button variant="outline" size="sm" onClick={onPrevSection} disabled={!hasPrevSection}>
-            Previous part
-          </Button>
-          <Button variant="primary" size="sm" onClick={onNextSection} disabled={!hasNextSection}>
-            Next part
-          </Button>
-        </div>
-      </div>
-    </div>
+    <p ref={pRef} onMouseUp={handleMouseUp} className="whitespace-pre-wrap leading-relaxed text-slate-700 relative">
+      {renderContent()}
+    </p>
   );
-};
+});
 
-interface SectionQuestion {
-  question: PracticeQuestion;
-  globalIndex: number;
-}
-
-interface QuestionNavigatorProps {
-  questions: PracticeQuestion[];
-  answers: PracticeAnswerState[];
-  currentQuestionIndex: number;
-  onSelect: (index: number) => void;
-  className?: string;
-  gridClassName?: string;
-  showLegend?: boolean;
-  inline?: boolean;
-  questionIndices?: number[];
-  totalQuestions: number;
-}
-
-const QuestionNavigator: React.FC<QuestionNavigatorProps> = ({
-  questions,
-  answers,
-  currentQuestionIndex,
-  onSelect,
-  className,
-  gridClassName,
-  showLegend = true,
-  inline = false,
-  questionIndices,
-  totalQuestions
-}) => {
-  const containerClass = [inline ? 'flex flex-wrap items-center gap-2' : 'space-y-3', className]
-    .filter(Boolean)
-    .join(' ');
-  const baseGridClass = inline ? 'flex flex-wrap gap-2' : 'grid gap-2';
-  const columnClass = inline ? '' : gridClassName || 'grid-cols-5';
-  const composedGridClass = [baseGridClass, columnClass].filter(Boolean).join(' ');
-
-  const sourceQuestions = questions.length ? questions : new Array(totalQuestions).fill(null);
-
+const PassageRenderer: React.FC<{
+  passage: string;
+  mediaBlocks: SectionMedia[];
+  highlights: TextHighlight[];
+  onSelection: (index: number, range: Range, rect: DOMRect, text: string) => void;
+  onHighlightClick: (h: TextHighlight, rect: DOMRect) => void;
+  theme: any;
+}> = ({ passage, mediaBlocks, highlights, onSelection, onHighlightClick, theme }) => {
+  const mediaMap = useMemo(() => new Map(mediaBlocks.map(b => [String(b.id), b])), [mediaBlocks]);
+  if (!passage) return null;
+  
   return (
-    <div className={containerClass}>
-      <div className={composedGridClass}>
-        {sourceQuestions.map((_, index) => {
-          const targetIndex = questionIndices ? questionIndices[index] : index;
-          const answer = answers[targetIndex] ?? answers[index];
-          const answered = isQuestionAnswered(answer);
-          const isCurrent = targetIndex === currentQuestionIndex;
-          const displayNumber = targetIndex + 1;
-
+    <>
+      {passage.split(mediaPlaceholderRegex).map((part, i) => {
+        if (i % 2 === 0) {
+          // Text part
+          const paragraphIndex = Math.floor(i / 2);
+          const relevantHighlights = highlights.filter(h => h.paragraphIndex === paragraphIndex);
           return (
-            <button
-              key={index}
-              onClick={() => onSelect(targetIndex)}
-              className={`flex h-8 w-8 items-center justify-center rounded-md border text-[11px] font-semibold shadow-sm transition ${
-                isCurrent
-                  ? 'border-blue-600 bg-blue-600 text-white shadow'
-                  : answered
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                  : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
-              }`}
-              aria-label={`Question ${displayNumber}${answered ? ' answered' : ''}`}
-            >
-              {displayNumber}
-            </button>
+            <SelectableParagraph 
+              key={i} 
+              text={part} 
+              index={paragraphIndex}
+              highlights={relevantHighlights}
+              onSelection={onSelection}
+              onHighlightClick={onHighlightClick}
+              theme={theme}
+            />
           );
-        })}
-      </div>
-
-      {showLegend && !inline ? (
-        <div className="flex flex-wrap gap-4 text-[11px] text-slate-500">
-          <div className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm bg-blue-600" />
-            Current
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm border border-emerald-500 bg-emerald-300" />
-            Answered
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm border border-slate-300 bg-slate-200" />
-            Not answered
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-};
-
-interface QuestionPanelProps {
-  sectionQuestions: SectionQuestion[];
-  answers: PracticeAnswerState[];
-  panelHeight: number;
-  currentQuestionIndex: number;
-  totalQuestions: number;
-  onFocusQuestion: (index: number) => void;
-  onPrevQuestion: () => void;
-  onNextQuestion: () => void;
-  onAnswerChange: (index: number, partial: Partial<PracticeAnswerState>) => void;
-}
-
-const QuestionPanel: React.FC<QuestionPanelProps> = ({
-  sectionQuestions,
-  answers,
-  panelHeight,
-  currentQuestionIndex,
-  totalQuestions,
-  onFocusQuestion,
-  onPrevQuestion,
-  onNextQuestion,
-  onAnswerChange
-}) => {
-  const panelStyle = { minHeight: 420, height: panelHeight > 0 ? panelHeight : 'auto' };
-  const sectionQuestionTotal = sectionQuestions.length;
-  const sectionAnsweredCount = sectionQuestions.reduce((count, { globalIndex }) => {
-    return count + (isQuestionAnswered(answers[globalIndex]) ? 1 : 0);
-  }, 0);
-
-  return (
-    <div
-      className="flex flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white/98 shadow-xl shadow-slate-200/60"
-      style={panelStyle}
-      data-lenis-prevent
-    >
-      <div className="border-b border-slate-200/80 bg-slate-50/80 px-6 py-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="text-sm font-semibold text-slate-900">Questions in this part</div>
-          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-            <span>
-              Answered {sectionAnsweredCount}/{sectionQuestionTotal || 0}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5" style={{ scrollbarWidth: 'thin' }}>
-        {sectionQuestions.length === 0 ? (
-          <div className="text-sm text-slate-500">No questions for this section.</div>
-        ) : (
-          sectionQuestions.map(({ question, globalIndex }) => {
-            const answer =
-              answers[globalIndex] ?? {
-                selectedOptions: [],
-                userAnswer: '',
-                matchingAnswers: []
-              };
-            const allowMultiple = question.allowMultiple ?? false;
-            const isCurrent = globalIndex === currentQuestionIndex;
-
-            return (
-              <div
-                key={question._id || globalIndex}
-                id={`question-${globalIndex}`}
-                className={`rounded-2xl border bg-white shadow-sm transition ${
-                  isCurrent
-                    ? 'border-blue-400 ring-2 ring-blue-100 shadow-md'
-                    : 'border-slate-200 hover:border-blue-200/70'
-                }`}
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-blue-100/70 bg-blue-50/60 px-5 py-4">
-                  <div className="text-base font-semibold leading-relaxed text-gray-900">
-                    <span>{`Question ${question.questionNumber ?? globalIndex + 1}: `}</span>
-                    <span className="font-normal whitespace-pre-wrap text-slate-700">{question.content}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-4 px-5 py-5">
-                  {question.type === 'multi_choice' ? (
-                    <div className="flex flex-col gap-2">
-                      {question.options?.map((option, optionIndex) => {
-                        const selected = answer.selectedOptions.includes(option.text);
-                        const selectedClass = allowMultiple
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
-                          : 'border-blue-600 bg-blue-600 text-white shadow-md';
-                        const unselectedClass = allowMultiple
-                          ? 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50'
-                          : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200/70 hover:bg-blue-50/40';
-
-                        return (
-                          <button
-                            key={optionIndex}
-                            type="button"
-                            onClick={() => {
-                              let newSelected: string[];
-                              if (allowMultiple) {
-                                newSelected = selected
-                                  ? answer.selectedOptions.filter((item) => item !== option.text)
-                                  : Array.from(new Set([...answer.selectedOptions, option.text]));
-                              } else {
-                                newSelected = selected ? [] : [option.text];
-                              }
-                              onAnswerChange(globalIndex, {
-                                selectedOptions: newSelected,
-                                userAnswer: allowMultiple ? newSelected.join(', ') : '',
-                                matchingAnswers: answer.matchingAnswers ?? []
-                              });
-                              onFocusQuestion(globalIndex);
-                            }}
-                            className={`relative flex w-full items-start gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium shadow-sm transition ${
-                              selected ? selectedClass : unselectedClass
-                            }`}
-                          >
-                            {allowMultiple ? (
-                              <span
-                                className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border text-[11px] font-semibold ${
-                                  selected ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-transparent'
-                                }`}
-                                aria-hidden
-                              >
-                                <Check className="h-3 w-3" aria-hidden="true" />
-                              </span>
-                            ) : (
-                              <span
-                                className={`mt-0.5 inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-bold ${
-                                  selected
-                                    ? 'border-blue-600 bg-white text-blue-600'
-                                    : 'border-slate-300 bg-slate-100 text-slate-500'
-                                }`}
-                              >
-                                {String.fromCharCode(65 + optionIndex)}
-                              </span>
-                            )}
-                            <span className="flex-1 leading-relaxed">{option.text}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-
-                  {question.type === 'dropdown' ? (
-                    <div className="space-y-2">
-                      <select
-                        value={answer.selectedOptions[0] || ''}
-                        onChange={(event) => {
-                          onAnswerChange(globalIndex, {
-                            selectedOptions: event.target.value ? [event.target.value] : [],
-                            userAnswer: '',
-                            matchingAnswers: answer.matchingAnswers ?? []
-                          });
-                          onFocusQuestion(globalIndex);
-                        }}
-                        className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
-                      >
-                        <option value="">Select an answer...</option>
-                        {question.options?.map((option, optionIndex) => (
-                          <option key={optionIndex} value={option.text}>
-                            {option.text}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : null}
-
-                  {question.type === 'short_answer' ? (
-                    <div>
-                      <input
-                        value={answer.userAnswer || ''}
-                        onChange={(event) => {
-                          onAnswerChange(globalIndex, {
-                            selectedOptions: [],
-                            userAnswer: event.target.value,
-                            matchingAnswers: answer.matchingAnswers ?? []
-                          });
-                          onFocusQuestion(globalIndex);
-                        }}
-                        placeholder="Enter your answer..."
-                        className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
-                        type="text"
-                      />
-                    </div>
-                  ) : null}
-
-                  {question.type === 'matching' ? (
-                    <div className="space-y-3">
-                      {(question.matchingPairs || []).map((pair, pairIndex) => {
-                        const current =
-                          answer.matchingAnswers?.find((candidate) => candidate.prompt === pair.prompt)?.selected || '';
-                        return (
-                          <div key={pairIndex} className="space-y-1">
-                            <div className="text-sm font-medium text-slate-700">{pair.prompt}</div>
-                            <input
-                              value={current}
-                              onChange={(event) => {
-                                const updatedPairs = (question.matchingPairs || []).map((candidate) => {
-                                  const prevSelected =
-                                    answer.matchingAnswers?.find((ans) => ans.prompt === candidate.prompt)?.selected || '';
-                                  if (candidate.prompt === pair.prompt) {
-                                    return { prompt: candidate.prompt, selected: event.target.value };
-                                  }
-                                  return { prompt: candidate.prompt, selected: prevSelected };
-                                });
-                                onAnswerChange(globalIndex, {
-                                  matchingAnswers: updatedPairs,
-                                  selectedOptions: answer.selectedOptions,
-                                  userAnswer: answer.userAnswer
-                                });
-                                onFocusQuestion(globalIndex);
-                              }}
-                              className="w-full rounded-lg border border-slate-300 bg-white p-3 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-2 focus:ring-blue-400/60"
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200/80 bg-slate-50/80 px-6 py-4">
-        <Button variant="outline" size="sm" onClick={onPrevQuestion} disabled={currentQuestionIndex === 0}>
-          Previous question
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onNextQuestion}
-          disabled={currentQuestionIndex >= totalQuestions - 1}
-        >
-          Next question
-        </Button>
-      </div>
-    </div>
+        }
+        const block = mediaMap.get(part.trim());
+        return block ? renderMediaBlock(block, i, theme) : null;
+      })}
+    </>
   );
 };
 
@@ -644,11 +400,137 @@ const PracticeTakePage: React.FC = () => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [panelHeight, setPanelHeight] = useState<number>(0);
+  
+  // --- Highlight & Note State ---
+  const [highlights, setHighlights] = useState<TextHighlight[]>([]);
+  const [selectionToolbar, setSelectionToolbar] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    range: Range | null;
+    paragraphIndex: number;
+    text: string;
+  } | null>(null);
+  const [noteModal, setNoteModal] = useState<{
+    visible: boolean;
+    highlight: TextHighlight | null;
+    x: number;
+    y: number;
+  } | null>(null);
 
-  const gridRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const startedAtRef = useRef<Date | null>(null);
+  const deadlineRef = useRef<number | null>(null);
+
+  const theme = useMemo(() => getTheme(practice?.skill), [practice?.skill]);
+
+  // Load highlights
+  useEffect(() => {
+    if (!practiceId) return;
+    const saved = localStorage.getItem(`practice_notes_${practiceId}`);
+    if (saved) {
+      try {
+        setHighlights(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load notes", e);
+      }
+    }
+  }, [practiceId]);
+
+  // Save highlights
+  useEffect(() => {
+    if (!practiceId) return;
+    localStorage.setItem(`practice_notes_${practiceId}`, JSON.stringify(highlights));
+  }, [highlights, practiceId]);
+
+  // Clear selection when clicking elsewhere
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (selectionToolbar?.visible) {
+        const target = e.target as HTMLElement;
+        if (!target.closest('.selection-toolbar')) {
+          setSelectionToolbar(null);
+          window.getSelection()?.removeAllRanges();
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [selectionToolbar]);
+
+  const handleSelection = useCallback((index: number, range: Range, rect: DOMRect, text: string) => {
+    setSelectionToolbar({
+      visible: true,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 8,
+      range,
+      paragraphIndex: index,
+      text
+    });
+  }, []);
+
+  const handleHighlightClick = useCallback((h: TextHighlight, rect: DOMRect) => {
+    setNoteModal({
+      visible: true,
+      highlight: h,
+      x: rect.left + rect.width / 2,
+      y: rect.bottom + 4
+    });
+    setSelectionToolbar(null);
+  }, []);
+
+  const addHighlight = useCallback((withNote: boolean = false) => {
+    if (!selectionToolbar || !selectionToolbar.range) return;
+    const { paragraphIndex, range, text } = selectionToolbar;
+    
+    let startOffset = 0;
+    let endOffset = 0;
+    
+    let node: Node | null = range.startContainer;
+    while (node && node.nodeName !== 'P') {
+      node = node.parentNode;
+    }
+    
+    if (node) {
+      const preCaretRange = range.cloneRange();
+      preCaretRange.selectNodeContents(node);
+      preCaretRange.setEnd(range.startContainer, range.startOffset);
+      startOffset = preCaretRange.toString().length;
+      endOffset = startOffset + text.length;
+    }
+
+    const newHighlight: TextHighlight = {
+      id: Math.random().toString(36).slice(2),
+      paragraphIndex,
+      startOffset,
+      endOffset,
+      text,
+      color: 'theme',
+      note: ''
+    };
+
+    setHighlights(prev => [...prev, newHighlight]);
+    setSelectionToolbar(null);
+    window.getSelection()?.removeAllRanges();
+
+    if (withNote) {
+      setNoteModal({
+        visible: true,
+        highlight: newHighlight,
+        x: selectionToolbar.x,
+        y: selectionToolbar.y + 10
+      });
+    }
+  }, [selectionToolbar]);
+
+  const updateHighlightNote = useCallback((id: string, note: string) => {
+    setHighlights(prev => prev.map(h => h.id === id ? { ...h, note } : h));
+  }, []);
+
+  const deleteHighlight = useCallback((id: string) => {
+    setHighlights(prev => prev.filter(h => h.id !== id));
+    setNoteModal(null);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -677,27 +559,6 @@ const PracticeTakePage: React.FC = () => {
     };
   }, []);
 
-  const updatePanelHeight = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (!gridRef.current || window.innerWidth < 1024) {
-      setPanelHeight(0);
-      return;
-    }
-
-    const { top } = gridRef.current.getBoundingClientRect();
-    const safeTop = Math.max(top, 0);
-    const available = Math.max(420, Math.floor(window.innerHeight - safeTop - 32));
-    setPanelHeight(available);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('resize', updatePanelHeight);
-    return () => window.removeEventListener('resize', updatePanelHeight);
-  }, [updatePanelHeight]);
-
   const fetchPracticeDetail = useCallback(async () => {
     if (!practiceId) {
       toast.error('Practice ID not found.');
@@ -708,7 +569,8 @@ const PracticeTakePage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = (await getPracticeForLearner(practiceId)) as PracticeDetailResponse;
+      // Request randomization from backend (randomize=true)
+      const response = (await getPracticeForLearner(practiceId, true)) as PracticeDetailResponse;
       const fetchedPractice = response?.practice;
 
       if (!fetchedPractice) {
@@ -718,17 +580,74 @@ const PracticeTakePage: React.FC = () => {
       }
 
       const sanitizedSections = sanitizeSections(fetchedPractice.sections || []);
-      const normalizedQuestions = fetchedPractice.questions || [];
+      let normalizedQuestions = fetchedPractice.questions || [];
+
+      // --- Randomization & Persistence Logic ---
+      const orderKey = `practice_order_${practiceId}`;
+      const progressKey = `practice_progress_${practiceId}`;
+      
+      const savedOrder = localStorage.getItem(orderKey);
+      const savedProgress = localStorage.getItem(progressKey);
+
+      // 1. Handle Question Order
+      if (savedOrder) {
+        try {
+          const orderIds = JSON.parse(savedOrder);
+          const qMap = new Map(normalizedQuestions.map((q) => [q._id, q]));
+          const orderedQuestions = orderIds
+            .map((id: string) => qMap.get(id))
+            .filter((q: any) => q !== undefined);
+          
+          if (orderedQuestions.length === normalizedQuestions.length) {
+            // Restore the saved order (overriding the new random order from backend)
+            normalizedQuestions = orderedQuestions;
+          } else {
+            // Mismatch (maybe content changed), use the new backend order and save it
+            localStorage.setItem(orderKey, JSON.stringify(normalizedQuestions.map((q) => q._id)));
+          }
+        } catch (e) {
+          console.error('Failed to restore question order', e);
+          // Fallback: use backend order and save it
+          localStorage.setItem(orderKey, JSON.stringify(normalizedQuestions.map((q) => q._id)));
+        }
+      } else {
+        // First time load: Use the backend's randomized order and save it
+        localStorage.setItem(orderKey, JSON.stringify(normalizedQuestions.map((q) => q._id)));
+      }
 
       setPractice({ ...fetchedPractice, sections: sanitizedSections, questions: normalizedQuestions });
-      setAnswers(normalizedQuestions.map((question) => buildDefaultAnswer(question)));
-      setCurrentQuestionIndex(0);
-
+      
+      // 2. Handle Progress & Timer
+      let initialAnswers = normalizedQuestions.map((question) => buildDefaultAnswer(question));
       const limitSeconds = Math.max(Number(fetchedPractice.estimatedTime ?? 0), 0) * 60;
-      setTimeRemaining(limitSeconds);
-      startedAtRef.current = new Date();
+      let deadline = Date.now() + limitSeconds * 1000;
+      let initialTimeRemaining = limitSeconds;
 
-      setTimeout(updatePanelHeight, 100);
+      if (savedProgress) {
+        try {
+          const parsed = JSON.parse(savedProgress);
+          if (parsed.answers && Array.isArray(parsed.answers) && parsed.answers.length === normalizedQuestions.length) {
+            initialAnswers = parsed.answers;
+          }
+          if (typeof parsed.deadline === 'number') {
+            deadline = parsed.deadline;
+            initialTimeRemaining = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+          }
+        } catch (e) {
+          console.error('Failed to parse saved progress', e);
+        }
+      } else {
+        // Save initial state
+        localStorage.setItem(progressKey, JSON.stringify({ answers: initialAnswers, deadline }));
+      }
+
+      setAnswers(initialAnswers);
+      setCurrentQuestionIndex(0);
+      setTimeRemaining(initialTimeRemaining);
+      
+      startedAtRef.current = new Date(); 
+      deadlineRef.current = deadline;
+
     } catch (error) {
       console.error('Unable to load practice detail:', error);
       toast.error('Unable to load the practice. Please try again later.');
@@ -736,11 +655,23 @@ const PracticeTakePage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [practiceId, updatePanelHeight]);
+  }, [practiceId]);
 
   useEffect(() => {
     fetchPracticeDetail();
   }, [fetchPracticeDetail]);
+
+  // --- Persist Progress on Answer Change ---
+  useEffect(() => {
+    if (!practice || isLoading || !practiceId) return;
+    
+    const progressKey = `practice_progress_${practiceId}`;
+    const payload = {
+      answers,
+      deadline: deadlineRef.current
+    };
+    localStorage.setItem(progressKey, JSON.stringify(payload));
+  }, [answers, practice, practiceId, isLoading]);
 
   useEffect(() => {
     if (!practice) {
@@ -812,30 +743,6 @@ const PracticeTakePage: React.FC = () => {
     [practice]
   );
 
-  const nextQuestion = useCallback(() => {
-    if (!practice) {
-      return;
-    }
-    setCurrentQuestionIndex((index) => Math.min(index + 1, practice.questions.length - 1));
-  }, [practice]);
-
-  const prevQuestion = useCallback(() => {
-    setCurrentQuestionIndex((index) => Math.max(index - 1, 0));
-  }, []);
-
-  const formatTime = useCallback((seconds: number) => {
-    const safe = Math.max(seconds, 0);
-    const hours = Math.floor(safe / 3600);
-    const minutes = Math.floor((safe % 3600) / 60);
-    const secs = safe % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
-
-    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }, []);
-
   useEffect(() => {
     if (!isLoading && practice) {
       const element = document.getElementById(`question-${currentQuestionIndex}`);
@@ -844,20 +751,6 @@ const PracticeTakePage: React.FC = () => {
       }
     }
   }, [currentQuestionIndex, isLoading, practice]);
-
-  useEffect(() => {
-    if (!isLoading) {
-      setTimeout(updatePanelHeight, 50);
-    }
-  }, [currentQuestionIndex, isLoading, updatePanelHeight]);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []);
 
   const totalQuestions = practice?.questions.length ?? 0;
   const sections = practice?.sections ?? EMPTY_SECTIONS;
@@ -1000,15 +893,13 @@ const PracticeTakePage: React.FC = () => {
           throw new Error('The server did not return a valid attempt identifier.');
         }
 
-        // Cập nhật tiến độ roadmap sau khi hoàn thành practice
         try {
           await updateRoadmapProgress({
             type: 'practice',
             itemId: practiceId
           });
         } catch (err) {
-          // Không hiển thị lỗi nếu user không có roadmap
-          console.log('Không cập nhật roadmap progress:', err);
+          // Silent roadmap progress update failure
         }
 
         if (isAutoSubmit) {
@@ -1016,6 +907,11 @@ const PracticeTakePage: React.FC = () => {
         } else {
           toast.success('Practice submitted successfully!');
         }
+
+        // Clear persistence
+        localStorage.removeItem(`practice_order_${practiceId}`);
+        localStorage.removeItem(`practice_progress_${practiceId}`);
+        localStorage.removeItem(`practice_notes_${practiceId}`);
 
         navigate(`/practice/attempts/${attemptId}`, { state: { practiceId } });
       } catch (error) {
@@ -1063,6 +959,39 @@ const PracticeTakePage: React.FC = () => {
     await handleSubmit(false);
   }, [handleSubmit, isSubmitting, practice]);
 
+  const handleExit = useCallback(async () => {
+    if (!practice) {
+      if (practiceId) {
+        navigate(`/practice/${practiceId}`);
+      } else {
+        navigate('/practice');
+      }
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: 'Are you sure you want to exit?',
+      text: 'Your progress and answers will be lost if you exit now.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Exit',
+      cancelButtonText: 'Stay',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#2563eb',
+      reverseButtons: true,
+    });
+
+    if (result.isConfirmed) {
+      // Clear persistence on exit
+      if (practiceId) {
+        localStorage.removeItem(`practice_order_${practiceId}`);
+        localStorage.removeItem(`practice_progress_${practiceId}`);
+        localStorage.removeItem(`practice_notes_${practiceId}`);
+      }
+      navigate(`/practice/${practiceId}`);
+    }
+  }, [navigate, practice, practiceId]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -1078,7 +1007,7 @@ const PracticeTakePage: React.FC = () => {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50">
         <div className="max-w-lg rounded-2xl border border-red-100 bg-white p-8 text-center shadow-2xl" data-aos="zoom-in">
-          <XCircle className="mx-auto mb-6 h-20 w-20 text-red-500" aria-hidden="true" />
+          <XCircleIcon className="mx-auto mb-6 h-20 w-20 text-red-500" aria-hidden="true" />
           <h1 className="mb-4 text-3xl font-bold text-transparent bg-gradient-to-r from-red-600 to-orange-600 bg-clip-text">
             Practice not found
           </h1>
@@ -1090,7 +1019,7 @@ const PracticeTakePage: React.FC = () => {
             className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4 font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:from-blue-700 hover:to-purple-700"
           >
             <span className="mr-2 inline-flex items-center justify-center">
-              <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+              <ArrowLeftIcon className="h-5 w-5" aria-hidden="true" />
             </span>
             Back to practice list
           </button>
@@ -1099,18 +1028,33 @@ const PracticeTakePage: React.FC = () => {
     );
   }
 
+  const sectionQuestionTotal = sectionQuestions.length;
+
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-slate-100 via-white to-blue-50/80">
-      <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl shadow-sm">
-        <div className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-12">
-          <div className="space-y-1">
-            <h1 className="text-lg font-semibold leading-tight text-slate-900">{practice.title}</h1>
+    <div className="h-screen flex flex-col bg-slate-50 font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+      {/* --- HEADER --- */}
+      <header className="shrink-0 z-40 border-b border-white/50 bg-white/80 backdrop-blur-md shadow-sm transition-all duration-300">
+        <div className="flex w-full flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={handleExit} className="text-slate-500 hover:text-slate-900">
+              <ArrowLeftIcon className="h-5 w-5" />
+            </Button>
+            <div className="flex flex-col">
+              <div className={clsx("flex items-center gap-2 text-xs font-bold uppercase tracking-wider", theme.text)}>
+                {theme.isListening ? <SpeakerWaveIcon className="h-3.5 w-3.5" /> : <DocumentTextIcon className="h-3.5 w-3.5" />}
+                {practice.skill}
+              </div>
+              <h1 className="text-lg font-bold text-slate-900 leading-tight truncate max-w-xs sm:max-w-md">
+                {practice.title}
+              </h1>
+            </div>
           </div>
-          {totalQuestions > 0 ? (
-            <div className="flex-1 min-w-[260px] max-w-full">
-              <div className="flex flex-col items-center gap-2">
+
+          {sectionQuestionTotal > 0 ? (
+            <div className="hidden md:flex flex-1 justify-center">
+              <div className="flex flex-col items-center gap-1">
                 <QuestionNavigator
-                  className="w-full justify-center"
+                  className="justify-center"
                   questions={sectionNavigatorQuestions}
                   answers={sectionNavigatorAnswers}
                   currentQuestionIndex={currentQuestionIndex}
@@ -1118,84 +1062,414 @@ const PracticeTakePage: React.FC = () => {
                   showLegend={false}
                   inline
                   questionIndices={sectionNavigatorIndices}
-                  totalQuestions={totalQuestions}
+                  theme={theme}
                 />
-                <div className="flex flex-wrap items-center justify-center gap-4 text-[11px] text-slate-500">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm bg-blue-600" />
-                    Current
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm border border-emerald-500 bg-emerald-300" />
-                    Answered
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="inline-block h-2.5 w-2.5 rounded-sm border border-slate-300 bg-slate-200" />
-                    Not answered
-                  </span>
-                </div>
               </div>
             </div>
           ) : null}
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-3 sm:gap-4">
-            <div className="flex items-center gap-2 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 via-white to-blue-100 px-4 py-2 font-mono text-base font-semibold text-blue-600 shadow-inner">
-              <Clock className="h-4 w-4 text-blue-500" aria-hidden />
-              <span>{formatTime(timeRemaining)}</span>
+
+          <div className="flex shrink-0 items-center gap-3">
+            <div className={clsx("flex items-center gap-2 rounded-full border bg-white px-4 py-2 shadow-sm", theme.border)}>
+              <ClockIcon className={clsx("h-4 w-4", theme.text)} aria-hidden="true" />
+              <span className={clsx("font-mono text-base font-bold", theme.textDark)}>{formatTime(timeRemaining)}</span>
             </div>
             <Button
               onClick={handleManualSubmit}
               disabled={isSubmitting}
-              variant="danger"
+              className={clsx("rounded-full text-white shadow-lg border-none px-6 bg-gradient-to-r", theme.gradient, theme.shadow)}
               size="md"
               loading={isSubmitting}
-              className="text-sm font-semibold"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
+              {isSubmitting ? 'Submitting...' : 'Submit Now'}
             </Button>
           </div>
         </div>
-        <div className="w-full px-4 sm:px-6 lg:px-12">
-          <div className="relative h-1 w-full overflow-hidden rounded-full bg-slate-200/70">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-100 opacity-50" />
-            <div
-              className="relative h-full rounded-r-full bg-gradient-to-r from-blue-600 via-indigo-500 to-blue-600 shadow-sm transition-all duration-300"
-              style={{ width: `${((currentQuestionIndex + 1) / Math.max(totalQuestions, 1)) * 100}%` }}
-            />
-          </div>
+
+        {/* Progress Bar */}
+        <div className="w-full h-1 bg-slate-100">
+          <div
+            className={clsx("h-full bg-gradient-to-r transition-all duration-500 ease-out", theme.gradient)}
+            style={{ width: `${((currentQuestionIndex + 1) / Math.max(totalQuestions, 1)) * 100}%` }}
+          />
         </div>
       </header>
 
-      <main className="flex-1 w-full">
-        <div className="mx-auto flex h-full w-full max-w-none px-4 pt-6 sm:px-6 lg:px-12">
-          <div
-            ref={gridRef}
-            className="grid h-full w-full grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:gap-8"
-          >
-            <SectionPanel
-              section={currentSection}
-              panelHeight={panelHeight}
-              hasPrevSection={hasPrevSection}
-              hasNextSection={hasNextSection}
-              onPrevSection={goToPreviousSection}
-              onNextSection={goToNextSection}
-            />
+      <main className="flex-1 min-h-0 w-full max-w-none mx-auto p-0 relative">
+        <div
+          className="grid h-full w-full grid-cols-1 lg:grid-cols-2 gap-0 pb-14"
+        >
+          {/* Left Panel: Passage / Media */}
+          <SectionPanel 
+            section={currentSection}
+            sectionIndex={currentSectionIndex}
+            hasPrevSection={hasPrevSection}
+            hasNextSection={hasNextSection}
+            onPrevSection={goToPreviousSection}
+            onNextSection={goToNextSection}
+            theme={theme}
+            highlights={highlights}
+            onSelection={handleSelection}
+            onHighlightClick={handleHighlightClick}
+          />
 
-            <QuestionPanel
-              sectionQuestions={sectionQuestions}
-              answers={answers}
-              panelHeight={panelHeight}
-              currentQuestionIndex={currentQuestionIndex}
-              totalQuestions={totalQuestions}
-              onFocusQuestion={setCurrentQuestionIndex}
-              onPrevQuestion={prevQuestion}
-              onNextQuestion={nextQuestion}
-              onAnswerChange={handleAnswerChange}
+          {/* Right Panel: Questions */}
+          <QuestionPanel 
+            sectionQuestions={sectionQuestions}
+            answers={answers}
+            currentQuestionIndex={currentQuestionIndex}
+            totalQuestions={totalQuestions}
+            onFocusQuestion={setCurrentQuestionIndex}
+            onAnswerChange={handleAnswerChange}
+            theme={theme}
+          />
+        </div>
+      </main>
+
+      {/* Selection Toolbar */}
+      {selectionToolbar?.visible && (
+        <div 
+          className="selection-toolbar fixed z-50 flex items-center gap-1 rounded-full shadow-xl px-3 py-2 -translate-x-1/2 animate-in fade-in zoom-in duration-200 border bg-white"
+          style={{ left: selectionToolbar.x, top: selectionToolbar.y }}
+        >
+          <button onClick={() => addHighlight()} className={clsx("p-2 rounded-full transition-colors hover:bg-slate-100", theme.text)} title="Highlight">
+            <PencilIcon className="w-5 h-5" />
+          </button>
+          <div className="w-px h-5 bg-slate-200 mx-1" />
+          <button onClick={() => addHighlight(true)} className={clsx("p-2 rounded-full transition-colors hover:bg-slate-100", theme.text)} title="Add Note">
+            <ChatBubbleBottomCenterTextIcon className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Note Modal */}
+      {noteModal?.visible && noteModal.highlight && (
+        <div 
+          className={clsx("fixed z-50 w-64 rounded-xl shadow-xl border -translate-x-1/2 animate-in fade-in zoom-in duration-200 bg-white", theme.border)}
+          style={{ left: noteModal.x, top: noteModal.y }}
+        >
+          <div className={clsx("flex items-center justify-between px-3 py-2 border-b rounded-t-xl", theme.bgLight, theme.border)}>
+            <span className={clsx("text-xs font-bold flex items-center gap-1", theme.textDark)}>
+              <DocumentTextIcon className="w-3 h-3" /> Note
+            </span>
+            <div className="flex items-center gap-1">
+              <button onClick={() => deleteHighlight(noteModal.highlight!.id)} className={clsx("p-1 rounded transition-colors", theme.buttonLight)}>
+                <TrashIcon className="w-3 h-3" />
+              </button>
+              <button onClick={() => setNoteModal(null)} className={clsx("p-1 rounded transition-colors", theme.buttonLight)}>
+                <XMarkIcon className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+          <div className="p-3">
+            <textarea 
+              autoFocus
+              className="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 resize-none outline-none min-h-[80px]"
+              placeholder="Add your note here..."
+              value={noteModal.highlight.note}
+              onChange={(e) => updateHighlightNote(noteModal.highlight!.id, e.target.value)}
             />
           </div>
         </div>
-      </main>
+      )}
+
+      {/* --- BOTTOM PART NAVIGATION (Docked) --- */}
+      <div className="absolute bottom-0 left-0 w-full z-50 bg-white/90 backdrop-blur-xl border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <div className="flex items-center justify-center gap-2 p-2 overflow-x-auto no-scrollbar">
+          {sections.map((section, idx) => {
+            const isActive = currentSectionIndex === idx;
+            return (
+              <button
+                key={idx}
+                onClick={() => {
+                  const sectionId = normalizeId(section._id);
+                  const firstQuestionIndex = questions.findIndex((q) => normalizeId(q.sectionId) === sectionId);
+                  if (firstQuestionIndex >= 0) {
+                    goToQuestion(firstQuestionIndex);
+                  }
+                }}
+                className={clsx(
+                  "px-6 py-2 rounded-lg text-sm font-bold transition-all duration-300 whitespace-nowrap flex items-center gap-2",
+                  isActive
+                    ? clsx("text-white shadow-md bg-gradient-to-r", theme.gradient)
+                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                <span>Part {idx + 1}</span>
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };
 
 export default PracticeTakePage;
+
+interface SectionPanelProps {
+  section: PracticeSection | null;
+  sectionIndex: number;
+  hasPrevSection: boolean;
+  hasNextSection: boolean;
+  onPrevSection: () => void;
+  onNextSection: () => void;
+  theme: any;
+  highlights: TextHighlight[];
+  onSelection: (index: number, range: Range, rect: DOMRect, text: string) => void;
+  onHighlightClick: (h: TextHighlight, rect: DOMRect) => void;
+}
+
+function SectionPanel({
+  section, sectionIndex, theme, highlights, onSelection, onHighlightClick
+}: SectionPanelProps) {
+  return (
+    <div
+      className={clsx("flex flex-col overflow-hidden bg-white h-full transition-all duration-300 border-r", theme.border)}
+      data-lenis-prevent
+    >
+      <div className="border-b border-slate-100 px-5 py-3 bg-white/50 backdrop-blur-sm">
+        <div className="text-sm font-bold text-slate-900 truncate flex items-center gap-2">
+          <span className={clsx("px-2 py-0.5 rounded text-[12px] font-black uppercase tracking-wider border", theme.bgLight, theme.text, theme.border)}>
+            PART {sectionIndex + 1}
+          </span>
+          {section?.title}
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        {section?.passage ? (
+          <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-[15px]">
+            <PassageRenderer 
+              passage={section.passage} 
+              mediaBlocks={section.mediaBlocks || []} 
+              highlights={highlights}
+              onSelection={onSelection}
+              onHighlightClick={onHighlightClick}
+              theme={theme}
+            />
+          </div>
+        ) : section?.mediaBlocks && section.mediaBlocks.length ? (
+          <div className="space-y-6">
+            {section.mediaBlocks.map((block, index) => renderMediaBlock(block, block.id || index, theme))}
+          </div>
+        ) : (
+          <p className="text-xs italic text-slate-400">No content for this part.</p>
+        )}
+
+        {section?.audio && <div className="mt-4"><AudioPlayer src={section.audio} theme={theme} /></div>}
+
+        {section?.image ? (
+          <div>
+            <img
+              src={section.image}
+              alt={section?.title || 'Section illustration'}
+              className="rounded-2xl border border-slate-100 w-full max-h-80 object-cover shadow-sm"
+            />
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+interface SectionQuestion {
+  question: PracticeQuestion;
+  globalIndex: number;
+}
+
+interface QuestionNavigatorProps {
+  questions: PracticeQuestion[];
+  answers: PracticeAnswerState[];
+  currentQuestionIndex: number;
+  onSelect: (index: number) => void;
+  className?: string;
+  gridClassName?: string;
+  showLegend?: boolean;
+  inline?: boolean;
+  questionIndices?: number[];
+  theme: any;
+}
+
+function QuestionNavigator({
+  questions, answers, onSelect, className, gridClassName, showLegend = true, inline = false, questionIndices, currentQuestionIndex, theme
+}: QuestionNavigatorProps) {
+  return (
+    <div className={clsx(inline ? 'flex flex-wrap items-center gap-2' : 'space-y-3', className)}>
+      <div className={clsx(inline ? 'flex flex-wrap gap-2' : ['grid gap-2', gridClassName || 'grid-cols-5'])}>
+        {questions.map((_, index) => {
+          const targetIndex = questionIndices ? questionIndices[index] : index;
+          const answered = isQuestionAnswered(answers[targetIndex]);
+          const isCurrent = targetIndex === currentQuestionIndex;
+          
+          return (
+            <button
+              key={index}
+              onClick={() => onSelect(targetIndex)}
+              className={clsx(
+                "flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-bold transition-all duration-200 shadow-sm",
+                isCurrent 
+                  ? clsx("ring-2 ring-offset-1", theme.ring, theme.borderActive, theme.text, "bg-white")
+                  : answered 
+                    ? clsx("text-white border-transparent", theme.button) 
+                    : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+              )}
+            >
+              {targetIndex + 1}
+            </button>
+          );
+        })}
+      </div>
+      {showLegend && !inline && (
+        <div className="flex flex-wrap gap-4 text-[11px] font-medium text-slate-500">
+          <div className="flex items-center gap-1.5"><span className={clsx("h-3 w-3 rounded-full shadow-sm", theme.button)} /> Answered</div>
+          <div className="flex items-center gap-1.5"><span className="h-3 w-3 rounded-full border border-slate-300 bg-white" /> Not answered</div>
+          <div className="flex items-center gap-1.5"><span className={clsx("h-3 w-3 rounded-full border-2 bg-white", theme.borderActive)} /> Current</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface QuestionPanelProps {
+  sectionQuestions: SectionQuestion[];
+  answers: PracticeAnswerState[];
+  currentQuestionIndex: number;
+  totalQuestions: number;
+  onFocusQuestion: (index: number) => void;
+  onAnswerChange: (index: number, partial: Partial<PracticeAnswerState>) => void;
+  theme: any;
+}
+
+interface QuestionInputProps {
+  question: PracticeQuestion;
+  answer: PracticeAnswerState;
+  onChange: (partial: Partial<PracticeAnswerState>) => void;
+  theme: any;
+}
+
+function QuestionInput({ question, answer, onChange, theme }: QuestionInputProps) {
+  const { type, options, allowMultiple, matchingPairs } = question;
+  
+  if (type === 'multi_choice') {
+    return (
+      <div className="flex flex-col gap-2">
+        {options?.map((opt: any, idx: number) => {
+          const isSel = answer.selectedOptions.includes(opt.text);
+          const toggle = () => {
+            const newSel = allowMultiple 
+              ? (isSel ? answer.selectedOptions.filter((s: string) => s !== opt.text) : [...answer.selectedOptions, opt.text])
+              : (isSel ? [] : [opt.text]);
+            onChange({ selectedOptions: newSel, userAnswer: allowMultiple ? newSel.join(', ') : '' });
+          };
+          return (
+            <button key={idx} onClick={toggle} className={clsx("relative flex items-start gap-3 w-full text-left px-4 py-3 rounded-xl border transition-all text-sm  group", isSel ? (allowMultiple ? clsx(theme.borderActive, theme.bgLight, theme.textDark) : clsx(theme.button, "text-white border-transparent")) : 'bg-white border-slate-200 hover:border-blue-300')}>
+              <span className={clsx("mt-0.5 flex h-5 w-5 items-center justify-center border text-[10px] font-bold transition-colors", allowMultiple ? "rounded-md" : "rounded-full", isSel ? (allowMultiple ? clsx(theme.button, "text-white border-transparent") : clsx("bg-white border-white", theme.text)) : 'bg-slate-100 border-slate-300 text-slate-500')}>{allowMultiple ? <CheckIcon className="h-3.5 w-3.5" /> : String.fromCharCode(65 + idx)}</span>
+              <span className="flex-1">{opt.text}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+  
+  if (type === 'dropdown') {
+    return (
+      <div className="relative">
+        <select value={answer.selectedOptions[0] || ''} onChange={(e) => onChange({ selectedOptions: e.target.value ? [e.target.value] : [] })} className="w-full p-4 pr-10 border border-slate-200 rounded-xl bg-white outline-none focus:border-blue-500 appearance-none cursor-pointer hover:border-blue-400 transition-colors">
+          <option value="">Select an option...</option>
+          {options?.map((o: any, i: number) => <option key={i} value={o.text}>{o.text}</option>)}
+        </select>
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+          <ChevronRightIcon className="h-4 w-4 rotate-90" />
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'short_answer') {
+    return <input value={answer.userAnswer || ''} onChange={(e) => onChange({ userAnswer: e.target.value })} placeholder="Type your answer here..." className="w-full rounded-xl border border-slate-200 p-4 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all" />;
+  }
+
+  if (type === 'matching') {
+    return (
+      <div className="space-y-4">
+        {matchingPairs?.map((pair: any, i: number) => (
+          <div key={i} className="space-y-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+            <div className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-2">
+              <span className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs text-slate-500">{i + 1}</span>
+              {pair.prompt}
+            </div>
+            <input 
+              value={(() => {
+                if (answer.matchingAnswers && answer.matchingAnswers[i]?.prompt === pair.prompt) {
+                  return answer.matchingAnswers[i].selected;
+                }
+                return answer.matchingAnswers?.find((a: any) => a.prompt === pair.prompt)?.selected || '';
+              })()}
+              onChange={(e) => {
+                const newPairs = matchingPairs.map((p: any, idx: number) => {
+                  let currentVal = '';
+                  if (answer.matchingAnswers && answer.matchingAnswers[idx]?.prompt === p.prompt) {
+                    currentVal = answer.matchingAnswers[idx].selected;
+                  } else {
+                    currentVal = answer.matchingAnswers?.find((a: any) => a.prompt === p.prompt)?.selected || '';
+                  }
+                  return {
+                    prompt: p.prompt,
+                    selected: idx === i ? e.target.value : currentVal
+                  };
+                });
+                onChange({ matchingAnswers: newPairs });
+              }}
+              className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 bg-white" placeholder="Type matching answer..." 
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+}
+
+function QuestionPanel({ sectionQuestions, answers, currentQuestionIndex, onFocusQuestion, onAnswerChange, theme }: QuestionPanelProps) {
+  return (
+    <div className={clsx("flex flex-col overflow-hidden bg-white h-full transition-all duration-300", theme.border)} data-lenis-prevent>
+      <div className="border-b border-slate-100 px-5 py-3 flex justify-between items-center bg-white/50 backdrop-blur-sm">
+        <div className="text-sm font-bold text-slate-900 flex items-center gap-2">
+          <ListBulletIcon className={clsx("h-5 w-5", theme.text)} />
+          Questions
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+        {sectionQuestions.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+            <ListBulletIcon className="h-10 w-10 mb-2 opacity-20" />
+            <p className="text-xs">No questions in this section.</p>
+          </div>
+        ) : sectionQuestions.map(({ question, globalIndex }) => {
+          const isCurrent = globalIndex === currentQuestionIndex;
+          return (
+            <div key={globalIndex} id={`question-${globalIndex}`} className={clsx("rounded-2xl border transition-all duration-300", isCurrent ? clsx(theme.borderActive, "ring-4 shadow-lg bg-white", theme.ring.replace('ring-', 'ring-opacity-20 ring-')) : 'border-slate-200 hover:border-slate-300 bg-white')}>
+              <div className={clsx("flex justify-between gap-3 border-b px-4 py-3 rounded-t-2xl", isCurrent ? theme.bgLight : 'bg-slate-50/50 border-slate-100')}>
+                <div className="text-sm font-medium text-slate-900 leading-relaxed whitespace-pre-wrap">
+                  <span className={clsx("font-black mr-2 inline-block", theme.text)}>Q{globalIndex + 1}.</span>
+                  {question.content}
+                </div>
+              </div>
+              <div className="px-4 py-4 space-y-4">
+                <QuestionInput 
+                  question={question} 
+                  answer={answers[globalIndex] ?? { selectedOptions: [], userAnswer: '', matchingAnswers: [] }} 
+                  onChange={(val: any) => { onAnswerChange(globalIndex, val); onFocusQuestion(globalIndex); }} 
+                  theme={theme}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

@@ -59,12 +59,12 @@ const BlogPage: React.FC = () => {
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Quản lý Blog</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Quản lý Blog</h1>
           <p className="text-gray-600 mt-2">Quản lý các bài viết đã được duyệt và bị từ chối</p>
         </div>
         <button
           onClick={() => window.location.href = '/admin/blog/approval'}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-2"
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center space-x-2"
         >
           <CheckCircle size={20} />
           <span>Duyệt bài</span>
@@ -186,13 +186,15 @@ const BlogPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                        <button
-                          onClick={() => handleDelete(blog._id)}
-                          className="inline-flex items-center px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700"
-                        >
-                          <Trash2 size={16} className="mr-1" />
-                          Xóa
-                        </button>
+                        <div className="flex items-center gap-2 justify-center">
+                          <button
+                            onClick={() => handleDelete(blog._id)}
+                            title="Xóa"
+                            className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 hover:shadow-md transition-all"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

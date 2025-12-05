@@ -46,8 +46,6 @@ const storage = multer.diskStorage({
 });
 
 const allowedMimeTypes = {
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
-  'application/pdf': '.pdf',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx'
 };
 
@@ -60,7 +58,7 @@ const upload = multer({
     if (allowedMimeTypes[file.mimetype]) {
       cb(null, true);
     } else {
-      cb(new Error('Định dạng không hỗ trợ. Vui lòng sử dụng file Word (.docx), PDF (.pdf) hoặc Excel (.xlsx).'), false);
+      cb(new Error('Định dạng không hỗ trợ. Vui lòng chỉ sử dụng file Excel (.xlsx).'), false);
     }
   }
 });

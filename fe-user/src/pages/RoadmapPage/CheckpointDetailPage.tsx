@@ -210,7 +210,7 @@ const CheckpointDetailPage: React.FC = () => {
                           attempt.percentage >= 50 ? "bg-amber-50 text-amber-600 border-amber-100" : 
                           "bg-rose-50 text-rose-600 border-rose-100"
                         )}>
-                          <span className="text-xl">{score}</span>
+                          <span className="text-xl">{Number(score).toFixed(1)}</span>
                           <span className="text-[10px] uppercase opacity-70">Điểm</span>
                         </div>
                         <div>

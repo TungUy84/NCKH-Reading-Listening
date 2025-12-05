@@ -157,12 +157,14 @@ const LessonDetailPage: React.FC = () => {
               {/* --- NỘI DUNG BÀI HỌC --- */}
               <div
                 className="prose prose-lg prose-slate max-w-none 
-                  prose-headings:text-slate-900 prose-headings:font-bold prose-headings:tracking-tight
-                  prose-p:text-slate-600 prose-p:leading-8
+                  prose-headings:text-slate-900 prose-headings:font-bold prose-headings:tracking-tight prose-headings:mb-6
+                  prose-p:text-slate-600 prose-p:leading-8 prose-p:mb-6
+                  prose-li:text-slate-600 prose-li:mb-3
                   prose-a:text-indigo-600 prose-a:font-semibold hover:prose-a:underline
-                  prose-img:rounded-2xl prose-img:shadow-md
+                  prose-img:rounded-2xl prose-img:shadow-md prose-img:my-8
                   prose-strong:text-slate-900
-                  prose-li:marker:text-indigo-500"
+                  prose-li:marker:text-indigo-500
+                  [&_iframe]:w-full [&_iframe]:aspect-video [&_iframe]:rounded-2xl [&_iframe]:shadow-md [&_iframe]:my-10"
                 dangerouslySetInnerHTML={{ __html: lesson.content }}
               />
             </div>

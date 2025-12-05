@@ -172,7 +172,7 @@ const PracticePage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Bài ôn luyện</h1>
+          <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Bài ôn luyện</h1>
           <p className="text-slate-500">Quản lý các bài ôn luyện kỹ năng nghe và đọc.</p>
         </div>
         <div className="flex gap-3">
@@ -187,7 +187,7 @@ const PracticePage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/admin/practice/import')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-indigo-200 text-indigo-600 hover:bg-indigo-50"
           >
             {React.createElement(FiUploadCloud as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
             Import từ file
@@ -195,7 +195,7 @@ const PracticePage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/admin/practice/create')}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
           >
             + Tạo bài ôn luyện
           </button>
@@ -262,12 +262,12 @@ const PracticePage: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-slate-50 text-slate-600 text-sm">
+            <thead className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left p-3 font-medium">Tiêu đề</th>
+                <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Tiêu đề</th>
                 <th className="text-left p-3 font-medium">Kỹ năng</th>
                 <th className="text-left p-3 font-medium">Level</th>
                 <th className="text-left p-3 font-medium">Thời lượng</th>
@@ -282,9 +282,9 @@ const PracticePage: React.FC = () => {
                   <td colSpan={7} className="p-0">
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-4">
                       <div className="flex gap-2">
-                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce" />
+                        <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                        <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                        <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce" />
                       </div>
                       <p className="text-sm text-slate-600">Đang tải dữ liệu...</p>
                     </div>
@@ -341,7 +341,7 @@ const PracticePage: React.FC = () => {
                             onClick={() => handleView(practice)}
                             title="Xem"
                             aria-label="Xem"
-                            className="p-2 rounded-lg border text-slate-700 hover:bg-slate-50"
+                            className="p-2 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 transition-all"
                           >
                             {React.createElement(FiEye as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                           </button>
@@ -349,7 +349,7 @@ const PracticePage: React.FC = () => {
                             onClick={() => handleEdit(practice)}
                             title="Sửa"
                             aria-label="Sửa"
-                            className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                            className="p-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md transition-all"
                           >
                             {React.createElement(FiEdit2 as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                           </button>
@@ -358,7 +358,7 @@ const PracticePage: React.FC = () => {
                             title="Xóa"
                             aria-label="Xóa"
                             disabled={deletingId === practice._id}
-                            className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-60"
+                            className="p-2 rounded-lg bg-red-600 text-white hover:bg-red-700 hover:shadow-md disabled:opacity-60 transition-all"
                           >
                             {React.createElement(FiTrash2 as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                           </button>
@@ -372,21 +372,21 @@ const PracticePage: React.FC = () => {
           </table>
         </div>
 
-        <div className="flex items-center justify-between p-3 border-t text-sm">
-          <div className="text-slate-500">Tổng: {total}</div>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between p-4 border-t bg-gray-50">
+          <div className="text-sm font-medium text-slate-700">Tổng: {total}</div>
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setPage((current) => Math.max(1, current - 1))}
               disabled={page <= 1}
-              className="px-3 py-1 rounded-lg border disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-all"
             >
               Trước
             </button>
-            <span>Trang {page}/{totalPages}</span>
+            <span className="text-sm font-medium text-slate-700">Trang {page}/{totalPages}</span>
             <button
               onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
               disabled={page >= totalPages}
-              className="px-3 py-1 rounded-lg border disabled:opacity-50"
+              className="px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-indigo-50 hover:border-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-all"
             >
               Sau
             </button>

@@ -132,7 +132,7 @@ const LessonsListPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Quản lý bài học</h1>
+        <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Quản lý bài học</h1>
         <p className="text-sm text-slate-500">Tạo, chỉnh sửa và theo dõi nội dung bài học cho học viên.</p>
       </div>
 
@@ -144,7 +144,7 @@ const LessonsListPage: React.FC = () => {
             placeholder="Tìm theo tiêu đề hoặc mô tả"
             value={filters.keyword || ''}
             onChange={(event) => handleFilterChange('keyword', event.target.value)}
-            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+            className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
           />
         </div>
 
@@ -182,7 +182,7 @@ const LessonsListPage: React.FC = () => {
             <select
               value={filters.status || ''}
               onChange={(event) => handleFilterChange('status', event.target.value as 'active' | 'inactive' | '')}
-              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>{option.label}</option>
@@ -195,7 +195,7 @@ const LessonsListPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/admin/lessons/create')}
-            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+            className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:shadow-md transition-all hover:bg-indigo-700"
           >
             + Tạo bài học
           </button>
@@ -250,21 +250,21 @@ const LessonsListPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => navigate(`/admin/lessons/${lesson._id}`)}
-                          className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+                          className="rounded-lg border border-gray-200 hover:border-indigo-300 bg-white hover:bg-indigo-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:text-indigo-700 transition-all"
                         >
                           Xem
                         </button>
                         <button
                           type="button"
                           onClick={() => navigate(`/admin/lessons/edit/${lesson._id}`)}
-                          className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 hover:shadow-md transition-all"
                         >
                           Sửa
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDelete(lesson._id)}
-                          className="rounded-lg bg-red-50 border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                          className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 hover:shadow-md transition-all"
                         >
                           Xóa
                         </button>

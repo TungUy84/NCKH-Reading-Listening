@@ -158,7 +158,7 @@ const PlacementTestsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Tạo bộ đề thi</h1>
+          <h1 className="text-2xl font-semibold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">Tạo bộ đề thi</h1>
           <p className="text-slate-500">Danh sách bài test</p>
         </div>
         <div className="flex gap-3">
@@ -170,7 +170,7 @@ const PlacementTestsPage: React.FC = () => {
           </button>
           <button
             onClick={() => navigate('/admin/placement-tests/create')}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
           >
             + Tạo bài test
           </button>
@@ -219,19 +219,19 @@ const PlacementTestsPage: React.FC = () => {
       </div>
 
       {/* List */}
-      <div className="bg-white rounded-xl shadow-sm border">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
-            <thead className="bg-slate-50 text-slate-600 text-sm">
+            <thead className="bg-gradient-to-r from-slate-50 to-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left p-3 font-medium">Tiêu đề</th>
-                <th className="text-center p-3 font-medium">Kỹ năng</th>
-                <th className="text-center p-3 font-medium">Loại bài</th>
-                <th className="text-center p-3 font-medium">Thời gian</th>
-                <th className="text-center p-3 font-medium">Số phần</th>
-                <th className="text-center p-3 font-medium">Câu hỏi</th>
-                <th className="text-center p-3 font-medium">Trạng thái</th>
-                <th className="text-right p-3 font-medium">Hành động</th>
+                <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Tiêu đề</th>
+                <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Kỹ năng</th>
+                <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Loại bài</th>
+                <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Thời gian</th>
+                <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Số phần</th>
+                <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Câu hỏi</th>
+                <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Trạng thái</th>
+                <th className="text-right px-4 py-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Hành động</th>
               </tr>
             </thead>
             <tbody className="relative">
@@ -240,9 +240,9 @@ const PlacementTestsPage: React.FC = () => {
                   <td colSpan={8} className="p-0">
                     <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] flex flex-col items-center justify-center gap-4">
                       <div className="flex gap-2">
-                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                        <div className="w-3 h-3 bg-blue-600 rounded-full animate-bounce"></div>
+                        <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-3 h-3 bg-indigo-600 rounded-full animate-bounce"></div>
                       </div>
                       <p className="text-sm text-slate-600">Đang tải dữ liệu...</p>
                     </div>
@@ -314,7 +314,7 @@ const PlacementTestsPage: React.FC = () => {
                           onClick={() => navigate(`/admin/placement-tests/${t._id}/view`)}
                           title="Xem"
                           aria-label="Xem"
-                          className="p-2 rounded-lg border text-slate-700 hover:bg-slate-50"
+                          className="p-2 rounded-lg border border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 transition-all"
                         >
                           {React.createElement(FiEye as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                         </button>
@@ -322,7 +322,7 @@ const PlacementTestsPage: React.FC = () => {
                           onClick={() => navigate(`/admin/placement-tests/${t._id}/edit`)}
                           title="Sửa"
                           aria-label="Sửa"
-                          className="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                          className="p-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md transition-all"
                         >
                           {React.createElement(FiEdit2 as unknown as React.ComponentType<any>, { className: 'w-4 h-4' })}
                         </button>

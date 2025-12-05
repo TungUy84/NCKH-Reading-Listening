@@ -36,6 +36,23 @@ const protect = async (req, res, next) => {
   }
 };
 
+// Middleware kiểm tra đăng nhập nhưng không bắt buộc (cho route công khai có tính năng cá nhân hóa)
+const optionalProtect = async (req, res, next) => {
+  let token;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select('-password');
+    } catch (error) {
+      // Token lỗi hoặc hết hạn thì coi như khách vãng lai, không throw error
+      req.user = null;
+    }
+  }
+  next();
+};
+
 // Middleware phân quyền theo role
 const authorize = (roles) => {
   return (req, res, next) => {
@@ -58,4 +75,4 @@ const generateToken = (id) => {
   });
 };
 
-module.exports = { protect, authorize, generateToken };
+module.exports = { protect, optionalProtect, authorize, generateToken };
