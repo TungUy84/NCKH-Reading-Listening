@@ -315,9 +315,27 @@ const deleteUser = async (req, res) => {
   }
 };
 
+// Lấy thống kê công khai cho frontend (Không cần auth)
+const getPublicStats = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments({ isActive: true });
+
+    res.json({
+      message: 'Lấy thống kê thành công',
+      stats: {
+        totalUsers
+      }
+    });
+  } catch (error) {
+    console.error('Get public stats error:', error);
+    res.status(500).json({ message: 'Lỗi server khi lấy thống kê' });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserStats,
+  getPublicStats,
   getUserById,
   createUser,
   updateUser,

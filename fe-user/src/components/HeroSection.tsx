@@ -1,14 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play, Users, BookOpen, Award, Sparkles } from 'lucide-react';
+import { ArrowRight, Users, BookOpen, Award } from 'lucide-react';
+import { getPublicStats, getPublicLessons, getPublicPractices } from '../services/api';
 
 // Phần hero giới thiệu thông điệp chính và CTA với thống kê
 const HeroSection: React.FC = () => {
-  const stats = [
-    { icon: Users, label: 'Học viên', value: '500+' },
-    { icon: BookOpen, label: 'Bài học', value: '100+' },
+  const [stats, setStats] = useState([
+    { icon: Users, label: 'Học viên', value: '0+' },
+    { icon: BookOpen, label: 'Học liệu', value: '0+' },
     { icon: Award, label: 'Hài lòng', value: '95%' },
-  ];
+  ]);
+
+  useEffect(() => {
+    // Fetch thống kê bài học và bài ôn luyện
+    const fetchStats = async () => {
+      try {
+        const [statsRes, lessonsRes, practicesRes] = await Promise.all([
+          getPublicStats(),
+          getPublicLessons({ limit: 1 }),
+          getPublicPractices({ limit: 1 })
+        ]);
+
+        const totalLessons = lessonsRes?.data?.pagination?.total || 0;
+        const totalPractices = practicesRes?.data?.pagination?.total || 0;
+        const totalLearningMaterials = totalLessons + totalPractices;
+        const totalUsers = statsRes?.stats?.totalUsers || 500;
+
+        setStats([
+          { icon: Users, label: 'Học viên', value: `${totalUsers}+` },
+          { icon: BookOpen, label: 'Học liệu', value: `${totalLearningMaterials}+` },
+          { icon: Award, label: 'Hài lòng', value: '95%' },
+        ]);
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+        // Giữ nguyên giá trị mặc định nếu có lỗi
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <section className="relative pb-14 min-h-screen bg-white overflow-hidden">
@@ -22,19 +52,17 @@ const HeroSection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           {/* Left content */}
           <div className="space-y-8 relative z-10" data-aos="fade-right">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-blue-100 rounded-full text-sm font-medium shadow-sm text-blue-700 mb-4">
-              <Sparkles className="w-4 h-4 text-yellow-500" />
-              <span>Nền tảng học tiếng Anh </span>
-            </div>
-
             {/* Heading */}
-            <h1 className="text-5xl sm:text-6xl font-extrabold leading-tight text-gray-900 tracking-tight">
-              Chinh phục <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
-                Tiếng Anh
-              </span>{' '}
-              dễ dàng
+            <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight text-gray-900">
+              <span className="block mb-3">
+                Chinh phục
+              </span>
+              <span className="block">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+                  Tiếng Anh
+                </span>{' '}
+                dễ dàng
+              </span>
             </h1>
 
             <p className="text-xl text-gray-600 leading-relaxed max-w-lg">
@@ -77,7 +105,7 @@ const HeroSection: React.FC = () => {
               <div className="absolute top-0 right-0 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
               <div className="absolute top-0 left-0 w-72 h-72 bg-yellow-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
               <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
-              
+
               {/* Main image card */}
               <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-500/20 border-8 border-white transform rotate-[-2deg] hover:rotate-0 transition-transform duration-500">
                 <img

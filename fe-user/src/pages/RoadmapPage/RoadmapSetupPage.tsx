@@ -3,16 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { createUserRoadmap, getSuggestedLevel } from '../../services/api';
 import { RoadmapLevelGroup, SuggestedLevelResponse } from '../../types';
-import { 
-  SparklesIcon, 
-  CheckCircleIcon, 
-  TrophyIcon, 
-  RocketLaunchIcon, 
-  ChartBarIcon, 
+import {
+  SparklesIcon,
+  CheckCircleIcon,
+  TrophyIcon,
+  RocketLaunchIcon,
+  ChartBarIcon,
   StarIcon,
   ArrowRightIcon,
-  QuestionMarkCircleIcon,
-  MapIcon
 } from '@heroicons/react/24/solid';
 import clsx from 'clsx';
 
@@ -79,9 +77,9 @@ const RoadmapSetupPage: React.FC = () => {
         disabled={disabled}
         className={clsx(
           "relative group w-full p-6 rounded-3xl border-2 text-left transition-all duration-300 h-full flex flex-col",
-          disabled ? "opacity-40 grayscale cursor-not-allowed border-slate-100 bg-slate-50" : 
-          selected ? "border-indigo-600 bg-indigo-50/20 shadow-xl scale-[1.02] ring-1 ring-indigo-500" : 
-          "border-slate-100 bg-white hover:border-indigo-200 hover:shadow-lg hover:-translate-y-1"
+          disabled ? "opacity-40 grayscale cursor-not-allowed border-slate-100 bg-slate-50" :
+            selected ? "border-indigo-600 bg-indigo-50/20 shadow-xl scale-[1.02] ring-1 ring-indigo-500" :
+              "border-slate-100 bg-white hover:border-indigo-200 hover:shadow-lg hover:-translate-y-1"
         )}
       >
         {selected && (
@@ -107,14 +105,17 @@ const RoadmapSetupPage: React.FC = () => {
   return (
     <div className="min-h-screen font-sans pb-20 pt-12 bg-slate-50/50">
       <div className="max-w-6xl mx-auto px-4">
-        
+
         {/* --- HEADER --- */}
         <div className="text-center mb-12">
           <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-6 tracking-tight">
             Thiết kế lộ trình
           </h1>
           <p className="text-xl text-slate-600 max-w-2xl mx-auto font-medium">
-            Chọn điểm xuất phát và đích đến để chúng tôi xây dựng kế hoạch học tập cá nhân hóa cho bạn.
+            Chọn điểm xuất phát và đích đến để chúng tôi xây dựng
+          </p>
+          <p className="text-xl text-slate-600 max-w-2xl mx-auto font-medium">
+            kế hoạch học tập cá nhân hóa cho bạn.
           </p>
         </div>
 
@@ -132,7 +133,7 @@ const RoadmapSetupPage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => navigate('/tests')}
                 className="shrink-0 px-8 py-4 bg-white text-indigo-700 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-indigo-50 transition-all hover:-translate-y-1 whitespace-nowrap flex items-center gap-2"
               >
@@ -153,7 +154,7 @@ const RoadmapSetupPage: React.FC = () => {
               <div>
                 <h3 className="font-bold text-indigo-900 text-lg">Gợi ý từ kết quả kiểm tra</h3>
                 <p className="text-slate-600 text-sm mt-0.5">
-                  Bạn đạt <span className="font-bold text-indigo-600">{suggestion.data?.score.percentage}%</span>. 
+                  Bạn đạt <span className="font-bold text-indigo-600">{suggestion.data?.score.percentage}%</span>.
                   Khuyến nghị bắt đầu từ: <span className="font-black text-indigo-600 text-base px-2 py-0.5 bg-indigo-100 rounded-md ml-1">{suggestion.data?.suggestedLevel}</span>
                 </p>
               </div>
@@ -163,7 +164,7 @@ const RoadmapSetupPage: React.FC = () => {
 
         {/* --- STEPS CONTAINER --- */}
         <div className="space-y-12">
-          
+
           {/* Step 1: Current Level */}
           <section className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-slate-200 shadow-sm">
             <div className="flex items-center gap-4 mb-8">
@@ -201,7 +202,7 @@ const RoadmapSetupPage: React.FC = () => {
 
             <div className="bg-white border border-slate-200 rounded-[2rem] p-8 shadow-xl shadow-slate-200/50">
               <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-0 relative">
-                
+
                 {/* Horizontal Line (Desktop) */}
                 <div className="absolute top-1/2 left-10 right-10 h-1 bg-slate-100 -z-10 hidden md:block rounded-full" />
 
@@ -219,7 +220,7 @@ const RoadmapSetupPage: React.FC = () => {
                           <ArrowRightIcon className="h-6 w-6 text-slate-300 rotate-90" />
                         </div>
                       )}
-                      
+
                       {/* Stage Node */}
                       <div className="flex-1 flex flex-col items-center text-center group w-full md:w-auto">
                         <div className={clsx(
@@ -233,7 +234,7 @@ const RoadmapSetupPage: React.FC = () => {
                             {idx + 1}
                           </div>
                         </div>
-                        
+
                         <div className="mt-4 bg-slate-50 px-4 py-3 rounded-xl border border-slate-100 w-full md:w-auto min-w-[140px]">
                           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
                             {isFirst ? 'Bắt đầu' : isLast ? 'Đích đến' : `Chặng ${idx + 1}`}
@@ -256,7 +257,7 @@ const RoadmapSetupPage: React.FC = () => {
 
               <div className="mt-10 text-center border-t border-slate-100 pt-6">
                 <p className="text-slate-500 text-sm">
-                  Tổng thời gian dự kiến: <span className="font-bold text-slate-900">{previewStages.length * 6} tuần</span> 
+                  Tổng thời gian dự kiến: <span className="font-bold text-slate-900">{previewStages.length * 6} tuần</span>
                   <span className="mx-2">•</span>
                   Số chặng: <span className="font-bold text-slate-900">{previewStages.length}</span>
                 </p>
@@ -273,7 +274,7 @@ const RoadmapSetupPage: React.FC = () => {
             className="group relative px-12 py-5 bg-slate-900 text-white rounded-full font-bold text-xl shadow-2xl shadow-indigo-500/20 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:-translate-y-1 hover:scale-105 active:scale-95"
           >
             <span className="relative z-10 flex items-center gap-3">
-              {loading ? 'Đang khởi tạo...' : 'Bắt đầu hành trình ngay'} 
+              {loading ? 'Đang khởi tạo...' : 'Bắt đầu lộ trình ngay'}
               {!loading && <ArrowRightIcon className="h-6 w-6 group-hover:translate-x-1 transition-transform" />}
             </span>
           </button>

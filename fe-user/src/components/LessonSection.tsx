@@ -61,17 +61,16 @@ const LessonSection: React.FC = () => {
 
           {/* Right Content - Text */}
           <div className="order-1 lg:order-2" data-aos="fade-left">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-50 border border-purple-100 text-purple-700 mb-6">
-              <Star className="w-4 h-4 fill-current" />
-              <span className="text-sm font-bold tracking-wide uppercase">Kho tàng kiến thức</span>
-            </div>
+            <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-8 tracking-tight">
+              <span className="block mb-2">
+                Hệ thống bài học
+              </span>
 
-            <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight">
-              Hệ thống bài học <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
                 Chất lượng cao
               </span>
             </h2>
+
 
             <p className="text-xl text-gray-600 mb-10 leading-relaxed">
               Hệ thống bài học được xây dựng bài bản từ cơ bản đến nâng cao.
