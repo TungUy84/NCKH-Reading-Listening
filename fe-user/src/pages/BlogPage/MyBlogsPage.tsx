@@ -27,6 +27,14 @@ import {
 import Button from '../../components/ui/Button';
 import Loader from '../../components/ui/Loader';
 
+const getImageUrl = (imagePath?: string) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http')) return imagePath;
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+  return `${baseUrl}${imagePath}`;
+};
+
 const MyBlogsPage: React.FC = () => {
   const navigate = useNavigate();
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -226,7 +234,7 @@ const MyBlogsPage: React.FC = () => {
                   {/* Thumbnail */}
                   <div className="w-full md:w-64 aspect-[4/3] rounded-2xl overflow-hidden bg-slate-100 shrink-0 border border-slate-100 relative">
                     {blog.images?.[0] ? (
-                      <img src={`${process.env.REACT_APP_API_URL?.replace('/api', '')}${blog.images[0]}`} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      <img src={getImageUrl(blog.images[0])} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     ) : (
                       <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50">
                         <PhotoIcon className="h-10 w-10 mb-2" />
@@ -337,7 +345,7 @@ const MyBlogsPage: React.FC = () => {
                     {/* Existing Images */}
                     {editImages.map((img, idx) => (
                       <div key={`exist-${idx}`} className="relative group aspect-square rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-                        <img src={`${process.env.REACT_APP_API_URL?.replace('/api', '')}${img}`} alt="" className="w-full h-full object-cover" />
+                        <img src={getImageUrl(img)} alt="" className="w-full h-full object-cover" />
                         <button
                           onClick={() => handleEditRemoveExistingImage(idx)}
                           className="absolute top-1 right-1 bg-white text-red-500 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm hover:scale-110"
