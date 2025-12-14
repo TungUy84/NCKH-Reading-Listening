@@ -5,6 +5,14 @@ import Swal from 'sweetalert2';
 import { Blog } from '../../types';
 import { BlogAPI } from '../../services/api';
 
+const getImageUrl = (imagePath?: string) => {
+  if (!imagePath) return '';
+  if (imagePath.startsWith('http')) return imagePath;
+  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const baseUrl = apiUrl.replace(/\/api\/?$/, '');
+  return `${baseUrl}${imagePath}`;
+};
+
 const BlogApprovalPage: React.FC = () => {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -217,7 +225,7 @@ const BlogApprovalPage: React.FC = () => {
                     {selectedBlog.images.map((img, idx) => (
                       <img
                         key={idx}
-                        src={`${process.env.REACT_APP_API_URL?.replace('/api', '')}${img}`}
+                        src={getImageUrl(img)}
                         alt={`Blog ${idx + 1}`}
                         className="w-full h-64 object-cover rounded-lg"
                       />

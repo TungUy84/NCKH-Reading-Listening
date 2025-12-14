@@ -12,10 +12,6 @@ const MockTestSection: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
         <div className="text-center mb-20" data-aos="fade-up">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-orange-50 border border-orange-100 text-orange-600 mb-6 shadow-sm">
-            <Target className="w-4 h-4" />
-            <span className="text-sm font-bold tracking-wide uppercase">Thử thách bản thân</span>
-          </div>
           
           <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
             Thi thử như <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">Thi thật</span>
@@ -82,7 +78,7 @@ const MockTestSection: React.FC = () => {
                   Sẵn sàng chinh phục <br/> điểm số mơ ước?
                 </h3>
                 <p className="text-orange-100 text-lg mb-8 leading-relaxed">
-                  Tham gia cùng hơn 10,000+ học viên đã đạt mục tiêu nhờ luyện đề mỗi ngày.
+                  Tham gia cùng các học viên để đạt mục tiêu nhờ luyện đề mỗi ngày.
                 </p>
               </div>
 

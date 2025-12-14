@@ -130,7 +130,7 @@ const BlogPreview: React.FC = () => {
                 </div>
 
                 <h3 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-orange-600 transition-colors">
-                  <Link to={`/blog/${post._id}`}>
+                  <Link to={`/blog`}>
                     {post.title}
                   </Link>
                 </h3>

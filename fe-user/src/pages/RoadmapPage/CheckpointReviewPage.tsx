@@ -1,4 +1,4 @@
-import React, { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, TestAttempt, DetailedResult } from '../../types';
@@ -6,8 +6,6 @@ import { getTestAttemptDetail } from '../../services/api';
 import { Button } from '../../components/ui/Button';
 import { 
   ArrowLeftIcon, 
-  SpeakerWaveIcon, 
-  DocumentTextIcon, 
   ListBulletIcon,
   CheckCircleIcon,
   XCircleIcon,

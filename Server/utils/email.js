@@ -31,8 +31,9 @@ const sendPasswordResetEmail = async (email, resetToken) => {
     // Kiểm tra kết nối email
     await transporter.verify();
     
-    // Tạo URL reset
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    // Tạo URL reset (dùng FRONTEND_URL để deploy đúng, fallback về CLIENT_URL)
+    const baseUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:3000';
+    const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
     
     // Nội dung email
     const mailOptions = {

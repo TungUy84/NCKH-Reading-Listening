@@ -53,7 +53,10 @@ const LoginPage: React.FC = () => {
       if (success) {
         toast.success('Đăng nhập thành công!');
         setTimeout(() => {
-          navigate('/', { replace: true });
+          // Lấy URL đã lưu trước khi redirect đến login, nếu không có thì về trang chủ
+          const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/';
+          sessionStorage.removeItem('redirectAfterLogin');
+          navigate(redirectUrl, { replace: true });
         }, 700);
       } else {
         toast.error('Thông tin đăng nhập hoặc mật khẩu không đúng!');

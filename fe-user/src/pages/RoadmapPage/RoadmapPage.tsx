@@ -136,7 +136,7 @@ const RoadmapPage: React.FC = () => {
               Lộ trình cá nhân hóa
             </div>
             <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight leading-tight">
-              Hành trình <br />
+              Lộ trình <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
                 chinh phục {roadmap.targetLevel}
               </span>

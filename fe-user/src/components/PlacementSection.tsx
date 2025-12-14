@@ -13,26 +13,24 @@ const PlacementSection: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          
+
           {/* Left Content */}
           <div data-aos="fade-right">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-100 rounded-full text-sm font-semibold mb-8 shadow-sm">
-              <Sparkles className="w-4 h-4 text-blue-500" />
-              <span>Khám phá tiềm năng của bạn</span>
-            </div>
-            
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-              Kiểm tra năng lực <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6 tracking-tight">
+              <span className="block mb-2">
+                Kiểm tra năng lực
+              </span>
+
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
                 Chuẩn xác & Miễn phí
               </span>
             </h2>
-            
+
             <p className="text-lg text-gray-600 mb-10 leading-relaxed max-w-xl">
-              Bài kiểm tra được thiết kế giúp xác định chính xác trình độ hiện tại. 
+              Bài kiểm tra được thiết kế giúp xác định chính xác trình độ hiện tại.
               Hệ thống sẽ đề xuất lộ trình học tập tối ưu nhất dành riêng cho bạn.
             </p>
-            
+
             <div className="space-y-4 mb-10">
               {[
                 { icon: Target, text: 'Đánh giá toàn diện 2 kỹ năng Nghe và Nói' },
@@ -68,9 +66,9 @@ const PlacementSection: React.FC = () => {
             <div className="relative w-full max-w-lg">
               {/* Main Image */}
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-[2rem] rotate-6 opacity-10 scale-105 transform" />
-              <img 
+              <img
                 src="https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800&q=80"
-                alt="Placement Test" 
+                alt="Placement Test"
                 className="relative rounded-[2rem] shadow-2xl z-10 object-cover w-full h-auto aspect-[4/5] border-4 border-white"
               />
             </div>

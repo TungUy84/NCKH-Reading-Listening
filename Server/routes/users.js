@@ -4,7 +4,10 @@ const userController = require('../controllers/userController');
 const { protect, authorize } = require('../middleware/auth');
 const { validateRegister } = require('../middleware/validation');
 
-// Lấy thống kê users
+// Lấy thống kê công khai
+router.get('/public/stats', userController.getPublicStats);
+
+// Lấy thống kê users (Chỉ admin)
 router.get('/stats', protect, authorize(['admin']), userController.getUserStats);
 
 // Lấy danh sách tất cả users

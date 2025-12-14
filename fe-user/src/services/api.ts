@@ -15,7 +15,7 @@ import {
 // Khởi tạo axios với cấu hình mặc định
 const apiService = axios.create({
   baseURL: process.env.REACT_APP_API_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -627,6 +627,16 @@ export const addBlogComment = async (blogId: string, content: string) => {
   return response.data;
 };
 
+// ========== NHÓM API CHO THỐNG KÊ CÔNG KHAI ==========
+
+/**
+ * Lấy thống kê công khai (số lượng users, etc)
+ * Backend: GET /api/users/public/stats
+ */
+export const getPublicStats = async () => {
+  const response = await apiService.get('/users/public/stats');
+  return response.data;
+};
+
 // Export the axios instance as default for direct use
 export default apiService;
-

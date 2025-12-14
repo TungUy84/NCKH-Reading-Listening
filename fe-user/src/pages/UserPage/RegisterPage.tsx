@@ -86,7 +86,12 @@ const RegisterPage: React.FC = () => {
       const success = await register(cleanData);
       if (success) {
         toast.success('Đăng ký thành công!');
-        navigate('/');
+        setTimeout(() => {
+          // Lấy URL đã lưu trước khi redirect đến register, nếu không có thì về trang chủ
+          const redirectUrl = sessionStorage.getItem('redirectAfterLogin') || '/';
+          sessionStorage.removeItem('redirectAfterLogin');
+          navigate(redirectUrl, { replace: true });
+        }, 700);
       } else {
         toast.error('Đăng ký thất bại, vui lòng kiểm tra lại thông tin.');
       }

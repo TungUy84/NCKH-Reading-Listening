@@ -45,9 +45,6 @@ const LearningPath: React.FC = () => {
     <section className=" py-24 bg-white overflow-hidden flex items-center">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         <div className="text-center mb-20" data-aos="fade-up">
-          <span className="inline-block text-sm font-bold tracking-wider uppercase px-4 py-2 rounded-full bg-blue-50 text-blue-600 mb-4">
-            Lộ trình học tập
-          </span>
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
             Chinh phục mục tiêu từng bước
           </h2>
