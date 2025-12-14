@@ -198,7 +198,7 @@ const BlogPage: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-tr from-rose-100 to-orange-50 rounded-[2.5rem] transform rotate-3 scale-95 opacity-80" />
             <div className="absolute inset-0 bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/50 transform -rotate-2 hover:rotate-0 transition-transform duration-700">
               <img
-                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1471&q=80"
+                src="https://vluwebmedia.s3.ap-southeast-1.amazonaws.com/large_undergraduate_32ca3267d6.jpg"
                 alt="Community"
                 className="w-full h-full object-cover"
               />

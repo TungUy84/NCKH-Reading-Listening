@@ -58,7 +58,7 @@ const LessonsListPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters.keyword, filters.levelGroup, filters.skill, filters.status, pagination.limit, pagination.page]);
+  }, [filters.keyword, filters.levelGroup, filters.skill, filters.status, pagination.limit]);
 
   useEffect(() => {
     fetchLessons(1).catch((error) => {

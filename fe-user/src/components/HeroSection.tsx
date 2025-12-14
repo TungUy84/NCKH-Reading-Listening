@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import CountUp from 'react-countup';
 import { ArrowRight, Users, BookOpen, Award } from 'lucide-react';
 import { getPublicStats, getPublicLessons, getPublicPractices } from '../services/api';
 
@@ -88,7 +89,13 @@ const HeroSection: React.FC = () => {
             <div className="grid grid-cols-3 gap-8 pt-12 border-t border-gray-100 mt-8">
               {stats.map((stat, index) => (
                 <div key={index}>
-                  <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                    <CountUp
+                      end={parseInt(stat.value) || 0}
+                      duration={2}
+                      suffix={stat.value.replace(/[0-9]/g, '')}
+                    />
+                  </div>
                   <div className="text-sm text-gray-500 font-medium flex items-center gap-2">
                     <stat.icon className="w-4 h-4 text-blue-500" />
                     {stat.label}
@@ -109,7 +116,7 @@ const HeroSection: React.FC = () => {
               {/* Main image card */}
               <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-500/20 border-8 border-white transform rotate-[-2deg] hover:rotate-0 transition-transform duration-500">
                 <img
-                  src="https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=800&q=80"
+                  src="https://cdn.123job.vn/123job/uploads/2021/05/05/2021_05_05______e79dd63878950cf0bb648b816d77320c.jpg"
                   alt="Student learning"
                   className="w-full h-[500px] object-cover"
                 />

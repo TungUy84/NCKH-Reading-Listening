@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const { scheduleInactivityNotifications } = require('./utils/notificationScheduler');
 
 dotenv.config();
 
@@ -48,7 +49,11 @@ mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
-  .then(() => console.log('Kết nối MongoDB thành công'))
+  .then(() => {
+    console.log('Kết nối MongoDB thành công');
+    // Khởi động lịch gửi thông báo sau khi kết nối MongoDB thành công
+    scheduleInactivityNotifications();
+  })
   .catch((error) => {
     console.error('Lỗi kết nối MongoDB:', error);
   });

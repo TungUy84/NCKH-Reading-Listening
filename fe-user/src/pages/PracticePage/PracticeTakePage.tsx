@@ -940,16 +940,84 @@ const PracticeTakePage: React.FC = () => {
       return;
     }
 
+    // Calculate statistics per section
+    const sections = practice.sections && practice.sections.length > 0 ? practice.sections : [];
+    const questions = practice.questions || [];
+    
+    let stats = [];
+    
+    if (sections.length > 0) {
+      stats = sections.map((section, idx) => {
+        const sectionId = normalizeId(section._id);
+        const sectionQuestions = questions.filter(q => normalizeId(q.sectionId) === sectionId);
+        const total = sectionQuestions.length;
+        
+        const answered = sectionQuestions.reduce((count, q) => {
+          const globalIndex = questions.findIndex(gq => gq._id === q._id);
+          if (globalIndex !== -1 && isQuestionAnswered(answers[globalIndex])) {
+            return count + 1;
+          }
+          return count;
+        }, 0);
+        
+        return { 
+          title: `Part ${idx + 1}`, 
+          total, 
+          answered 
+        };
+      });
+    } else {
+      const total = questions.length;
+      const answered = answers.filter(a => isQuestionAnswered(a)).length;
+      stats.push({ title: 'Full Test', total, answered });
+    }
+
+    const statsHtml = stats.map(stat => {
+      const isComplete = stat.answered === stat.total;
+      const answeredClass = isComplete ? 'text-blue-600 font-bold' : 'text-red-700 font-bold';
+      const totalClass = 'text-blue-600 font-bold';
+      
+      return `
+        <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+          <span class="text-gray-700 font-medium truncate max-w-[60%] text-left" title="${stat.title}">
+            ${stat.title}
+          </span>
+          <div class="flex items-center gap-1 text-sm">
+            <span class="${answeredClass}">${stat.answered}</span>
+            <span class="text-gray-400 mx-1">/</span>
+            <span class="${totalClass}">${stat.total}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const htmlContent = `
+      <div class="mt-2 mb-4">
+        <div class="bg-gray-50 rounded-xl p-4 border border-gray-100 max-h-[200px] overflow-y-auto custom-scrollbar">
+          ${statsHtml}
+        </div>
+        <p class="mt-4 text-m text-gray-500">
+          Are you sure you want to submit?
+        </p>
+      </div>
+    `;
+
     const result = await Swal.fire({
-      title: 'Are you sure you want to submit?',
-      text: 'After submitting you will not be able to modify your answers.',
-      icon: 'warning',
+      title: 'Submission Summary',
+      html: htmlContent,
+      icon: 'info',
       showCancelButton: true,
-      confirmButtonText: 'Submit',
-      cancelButtonText: 'Cancel',
+      confirmButtonText: 'Submit Now',
+      cancelButtonText: 'Keep Working',
       confirmButtonColor: '#2563eb',
-      cancelButtonColor: '#d33',
-      reverseButtons: true
+      cancelButtonColor: '#64748b',
+      reverseButtons: true,
+      customClass: {
+        popup: 'rounded-2xl font-sans',
+        title: 'text-xl font-bold text-gray-800',
+        confirmButton: 'rounded-xl px-6 py-3 font-bold',
+        cancelButton: 'rounded-xl px-6 py-3 font-bold'
+      }
     });
 
     if (!result.isConfirmed) {
@@ -957,7 +1025,7 @@ const PracticeTakePage: React.FC = () => {
     }
 
     await handleSubmit(false);
-  }, [handleSubmit, isSubmitting, practice]);
+  }, [handleSubmit, isSubmitting, practice, answers]);
 
   const handleExit = useCallback(async () => {
     if (!practice) {

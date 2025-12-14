@@ -78,7 +78,7 @@ const MockTestSection: React.FC = () => {
                   Sẵn sàng chinh phục <br/> điểm số mơ ước?
                 </h3>
                 <p className="text-orange-100 text-lg mb-8 leading-relaxed">
-                  Tham gia cùng hơn 10,000+ học viên đã đạt mục tiêu nhờ luyện đề mỗi ngày.
+                  Tham gia cùng các học viên để đạt mục tiêu nhờ luyện đề mỗi ngày.
                 </p>
               </div>
 

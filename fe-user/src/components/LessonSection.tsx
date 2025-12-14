@@ -1,8 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, ArrowRight, PlayCircle, FileText, CheckSquare, Star, Users, Video } from 'lucide-react';
+import { BookOpen, FileText, CheckSquare, Video } from 'lucide-react';
+import { getPublicLessons } from '../services/api';
 
 const LessonSection: React.FC = () => {
+  const [totalLessons, setTotalLessons] = useState(0);
+
+  useEffect(() => {
+    const fetchLessonCount = async () => {
+      try {
+        const response = await getPublicLessons({ limit: 1 });
+        const count = response?.data?.pagination?.total || 0;
+        setTotalLessons(count);
+      } catch (error) {
+        console.error('Error fetching lesson count:', error);
+        setTotalLessons(0);
+      }
+    };
+
+    fetchLessonCount();
+  }, []);
   return (
     <section className="min-h-screen py-24 bg-white flex items-center relative overflow-hidden">
       {/* Background Elements */}
@@ -48,7 +65,7 @@ const LessonSection: React.FC = () => {
                 <div className="bg-gradient-to-br from-purple-600 to-indigo-600 p-8 rounded-3xl shadow-xl text-white relative overflow-hidden group hover:scale-105 transition-transform duration-300">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2" />
                   <div className="relative z-10">
-                    <div className="text-5xl font-bold mb-2">100+</div>
+                    <div className="text-5xl font-bold mb-2">{totalLessons}+</div>
                     <div className="text-purple-100 font-medium mb-4">Bài học có sẵn</div>
                   </div>
                 </div>
