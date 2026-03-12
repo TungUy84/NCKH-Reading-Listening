@@ -14,8 +14,9 @@ import {
   PauseCircleIcon,
   PlayCircleIcon,
   PlusIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
-import { PracticeAPI } from '../../services/api';
+import { PracticeAPI, AIAPI } from '../../services/api';
 import {
   Practice,
   PracticeLevelGroup,
@@ -109,8 +110,8 @@ const EditPracticePage: React.FC = () => {
   const [isMediaDropActive, setIsMediaDropActive] = useState(false);
   const audioRefs = useRef<Record<string, HTMLAudioElement | null>>({});
   const [audioMeta, setAudioMeta] = useState<Record<string, { duration: number; isPlaying: boolean }>>({});
-  const [transcriptModal, setTranscriptModal] = useState<{ open: boolean; mediaId: string | null; value: string }>(
-    { open: false, mediaId: null, value: '' }
+  const [transcriptModal, setTranscriptModal] = useState<{ open: boolean; mediaId: string | null; value: string; isTranscribing?: boolean }>(
+    { open: false, mediaId: null, value: '', isTranscribing: false }
   );
   const [openMediaMenuId, setOpenMediaMenuId] = useState<string | null>(null);
 
@@ -310,9 +311,28 @@ const EditPracticePage: React.FC = () => {
   const saveTranscriptFromModal = () => {
     if (!transcriptModal.mediaId) return;
     const trimmed = transcriptModal.value.trim();
-  updateSectionMediaBlock(transcriptModal.mediaId, { transcript: trimmed });
-    setTranscriptModal({ open: false, mediaId: null, value: '' });
+    updateSectionMediaBlock(transcriptModal.mediaId, { transcript: trimmed });
+    setTranscriptModal({ open: false, mediaId: null, value: '', isTranscribing: false });
     toast.success('Đã lưu transcript cho media');
+  };
+
+  const handleManualAITranscript = async () => {
+    if (!transcriptModal.mediaId) return;
+    const media = sectionMediaBlocks.find(m => m.id === transcriptModal.mediaId);
+    if (!media || !media.filePath) {
+        toast.error('Không tìm thấy thông tin file trên server');
+        return;
+    }
+
+    setTranscriptModal(prev => ({ ...prev, isTranscribing: true }));
+    try {
+        const aiTranscript = await AIAPI.generateTranscript(media.filePath, media.mimeType || 'audio/mpeg');
+        setTranscriptModal(prev => ({ ...prev, value: aiTranscript, isTranscribing: false }));
+        toast.success('AI đã tạo transcript thành công!');
+    } catch (error: any) {
+        toast.error(error.message);
+        setTranscriptModal(prev => ({ ...prev, isTranscribing: false }));
+    }
   };
 
   const handleAudioLoaded = (mediaId: string, duration: number) => {
@@ -501,7 +521,21 @@ const EditPracticePage: React.FC = () => {
         return { ...section, mediaBlocks: merged };
       });
       setMediaUploadError(null);
-      toast.success(`Đã tải ${normalizedUploads.length} media`);
+      toast.success(`Đã tải ${normalizedUploads.length} media thành công`);
+
+      // 4. Kích hoạt AI Transcript bất đồng bộ cho các file Audio
+      normalizedUploads.forEach(async (item: PracticeMediaBlock) => {
+          if (item.type === 'audio' && item.filePath) {
+              try {
+                  const aiResult = await AIAPI.generateTranscript(item.filePath, item.mimeType || 'audio/mpeg');
+                  // Cập nhật transcript vào block
+                  updateSectionMediaBlock(item.id, { transcript: aiResult });
+                  toast.success(`AI đã hoàn tất transcript cho: ${item.originalName}`);
+              } catch (err) {
+                  console.error('Auto AI error:', err);
+              }
+          }
+      });
     } catch (err: any) {
       console.error(err);
       const message = err?.message || err?.response?.data?.message || 'Không thể tải media';
@@ -1160,6 +1194,15 @@ const EditPracticePage: React.FC = () => {
                 className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
               >
                 Hủy
+              </button>
+              <button
+                type="button"
+                disabled={transcriptModal.isTranscribing}
+                onClick={handleManualAITranscript}
+                className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-600 hover:bg-indigo-100 disabled:opacity-50"
+              >
+                <SparklesIcon className={`h-4 w-4 ${transcriptModal.isTranscribing ? 'animate-pulse' : ''}`} />
+                {transcriptModal.isTranscribing ? 'Đang dịch AI...' : 'Dịch bằng AI'}
               </button>
               <button
                 type="button"

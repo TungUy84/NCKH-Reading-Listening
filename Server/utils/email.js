@@ -80,8 +80,42 @@ const sendPasswordResetEmail = async (email, resetToken) => {
   }
 };
 
+// Gửi email chung cho notification và các chức năng khác
+const sendEmail = async (options) => {
+  try {
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      throw new Error('Cấu hình email bị thiếu');
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+      }
+    });
+
+    await transporter.verify();
+
+    const mailOptions = {
+      from: `"Nền tảng học tiếng Anh" <${process.env.EMAIL_USER}>`,
+      to: options.to,
+      subject: options.subject,
+      html: options.html
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Email đã gửi thành công:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Lỗi gửi email:', error.message);
+    throw error;
+  }
+};
+
 module.exports = {
   generateResetToken,
   hashResetToken,
-  sendPasswordResetEmail
+  sendPasswordResetEmail,
+  sendEmail
 };

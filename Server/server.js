@@ -66,6 +66,7 @@ app.use('/api/practices', require('./routes/practice'));
 app.use('/api/lessons', require('./routes/lesson'));
 app.use('/api/roadmap', require('./routes/roadmap'));
 app.use('/api/blogs', require('./routes/blog'));
+app.use('/api/ai', require('./routes/ai'));
 
 // Middleware xử lý lỗi tập trung
 app.use((err, req, res, next) => {

@@ -32,6 +32,8 @@ export interface PracticeMediaBlock {
   url: string;
   originalName?: string;
   transcript?: string;
+  filePath?: string;
+  mimeType?: string;
 }
 
 export interface PracticeSection {
@@ -225,6 +227,8 @@ export interface SectionMedia {
   url: string;
   originalName?: string;
   transcript?: string;
+  filePath?: string;
+  mimeType?: string;
 }
 
 export interface PlacementTestImportPreview {
