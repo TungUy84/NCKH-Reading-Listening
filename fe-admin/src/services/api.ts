@@ -983,3 +983,23 @@ export class BlogAPI {
 authUtils.initToken();
 
 export default api;
+// API các tính năng thông minh (AI)
+export class AIAPI {
+  /**
+   * Yêu cầu AI sinh transcript cho một file media đã tải lên server
+   * @param filePath Đường dẫn file trên server (từ API upload trả về)
+   * @param mimeType Loại file
+   */
+  static async generateTranscript(filePath: string, mimeType: string): Promise<string> {
+    try {
+      const response = await api.post('/ai/generate-transcript', {
+        filePath,
+        mimeType
+      });
+      return response.data.data.transcript;
+    } catch (error) {
+      console.error('AI generate transcript error:', error);
+      throw new Error('AI không thể dịch được âm thanh này tại thời điểm hiện tại');
+    }
+  }
+}

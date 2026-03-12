@@ -100,15 +100,15 @@ const getPlacementTestForTaking = async (req, res) => {
       // Nhóm câu hỏi theo sectionId (mỗi section = 1 part)
       const questionsBySectionId = new Map();
       const sectionOrder = []; // Lưu thứ tự xuất hiện của section
-      
+
       testObj.questions.forEach(q => {
         const sectionKey = q.sectionId ? q.sectionId.toString() : 'no-section';
-        
+
         if (!questionsBySectionId.has(sectionKey)) {
           questionsBySectionId.set(sectionKey, []);
           sectionOrder.push(sectionKey); // Ghi nhận thứ tự section
         }
-        
+
         questionsBySectionId.get(sectionKey).push(q);
       });
 
@@ -141,7 +141,7 @@ const getPlacementTestForTaking = async (req, res) => {
 // Chấm điểm bài test ngay lập tức (Public - không lưu database)
 const checkPlacementTest = async (req, res) => {
   try {
-  const { answers } = req.body || {};
+    const { answers } = req.body || {};
     const testId = req.params.testId || req.body?.testId;
 
     if (!testId) {
@@ -295,8 +295,8 @@ const checkPlacementTest = async (req, res) => {
     const percentage = Math.round((earnedPoints / test.totalQuestions) * 100);
 
     // Tính điểm IELTS và level AV (không cần lưu database)
-  // Quy đổi phần trăm sang thang điểm nội bộ để gợi ý lộ trình học
-  const getIELTSAndLevel = (percentage) => {
+    // Quy đổi phần trăm sang thang điểm nội bộ để gợi ý lộ trình học
+    const getIELTSAndLevel = (percentage) => {
       let ieltsScore, avLevel, recommendation;
 
       if (percentage > 80) {
@@ -696,6 +696,8 @@ const updateTestContent = async (req, res) => {
   }
 };
 
+const { generateAudioTranscript } = require('../utils/geminiAi');
+
 // Upload media (image/audio) cho section passage
 const uploadSectionMedia = async (req, res) => {
   try {
@@ -704,13 +706,21 @@ const uploadSectionMedia = async (req, res) => {
       return res.status(400).json({ message: 'Không có file nào được tải lên' });
     }
 
-    const uploaded = files.map((file) => ({
-      id: new mongoose.Types.ObjectId().toString(),
-      type: file.mimetype.startsWith('audio/') ? 'audio' : 'image',
-      url: `/uploads/tests/media/${path.basename(file.path)}`,
-      originalName: file.originalname,
-      transcript: ''
-    }));
+    const uploaded = await Promise.all(
+      files.map(async (file) => {
+        const isAudio = file.mimetype.startsWith('audio/');
+        
+        return {
+          id: new mongoose.Types.ObjectId().toString(),
+          type: isAudio ? 'audio' : 'image',
+          url: `/uploads/tests/media/${path.basename(file.path)}`,
+          originalName: file.originalname,
+          transcript: '', // Để trống, Frontend sẽ gọi AI sau
+          filePath: file.path, // Thêm để Frontend biết đường dẫn file trên server để gọi AI
+          mimeType: file.mimetype
+        };
+      })
+    );
 
     res.status(201).json({
       message: 'Tải media thành công',
@@ -757,7 +767,7 @@ const deletePlacementTest = async (req, res) => {
       await deleteMediaFiles(mediaBlocks);
     }
 
-    res.json({ 
+    res.json({
       message: 'Xóa bài test thành công',
       removedFromRoadmaps: roadmapsUsingTest.map(r => r.levelGroup)
     });
@@ -1110,7 +1120,7 @@ const getTestAttemptDetails = async (req, res) => {
     if (test && test.sections && test.questions) {
       test.sections = test.sections.map(section => ({
         ...section,
-        questions: test.questions.filter(q => 
+        questions: test.questions.filter(q =>
           q.sectionId && q.sectionId.toString() === section._id.toString()
         )
       }));

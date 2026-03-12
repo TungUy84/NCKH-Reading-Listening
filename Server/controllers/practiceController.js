@@ -3,7 +3,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const Practice = require('../models/Practice');
 const PracticeAttempt = require('../models/PracticeAttempt');
-const {parsePracticeDocxFile, parsePracticeExcelBuffer} = require('../utils/practiceImport');
+const { parsePracticeDocxFile, parsePracticeExcelBuffer } = require('../utils/practiceImport');
 
 // Import các hàm từ practiceHelper.js
 const {
@@ -45,22 +45,22 @@ const getPublicPractices = async (req, res) => {
     if (req.user) {
       const practiceIds = items.map(p => p._id);
       const attempts = await PracticeAttempt.aggregate([
-        { 
-          $match: { 
-            userId: req.user._id, 
-            practiceId: { $in: practiceIds } 
-          } 
+        {
+          $match: {
+            userId: req.user._id,
+            practiceId: { $in: practiceIds }
+          }
         },
-        { 
-          $group: { 
-            _id: '$practiceId', 
-            maxScore: { $max: '$score' } 
-          } 
+        {
+          $group: {
+            _id: '$practiceId',
+            maxScore: { $max: '$score' }
+          }
         }
       ]);
 
       const attemptMap = new Map(attempts.map(a => [String(a._id), a.maxScore]));
-      
+
       itemsWithScore = itemsWithScore.map(item => ({
         ...item,
         highestScore: attemptMap.has(String(item._id)) ? attemptMap.get(String(item._id)) : null
@@ -198,15 +198,15 @@ const getPracticeForLearner = async (req, res) => {
     if (randomize === 'true') {
       const questionsBySectionId = new Map();
       const sectionOrder = []; // Track section order
-      
+
       practiceObj.questions.forEach(q => {
         const sectionKey = q.sectionId ? q.sectionId.toString() : 'no-section';
-        
+
         if (!questionsBySectionId.has(sectionKey)) {
           questionsBySectionId.set(sectionKey, []);
           sectionOrder.push(sectionKey);
         }
-        
+
         questionsBySectionId.get(sectionKey).push(q);
       });
 
@@ -261,6 +261,8 @@ const getPracticeDetails = async (req, res) => {
   }
 };
 
+const { generateAudioTranscript } = require('../utils/geminiAi');
+
 // Hàm upload media cho passage trong bài ôn luyện.
 const uploadPracticeMedia = async (req, res) => {
   try {
@@ -271,13 +273,21 @@ const uploadPracticeMedia = async (req, res) => {
 
     ensureMediaDir();
 
-    const uploaded = files.map((file) => ({
-      id: new mongoose.Types.ObjectId().toString(),
-      type: file.mimetype.startsWith('audio/') ? 'audio' : 'image',
-      url: `/uploads/practices/media/${path.basename(file.path)}`,
-      originalName: file.originalname,
-      transcript: ''
-    }));
+    const uploaded = await Promise.all(
+      files.map(async (file) => {
+        const isAudio = file.mimetype.startsWith('audio/');
+        
+        return {
+          id: new mongoose.Types.ObjectId().toString(),
+          type: isAudio ? 'audio' : 'image',
+          url: `/uploads/practices/media/${path.basename(file.path)}`,
+          originalName: file.originalname,
+          transcript: '', // Để trống
+          filePath: file.path,
+          mimeType: file.mimetype
+        };
+      })
+    );
 
     return res.status(201).json({
       message: 'Tải media thành công',
@@ -550,8 +560,8 @@ const submitPracticeAttempt = async (req, res) => {
       return res.status(400).json({ message: 'Bài ôn luyện này đang bị vô hiệu hóa' });
     }
 
-  // Kiểm tra và chuẩn hóa dữ liệu nộp bài trước khi chấm điểm.
-  let submissionPayload;
+    // Kiểm tra và chuẩn hóa dữ liệu nộp bài trước khi chấm điểm.
+    let submissionPayload;
     try {
       submissionPayload = validatePracticeSubmissionPayload(req.body);
     } catch (validationError) {

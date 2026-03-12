@@ -3,7 +3,7 @@ const User = require('../models/User');
 const { sendEmail } = require('./email');
 
 // Thời gian không hoạt động trước khi gửi email (ngày)
-const INACTIVITY_DAYS = 2;
+const INACTIVITY_DAYS = 14;
 
 /**
  * Gửi email nhắc nhở cho người dùng không đăng nhập
@@ -33,23 +33,24 @@ const sendInactivityNotifications = async () => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - INACTIVITY_DAYS);
 
+    const notificationCutoffDate = new Date();
+    notificationCutoffDate.setDate(notificationCutoffDate.getDate() - 14); // 2 tuần 1 lần
+
     // Tìm những người dùng không đăng nhập trong vòng INACTIVITY_DAYS ngày
-    // và chưa được gửi thông báo hôm nay
+    // và chưa được gửi thông báo trong 14 ngày qua
     const inactiveUsers = await User.find({
       lastLogin: { $lt: cutoffDate },
       isActive: true,
       $or: [
-        { lastNotificationSent: { $lt: new Date(new Date().setHours(0, 0, 0, 0)) } },
+        { lastNotificationSent: { $lt: notificationCutoffDate } },
         { lastNotificationSent: { $exists: false } }
       ]
     }).select('_id email firstName lastName lastLogin');
 
     if (inactiveUsers.length === 0) {
-      console.log('[Notification] Không có người dùng không hoạt động để gửi thông báo');
       return;
     }
 
-    console.log(`[Notification] Tìm thấy ${inactiveUsers.length} người dùng không hoạt động`);
 
     let successCount = 0;
     let failureCount = 0;
