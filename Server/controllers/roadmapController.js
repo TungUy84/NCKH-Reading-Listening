@@ -18,7 +18,8 @@ exports.getAdminRoadmaps = async (req, res) => {
     let roadmaps = await Roadmap.find()
       .populate('checkpointTest', 'title category totalQuestions timeLimit')
       .populate('createdBy', 'firstName lastName email')
-      .sort({ levelGroup: 1 });
+      .sort({ levelGroup: 1 })
+      .lean();
     
     // Nếu chưa có đủ roadmap, tự động tạo skeleton
     const existingLevelGroups = roadmaps.map(r => r.levelGroup);
@@ -172,11 +173,13 @@ exports.getAvailableContent = async (req, res) => {
     
     const lessons = await Lesson.find(filter)
       .select('title skill levelGroup viewCount')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     
     const practices = await Practice.find(filter)
       .select('title skill levelGroup totalQuestions')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     
     res.json({
       success: true,

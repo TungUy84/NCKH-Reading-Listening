@@ -35,11 +35,12 @@ const getPublicPractices = async (req, res) => {
         .select('title description skill levelGroup estimatedTime totalQuestions')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       Practice.countDocuments(filters)
     ]);
 
-    let itemsWithScore = items.map(item => item.toObject());
+    let itemsWithScore = [...items];
 
     // Nếu user đã đăng nhập, lấy điểm cao nhất của họ cho từng bài
     if (req.user) {
@@ -95,10 +96,12 @@ const getAdminPractices = async (req, res) => {
 
     const [items, total] = await Promise.all([
       Practice.find(filters)
+        .select('-sections -questions')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
-        .populate('createdBy', 'firstName lastName email username'),
+        .populate('createdBy', 'firstName lastName email username')
+        .lean(),
       Practice.countDocuments(filters)
     ]);
 

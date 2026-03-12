@@ -390,10 +390,12 @@ const getAllPlacementTests = async (req, res) => {
 
     const [tests, total] = await Promise.all([
       PlacementTest.find(filter)
+        .select('-sections -questions -instructions')
         .populate('createdBy', 'firstName lastName email')
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       PlacementTest.countDocuments(filter),
     ]);
 

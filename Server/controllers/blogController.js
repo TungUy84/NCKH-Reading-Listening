@@ -98,7 +98,6 @@ const getPublicBlogs = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .populate('authorId', 'firstName lastName username avatar')
-        .populate('comments.authorId', 'firstName lastName username avatar')
         .lean(),
       Blog.countDocuments(query)
     ]);
@@ -107,10 +106,9 @@ const getPublicBlogs = async (req, res) => {
     const userId = req.user?.id;
     const blogsWithLikeStatus = blogs.map(blog => ({
       ...blog,
-      likeCount: blog.likedBy?.length || 0,
-      commentCount: blog.comments?.length || 0,
-      isLikedByMe: userId ? blog.likedBy?.some(id => id.toString() === userId) : false,
-      likedBy: undefined // Don't send array to client
+      likeCount: blog.likeCount || 0,
+      commentCount: blog.commentCount || 0,
+      isLikedByMe: false, // Ở trang danh sách tổng quát có thể để mặc định hoặc xử lý nhẹ hơn
     }));
 
     res.json({
@@ -155,7 +153,6 @@ const getMyBlogs = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .populate('authorId', 'firstName lastName username avatar')
-        .populate('comments.authorId', 'firstName lastName username avatar')
         .lean(),
       Blog.countDocuments(query)
     ]);
