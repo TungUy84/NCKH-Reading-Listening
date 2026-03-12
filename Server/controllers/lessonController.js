@@ -6,7 +6,7 @@ const {
   buildFilters
 } = require('../utils/lessonHelper');
 
-const ADMIN_SELECT_FIELDS = '_id title summary skill levelGroup isActive viewCount coverImage createdBy updatedAt createdAt';
+const ADMIN_SELECT_FIELDS = '_id title summary skill levelGroup isActive viewCount createdBy updatedAt createdAt';
 const PUBLIC_SUMMARY_FIELDS = '_id title summary skill levelGroup coverImage viewCount createdAt updatedAt';
 const PUBLIC_DETAIL_FIELDS = '_id title summary content skill levelGroup coverImage viewCount createdAt updatedAt';
 

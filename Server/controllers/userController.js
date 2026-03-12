@@ -36,7 +36,8 @@ const getAllUsers = async (req, res) => {
       .select('-password -resetPasswordToken -resetPasswordExpire')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const total = await User.countDocuments(query);
 

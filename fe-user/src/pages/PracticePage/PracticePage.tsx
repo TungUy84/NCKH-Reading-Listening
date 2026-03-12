@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { 
-  MagnifyingGlassIcon, 
-  FunnelIcon, 
-  BookOpenIcon, 
-  SpeakerWaveIcon, 
-  ClockIcon, 
+import {
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  BookOpenIcon,
+  SpeakerWaveIcon,
+  ClockIcon,
   AcademicCapIcon,
   TrophyIcon,
   PlayCircleIcon
@@ -45,10 +45,10 @@ const PracticeListPage: React.FC = () => {
   const fetchPractices = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params: any = { 
-        page: pagination.page, 
-        limit: pagination.limit, 
-        skill: activeTab 
+      const params: any = {
+        page: pagination.page,
+        limit: pagination.limit,
+        skill: activeTab
       };
       if (levelGroup) params.levelGroup = levelGroup;
       if (keyword.trim()) params.keyword = keyword.trim();
@@ -68,14 +68,14 @@ const PracticeListPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 relative overflow-hidden font-sans">
-      
+
       {/* --- BACKGROUND DECORATION --- */}
       <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-indigo-50 via-white to-slate-50 -z-10" />
       <div className="absolute top-20 right-0 w-[500px] h-[500px] bg-blue-400/10 rounded-full blur-3xl -z-10 animate-pulse" />
       <div className="absolute top-40 left-0 w-[400px] h-[400px] bg-purple-400/10 rounded-full blur-3xl -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        
+
         {/* --- HEADER SECTION --- */}
         <div className="text-center max-w-3xl mx-auto mb-10 relative" data-aos="fade-up">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-sm font-bold text-slate-700 mb-6 animate-bounce">
@@ -91,7 +91,7 @@ const PracticeListPage: React.FC = () => {
         {/* --- FLOATING FILTER BAR --- */}
         <div className="sticky top-20 z-30 mb-12">
           <div className="bg-white/80 backdrop-blur-xl border border-white/20 shadow-xl shadow-slate-200/50 rounded-2xl p-2 max-w-4xl mx-auto flex flex-col md:flex-row gap-2" data-aos="fade-down">
-            
+
             {/* Tabs Switcher */}
             <div className="bg-slate-100/80 p-1 rounded-xl flex shrink-0">
               <button
@@ -120,17 +120,17 @@ const PracticeListPage: React.FC = () => {
             <div className="flex-1 flex gap-2">
               <div className="relative flex-1 group">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-                <input 
-                  type="text" 
-                  placeholder="Tìm kiếm bài tập..." 
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm bài tập..."
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
                   className="w-full h-full pl-10 pr-4 bg-transparent rounded-xl focus:bg-slate-50 focus:outline-none text-sm font-medium text-slate-700 placeholder:text-slate-400 transition-colors"
                 />
               </div>
-              
+
               <div className="relative w-40 shrink-0">
-                <select 
+                <select
                   value={levelGroup}
                   onChange={(e) => setLevelGroup(e.target.value)}
                   className="w-full h-full pl-3 pr-8 bg-slate-50 border-none rounded-xl text-sm font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 cursor-pointer appearance-none"
@@ -139,6 +139,7 @@ const PracticeListPage: React.FC = () => {
                   <option value="AV1-AV3">Cơ bản</option>
                   <option value="AV4-AV5">Trung cấp</option>
                   <option value="AV6">Nâng cao</option>
+                  <option value="AV7">Chuyên sâu</option>
                 </select>
                 <FunnelIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
               </div>
@@ -165,7 +166,7 @@ const PracticeListPage: React.FC = () => {
         {!isLoading && practices.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {practices.map((practice, index) => (
-              <div 
+              <div
                 key={practice._id}
                 onClick={() => navigate(`/practice/${practice._id}`)}
                 data-aos="fade-up"
@@ -173,7 +174,7 @@ const PracticeListPage: React.FC = () => {
                 className="group relative bg-white rounded-[2rem] p-1 border border-white shadow-lg shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-500/10 hover:-translate-y-2 transition-all duration-300 cursor-pointer"
               >
                 <div className="absolute inset-0 bg-gradient-to-br from-white to-slate-50 rounded-[2rem] -z-10" />
-                
+
                 <div className="p-6 h-full flex flex-col">
                   {/* Card Header */}
                   <div className="flex justify-between items-start mb-6">
@@ -183,7 +184,7 @@ const PracticeListPage: React.FC = () => {
                     )}>
                       {activeTab === 'reading' ? <BookOpenIcon className="h-6 w-6" /> : <SpeakerWaveIcon className="h-6 w-6" />}
                     </div>
-                    
+
                     <div className={clsx(
                       "px-3 py-1 rounded-full text-xs font-bold text-white shadow-md bg-gradient-to-r",
                       getLevelGradient(practice.levelGroup)
@@ -214,7 +215,7 @@ const PracticeListPage: React.FC = () => {
                         {practice.estimatedTime || 15}'
                       </span>
                     </div>
-                    
+
                     <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
                       <PlayCircleIcon className="h-6 w-6" />
                     </div>
@@ -229,14 +230,14 @@ const PracticeListPage: React.FC = () => {
         {!isLoading && practices.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-64 h-64 bg-slate-100 rounded-full flex items-center justify-center mb-6 animate-pulse">
-               <MagnifyingGlassIcon className="h-24 w-24 text-slate-300" />
+              <MagnifyingGlassIcon className="h-24 w-24 text-slate-300" />
             </div>
             <h3 className="text-2xl font-bold text-slate-900 mb-2">Không tìm thấy bài tập nào</h3>
             <p className="text-slate-500 max-w-md">
               Có vẻ như chưa có bài tập nào khớp với bộ lọc của bạn. Hãy thử thay đổi từ khóa hoặc cấp độ xem sao nhé!
             </p>
-            <Button 
-              className="mt-8 shadow-xl shadow-blue-500/20" 
+            <Button
+              className="mt-8 shadow-xl shadow-blue-500/20"
               onClick={() => { setKeyword(''); setLevelGroup(''); }}
             >
               Làm mới bộ lọc
