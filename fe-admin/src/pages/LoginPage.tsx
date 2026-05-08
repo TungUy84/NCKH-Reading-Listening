@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AuthAPI } from '../services/api';
-import { ArrowPathIcon, EyeIcon, EyeSlashIcon, Squares2X2Icon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 interface LoginPageProps {
   onLogin: (token: string) => void;

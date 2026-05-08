@@ -2,11 +2,10 @@ import React, { useMemo } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { TestResult, DetailedResult } from '../../types';
 import Button from '../../components/ui/Button';
-import { 
-  CheckCircleIcon, 
-  XCircleIcon, 
+import {
+  CheckCircleIcon,
+  XCircleIcon,
   MinusCircleIcon,
-  StarIcon,
   TrophyIcon,
   SparklesIcon,
   AcademicCapIcon
@@ -32,10 +31,10 @@ const getLevelGroup = (level: string | undefined) => {
   if (!level) return 'Chưa xác định';
   // Check if it's already a group
   if (level.includes('-')) return level;
-  
+
   const num = parseInt(level.replace(/\D/g, '')); // Extract number
   if (isNaN(num)) return level;
-  
+
   if (num >= 1 && num <= 3) return 'AV1-AV3';
   if (num >= 4 && num <= 5) return 'AV4-AV5';
   if (num === 6) return 'AV6';
@@ -47,7 +46,7 @@ const TestSummaryPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { testId } = useParams<{ testId: string }>();
-  
+
   const result = location.state?.result as TestResult | undefined;
 
   // Calculate statistics
@@ -60,11 +59,11 @@ const TestSummaryPage: React.FC = () => {
     const byType: Record<string, QuestionTypeStats> = {};
 
     result.detailedResults.forEach(detail => {
-      const isSkipped = 
+      const isSkipped =
         (!detail.userAnswer.selectedOptions || detail.userAnswer.selectedOptions.length === 0) &&
         (!detail.userAnswer.userAnswer || detail.userAnswer.userAnswer.trim() === '') &&
         (!detail.userAnswer.matchingAnswers || detail.userAnswer.matchingAnswers.length === 0);
-      
+
       if (isSkipped) skipped++;
       else if (detail.isCorrect) correct++;
       else incorrect++;
@@ -73,7 +72,7 @@ const TestSummaryPage: React.FC = () => {
       if (!byType[type]) {
         byType[type] = { total: 0, correct: 0, incorrect: 0, skipped: 0 };
       }
-      
+
       byType[type].total++;
       if (isSkipped) byType[type].skipped++;
       else if (detail.isCorrect) byType[type].correct++;
@@ -129,7 +128,7 @@ const TestSummaryPage: React.FC = () => {
   const { score, testTitle, category, avLevel } = result;
   const isListening = category === 'listening';
   const displayLevel = getLevelGroup(avLevel);
-  
+
   const theme = {
     gradient: isListening ? 'from-violet-600 via-fuchsia-600 to-purple-600' : 'from-cyan-500 via-blue-600 to-indigo-600',
     shadow: isListening ? 'shadow-fuchsia-500/30' : 'shadow-cyan-500/30',
@@ -156,7 +155,7 @@ const TestSummaryPage: React.FC = () => {
             <ArrowLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
             <span>Kiểm tra đầu vào</span>
           </button>
-          
+
           <div className="text-center max-w-3xl mx-auto mb-10">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-4">
               Kết quả <span className={clsx("text-transparent bg-clip-text bg-gradient-to-r", theme.gradient)}>đánh giá năng lực</span>
@@ -168,9 +167,9 @@ const TestSummaryPage: React.FC = () => {
         {/* Top Summary Card */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] border border-white/60 shadow-xl shadow-slate-200/50 overflow-hidden mb-8 relative">
           <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-slate-50/50 -z-10" />
-          
+
           <div className="p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-12">
-            
+
             {/* Left: Score Circle & Level */}
             <div className="flex flex-col md:flex-row items-center gap-12 flex-1">
               <div className="relative w-56 h-56 flex-shrink-0">
@@ -216,19 +215,19 @@ const TestSummaryPage: React.FC = () => {
                   <h2 className="text-3xl font-black text-slate-900 mb-3">
                     {score.percentage >= 80 ? "Xuất sắc!" : score.percentage >= 50 ? "Làm tốt lắm!" : "Cần cố gắng hơn!"}
                   </h2>
-                  
+
                   {avLevel && (
                     <div className="inline-flex items-center gap-3 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-200 text-amber-800 font-bold text-xl shadow-sm mb-4">
                       <TrophyIcon className="w-6 h-6 text-amber-500" />
                       <span>Level: {displayLevel}</span>
                     </div>
                   )}
-                  
+
                   <p className="text-slate-500 text-lg max-w-md leading-relaxed">
                     Bạn đã hoàn thành bài kiểm tra. Dưới đây là chi tiết kết quả và đánh giá năng lực của bạn.
                   </p>
                 </div>
-                
+
                 <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm">
                   <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-5 py-2.5 rounded-2xl border border-emerald-100 shadow-sm">
                     <CheckCircleIcon className="w-5 h-5" />
@@ -252,7 +251,7 @@ const TestSummaryPage: React.FC = () => {
                 variant="primary"
                 onClick={() => navigate(`/test/${testId}/result/details`, { state: { result } })}
                 className={clsx(
-                  "w-full py-4 rounded-2xl border-none text-lg font-bold shadow-lg shadow-indigo-200 transition-all hover:-translate-y-1", 
+                  "w-full py-4 rounded-2xl border-none text-lg font-bold shadow-lg shadow-indigo-200 transition-all hover:-translate-y-1",
                   `bg-gradient-to-r ${theme.gradient}`
                 )}
               >
@@ -261,7 +260,7 @@ const TestSummaryPage: React.FC = () => {
                   <span>Xem chi tiết đáp án</span>
                 </div>
               </Button>
-              
+
               <Button
                 variant="primary"
                 onClick={() => navigate('/roadmap/setup')}
@@ -331,22 +330,22 @@ const TestSummaryPage: React.FC = () => {
           </div>
 
           <div className="lg:col-span-1">
-             {/* Recommendation Card */}
-             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-lg overflow-hidden h-full flex flex-col">
+            {/* Recommendation Card */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-lg overflow-hidden h-full flex flex-col">
               <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-amber-50/30">
                 <div className="p-2 rounded-xl bg-amber-100 text-amber-600">
                   <SparklesIcon className="w-6 h-6" />
                 </div>
                 <h3 className="text-lg font-bold text-slate-900">Đánh giá & Lời khuyên</h3>
               </div>
-              
+
               <div className="p-6 flex-1 flex flex-col">
                 <div className="prose prose-slate max-w-none mb-6 flex-1">
                   <p className="text-slate-600 leading-relaxed text-base">
                     {result.recommendation || "Bạn đã hoàn thành bài kiểm tra. Hãy xem lại chi tiết các câu trả lời để rút kinh nghiệm cho lần sau nhé!"}
                   </p>
                 </div>
-                
+
                 <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100 mt-auto">
                   <div className="flex items-start gap-3">
                     <AcademicCapIcon className="w-6 h-6 text-indigo-600 mt-1 flex-shrink-0" />
@@ -357,8 +356,8 @@ const TestSummaryPage: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  <Button 
-                    fullWidth 
+                  <Button
+                    fullWidth
                     variant="primary"
                     onClick={() => navigate('/roadmap/setup')}
                     className="mt-4 justify-center py-3 rounded-xl border-none bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-200"
@@ -372,69 +371,69 @@ const TestSummaryPage: React.FC = () => {
         </div>
 
         <div className="w-full">
-            {/* Answer Key List */}
-            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-lg overflow-hidden">
-              <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-                <div className={clsx("p-2 rounded-xl", theme.bg)}>
-                  <ClipboardDocumentCheckIcon className={clsx("w-6 h-6", theme.text)} />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900">Đáp án chi tiết</h3>
+          {/* Answer Key List */}
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-lg overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
+              <div className={clsx("p-2 rounded-xl", theme.bg)}>
+                <ClipboardDocumentCheckIcon className={clsx("w-6 h-6", theme.text)} />
               </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-4">
-                  {result.detailedResults.map((detail, index) => {
-                    const isSkipped = 
-                      (!detail.userAnswer.selectedOptions || detail.userAnswer.selectedOptions.length === 0) &&
-                      (!detail.userAnswer.userAnswer || detail.userAnswer.userAnswer.trim() === '') &&
-                      (!detail.userAnswer.matchingAnswers || detail.userAnswer.matchingAnswers.length === 0);
-                    
-                    const userLabel = getAnswerLabel(detail, 'user');
-                    const correctLabel = getAnswerLabel(detail, 'correct');
-                    
-                    // Determine status color
-                    let statusColor = 'bg-slate-100 text-slate-500'; // Skipped
-                    if (!isSkipped) {
-                      statusColor = detail.isCorrect 
-                        ? 'bg-emerald-500 text-white shadow-emerald-200 shadow-md' 
-                        : 'bg-rose-500 text-white shadow-rose-200 shadow-md';
-                    } else {
-                       statusColor = 'bg-slate-500 text-white';
-                    }
+              <h3 className="text-lg font-bold text-slate-900">Đáp án chi tiết</h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-4">
+                {result.detailedResults.map((detail, index) => {
+                  const isSkipped =
+                    (!detail.userAnswer.selectedOptions || detail.userAnswer.selectedOptions.length === 0) &&
+                    (!detail.userAnswer.userAnswer || detail.userAnswer.userAnswer.trim() === '') &&
+                    (!detail.userAnswer.matchingAnswers || detail.userAnswer.matchingAnswers.length === 0);
 
-                    return (
-                      <div key={index} className="flex items-center gap-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 rounded-lg px-2 transition-colors">
-                        {/* Question Number Circle */}
-                        <div className={clsx(
-                          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 transition-transform hover:scale-110",
-                          statusColor
-                        )}>
-                          {detail.questionNumber}
-                        </div>
+                  const userLabel = getAnswerLabel(detail, 'user');
+                  const correctLabel = getAnswerLabel(detail, 'correct');
 
-                        {/* Answer Comparison */}
-                        <div className="flex items-center gap-3 text-sm font-medium flex-1">
-                          <span className={clsx(
-                            "font-bold",
-                            isSkipped ? "text-slate-400 italic" : 
-                            detail.isCorrect ? "text-emerald-600" : "text-rose-600"
-                          )}>
-                            {userLabel}
-                          </span>
-                          
-                          {!detail.isCorrect && (
-                            <>
-                              <span className="text-slate-300">|</span>
-                              <span className="text-emerald-600 font-bold">{correctLabel}</span>
-                            </>
-                          )}
-                        </div>
-                        
+                  // Determine status color
+                  let statusColor = 'bg-slate-100 text-slate-500'; // Skipped
+                  if (!isSkipped) {
+                    statusColor = detail.isCorrect
+                      ? 'bg-emerald-500 text-white shadow-emerald-200 shadow-md'
+                      : 'bg-rose-500 text-white shadow-rose-200 shadow-md';
+                  } else {
+                    statusColor = 'bg-slate-500 text-white';
+                  }
+
+                  return (
+                    <div key={index} className="flex items-center gap-4 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 rounded-lg px-2 transition-colors">
+                      {/* Question Number Circle */}
+                      <div className={clsx(
+                        "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 transition-transform hover:scale-110",
+                        statusColor
+                      )}>
+                        {detail.questionNumber}
                       </div>
-                    );
-                  })}
-                </div>
+
+                      {/* Answer Comparison */}
+                      <div className="flex items-center gap-3 text-sm font-medium flex-1">
+                        <span className={clsx(
+                          "font-bold",
+                          isSkipped ? "text-slate-400 italic" :
+                            detail.isCorrect ? "text-emerald-600" : "text-rose-600"
+                        )}>
+                          {userLabel}
+                        </span>
+
+                        {!detail.isCorrect && (
+                          <>
+                            <span className="text-slate-300">|</span>
+                            <span className="text-emerald-600 font-bold">{correctLabel}</span>
+                          </>
+                        )}
+                      </div>
+
+                    </div>
+                  );
+                })}
               </div>
             </div>
+          </div>
         </div>
       </div>
     </div>

@@ -10,13 +10,11 @@ import {
   ChatBubbleLeftIcon,
   DocumentTextIcon,
   PhotoIcon,
-  XMarkIcon,
-  SparklesIcon
+  XMarkIcon
 } from '@heroicons/react/24/solid';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
-import clsx from 'clsx';
 import { Blog } from '../../types';
 import {
   getMyBlogs,

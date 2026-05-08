@@ -4,8 +4,8 @@ import { toast } from 'react-toastify';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, TestAttempt, DetailedResult } from '../../types';
 import { getTestAttemptDetail } from '../../services/api';
 import { Button } from '../../components/ui/Button';
-import { 
-  ArrowLeftIcon, 
+import {
+  ArrowLeftIcon,
   ListBulletIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -118,8 +118,8 @@ const AudioPlayer: React.FC<{ src: string; theme?: any }> = React.memo(({ src, t
   return (
     <div className="group relative flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
       <audio ref={audioRef} src={src} preload="metadata" />
-      
-      <button 
+
+      <button
         onClick={togglePlay}
         className={clsx(
           "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95",
@@ -135,7 +135,7 @@ const AudioPlayer: React.FC<{ src: string; theme?: any }> = React.memo(({ src, t
           <span>{formatTime(duration)}</span>
         </div>
         <div className="relative h-2 w-full rounded-full bg-slate-100">
-          <div 
+          <div
             className={clsx("absolute top-0 left-0 h-full rounded-full transition-all", activeTheme.isListening ? 'bg-purple-500' : 'bg-blue-500')}
             style={{ width: `${progressPercent}%` }}
           />
@@ -175,7 +175,7 @@ const MediaBlock: React.FC<{ block: SectionMedia; theme?: any }> = ({ block, the
   const [showTranscript, setShowTranscript] = useState(false);
 
   if (!block?.url) return <div className="text-xs text-amber-600 p-2 border border-amber-200 bg-amber-50 rounded">Media missing</div>;
-  
+
   if (block.type === 'audio') {
     return (
       <div className="my-4 space-y-2">
@@ -226,7 +226,7 @@ const PassageRenderer: React.FC<{
 }> = ({ passage, mediaBlocks, theme }) => {
   const mediaMap = useMemo(() => new Map(mediaBlocks.map(b => [String(b.id), b])), [mediaBlocks]);
   if (!passage) return null;
-  
+
   return (
     <>
       {passage.split(mediaPlaceholderRegex).map((part, i) => {
@@ -252,12 +252,12 @@ const CheckpointReviewPage: React.FC = () => {
   const { resultId } = useParams<{ resultId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const [attempt, setAttempt] = useState<TestAttempt | null>(location.state?.result || null);
   const [test, setTest] = useState<PlacementTest | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  
+
   const theme = useMemo(() => getTheme(test?.category), [test?.category]);
 
   useEffect(() => {
@@ -269,7 +269,7 @@ const CheckpointReviewPage: React.FC = () => {
         setAttempt(res.data.attempt);
         const t = res.data.test;
         if (t) {
-           setTest({ ...t, sections: sanitizeSections(t.sections) });
+          setTest({ ...t, sections: sanitizeSections(t.sections) });
         }
       } catch (e) { console.error(e); toast.error('Error loading test details.'); }
       finally { setIsLoading(false); }
@@ -307,7 +307,6 @@ const CheckpointReviewPage: React.FC = () => {
 
   const sections = test?.sections ?? EMPTY_SECTIONS;
   const questions = test?.questions ?? EMPTY_QUESTIONS;
-  const totalQuestions = questions.length;
 
   const currentQuestion = questions[currentQuestionIndex] ?? null;
   const currentSectionId = normalizeId(currentQuestion?.sectionId);
@@ -485,9 +484,9 @@ function SectionPanel({ section, sectionIndex, theme }: SectionPanelProps) {
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         {section?.passage ? (
           <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-[15px]">
-            <PassageRenderer 
-              passage={section.passage} 
-              mediaBlocks={section.mediaBlocks || []} 
+            <PassageRenderer
+              passage={section.passage}
+              mediaBlocks={section.mediaBlocks || []}
               theme={theme}
             />
           </div>
@@ -539,7 +538,7 @@ function QuestionNavigator({
         {questions.map((_, index) => {
           const targetIndex = questionIndices ? questionIndices[index] : index;
           const isCurrent = targetIndex === currentQuestionIndex;
-          
+
           // Find result for this question
           const detail = detailedResults.find(d => d.questionNumber === targetIndex + 1);
           const isCorrect = detail?.isCorrect;
@@ -551,7 +550,7 @@ function QuestionNavigator({
               onClick={() => onSelect(targetIndex)}
               className={clsx(
                 "flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-bold transition-all duration-200 shadow-sm",
-                isCurrent 
+                isCurrent
                   ? clsx("ring-2 ring-offset-1", theme.ring, theme.borderActive, theme.text, "bg-white")
                   : isCorrect
                     ? "bg-emerald-100 text-emerald-700 border-emerald-200"
@@ -587,9 +586,9 @@ function QuestionResult({ question, detail, theme }: { question: TestQuestion, d
     <div className="space-y-4">
       {/* Question Type Badge */}
       <div className="flex items-center gap-2 mb-2">
-         <span className="px-2 py-1 rounded text-xs font-bold bg-slate-100 text-slate-500 uppercase">
-            {type.replace('_', ' ')}
-         </span>
+        <span className="px-2 py-1 rounded text-xs font-bold bg-slate-100 text-slate-500 uppercase">
+          {type.replace('_', ' ')}
+        </span>
       </div>
 
       {/* Options / Input Display */}
@@ -597,8 +596,8 @@ function QuestionResult({ question, detail, theme }: { question: TestQuestion, d
         <div className="flex flex-col gap-2">
           {options?.map((opt: any, idx: number) => {
             const isSelected = userAnswer?.selectedOptions?.includes(opt.text);
-            const isCorrectOption = detail?.correctAnswers?.includes(opt.text); 
-            
+            const isCorrectOption = detail?.correctAnswers?.includes(opt.text);
+
             // Determine style
             let containerClass = "border-slate-200 bg-white hover:bg-slate-50";
             let textClass = "text-slate-700";
@@ -606,23 +605,23 @@ function QuestionResult({ question, detail, theme }: { question: TestQuestion, d
             let iconContent: React.ReactNode = String.fromCharCode(65 + idx);
 
             if (isSelected && isCorrectOption) {
-               // User selected CORRECT
-               containerClass = "border-emerald-500 bg-emerald-50";
-               textClass = "text-emerald-900 font-medium";
-               iconClass = "bg-emerald-500 text-white border-emerald-500";
-               iconContent = <CheckIcon className="w-3 h-3" />;
+              // User selected CORRECT
+              containerClass = "border-emerald-500 bg-emerald-50";
+              textClass = "text-emerald-900 font-medium";
+              iconClass = "bg-emerald-500 text-white border-emerald-500";
+              iconContent = <CheckIcon className="w-3 h-3" />;
             } else if (isSelected && !isCorrectOption) {
-               // User selected WRONG
-               containerClass = "border-rose-500 bg-rose-50";
-               textClass = "text-rose-900 font-medium";
-               iconClass = "bg-rose-500 text-white border-rose-500";
-               iconContent = <XMarkIcon className="w-3 h-3" />;
+              // User selected WRONG
+              containerClass = "border-rose-500 bg-rose-50";
+              textClass = "text-rose-900 font-medium";
+              iconClass = "bg-rose-500 text-white border-rose-500";
+              iconContent = <XMarkIcon className="w-3 h-3" />;
             } else if (!isSelected && isCorrectOption) {
-               // Correct option (not selected)
-               containerClass = "border-emerald-500 bg-white border-dashed";
-               textClass = "text-emerald-700 font-medium";
-               iconClass = "bg-emerald-100 text-emerald-600 border-emerald-500";
-               iconContent = <CheckIcon className="w-3 h-3" />;
+              // Correct option (not selected)
+              containerClass = "border-emerald-500 bg-white border-dashed";
+              textClass = "text-emerald-700 font-medium";
+              iconClass = "bg-emerald-100 text-emerald-600 border-emerald-500";
+              iconContent = <CheckIcon className="w-3 h-3" />;
             }
 
             return (
@@ -643,22 +642,22 @@ function QuestionResult({ question, detail, theme }: { question: TestQuestion, d
           <div>
             <label className="text-xs font-bold text-slate-400 mb-1 block uppercase">Your Answer</label>
             <div className={clsx(
-                "w-full p-3 rounded-xl border text-sm font-medium",
-                isCorrect
-                  ? "bg-emerald-50 border-emerald-500 text-emerald-900"
-                  : "bg-rose-50 border-rose-500 text-rose-900"
+              "w-full p-3 rounded-xl border text-sm font-medium",
+              isCorrect
+                ? "bg-emerald-50 border-emerald-500 text-emerald-900"
+                : "bg-rose-50 border-rose-500 text-rose-900"
             )}>
-                {userAnswer?.userAnswer || <span className="italic text-slate-400 font-normal">No answer</span>}
+              {userAnswer?.userAnswer || <span className="italic text-slate-400 font-normal">No answer</span>}
             </div>
           </div>
 
           {/* Correct Answer (if wrong) */}
           {!isCorrect && (
             <div>
-                <label className="text-xs font-bold text-emerald-600 mb-1 block uppercase">Correct Answer</label>
-                <div className="w-full p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-sm font-medium">
-                  {detail?.correctAnswers?.join(', ')}
-                </div>
+              <label className="text-xs font-bold text-emerald-600 mb-1 block uppercase">Correct Answer</label>
+              <div className="w-full p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-sm font-medium">
+                {detail?.correctAnswers?.join(', ')}
+              </div>
             </div>
           )}
         </div>
@@ -671,7 +670,7 @@ function QuestionResult({ question, detail, theme }: { question: TestQuestion, d
               (ans: any) => ans.prompt === pair.prompt
             );
             const isPairCorrect = userMatch?.selected === pair.correctOption;
-            
+
             return (
               <div key={idx} className="p-3 rounded-xl border border-slate-200 bg-slate-50/50">
                 <div className="font-medium text-slate-900 mb-2">{pair.prompt}</div>
@@ -679,14 +678,14 @@ function QuestionResult({ question, detail, theme }: { question: TestQuestion, d
                   {/* User Selection */}
                   <div className={clsx(
                     "flex-1 p-2 rounded-lg border",
-                    isPairCorrect 
-                      ? "bg-emerald-50 border-emerald-200 text-emerald-800" 
+                    isPairCorrect
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
                       : "bg-rose-50 border-rose-200 text-rose-800"
                   )}>
                     <span className="text-xs font-bold opacity-70 block uppercase mb-0.5">Your Match</span>
                     {userMatch?.selected || <span className="italic opacity-50">No selection</span>}
                   </div>
-                  
+
                   {/* Correct Match (if wrong) */}
                   {!isPairCorrect && (
                     <div className="flex-1 p-2 rounded-lg border bg-emerald-50 border-emerald-200 text-emerald-800">
@@ -750,8 +749,8 @@ function QuestionPanel({ sectionQuestions, detailedResults, currentQuestionIndex
               </div>
               <div className="px-4 py-4 space-y-4">
                 {question.media?.audioUrl && <AudioPlayer src={question.media.audioUrl} theme={theme} />}
-                <QuestionResult 
-                  question={question} 
+                <QuestionResult
+                  question={question}
                   detail={detail}
                   theme={theme}
                 />

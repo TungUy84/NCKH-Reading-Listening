@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Calendar, User, CheckCircle, XCircle } from 'lucide-react';
+import { Trash2, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import { Blog } from '../../types';
@@ -13,16 +13,17 @@ const BlogPage: React.FC = () => {
 
   useEffect(() => {
     fetchBlogs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   const fetchBlogs = async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await BlogAPI.getAllBlogs({ 
-        page: 1, 
-        limit: 100, 
-        status: activeTab 
+      const response = await BlogAPI.getAllBlogs({
+        page: 1,
+        limit: 100,
+        status: activeTab
       });
       setBlogs(response.data.blogs || []);
     } catch (err: any) {
@@ -76,11 +77,10 @@ const BlogPage: React.FC = () => {
         <div className="flex border-b">
           <button
             onClick={() => setActiveTab('approved')}
-            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-              activeTab === 'approved'
-                ? 'border-b-2 border-green-600 text-green-600 bg-green-50'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
+            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'approved'
+              ? 'border-b-2 border-green-600 text-green-600 bg-green-50'
+              : 'text-gray-600 hover:bg-gray-50'
+              }`}
           >
             <div className="flex items-center justify-center">
               <CheckCircle size={20} className="mr-2" />
@@ -89,11 +89,10 @@ const BlogPage: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('rejected')}
-            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${
-              activeTab === 'rejected'
-                ? 'border-b-2 border-red-600 text-red-600 bg-red-50'
-                : 'text-gray-600 hover:bg-gray-50'
-            }`}
+            className={`flex-1 px-6 py-4 text-center font-medium transition-colors ${activeTab === 'rejected'
+              ? 'border-b-2 border-red-600 text-red-600 bg-red-50'
+              : 'text-gray-600 hover:bg-gray-50'
+              }`}
           >
             <div className="flex items-center justify-center">
               <XCircle size={20} className="mr-2" />

@@ -3,26 +3,26 @@ const User = require('../models/User');
 const { sendEmail } = require('./email');
 
 // Thời gian không hoạt động trước khi gửi email (ngày)
-const INACTIVITY_DAYS = 14;
+const INACTIVITY_DAYS = 7;
 
 /**
  * Gửi email nhắc nhở cho người dùng không đăng nhập
- * Chạy mỗi ngày lúc 23:00 (11 PM)
+ * Chạy vào 9:00 sáng Thứ 2 hàng tuần
  */
 const scheduleInactivityNotifications = () => {
-  // Biểu thức cron: 0 23 * * * = 23:00 mỗi ngày
+  // Biểu thức cron: 0 9 * * 1 = 09:00 Thứ 2 hàng tuần
   // Chỉ chạy trên production hoặc khi được bật qua env variable
   if (process.env.ENABLE_NOTIFICATIONS !== 'true') {
     console.log('[Notification Scheduler] Thông báo bị vô hiệu hóa');
     return;
   }
 
-  cron.schedule('0 23 * * *', async () => {
-    console.log('[Notification Scheduler] Bắt đầu gửi thông báo không hoạt động lúc 23:00');
+  cron.schedule('0 9 * * 1', async () => {
+    console.log('[Notification Scheduler] Bắt đầu gửi thông báo không hoạt động lúc 09:00 Thứ 2');
     await sendInactivityNotifications();
   });
 
-  console.log('[Notification Scheduler] Lịch gửi thông báo đã khởi động (23:00 mỗi ngày)');
+  console.log('[Notification Scheduler] Lịch gửi thông báo đã khởi động (09:00 Thứ 2 hàng tuần)');
 };
 
 /**
@@ -34,7 +34,7 @@ const sendInactivityNotifications = async () => {
     cutoffDate.setDate(cutoffDate.getDate() - INACTIVITY_DAYS);
 
     const notificationCutoffDate = new Date();
-    notificationCutoffDate.setDate(notificationCutoffDate.getDate() - 14); // 2 tuần 1 lần
+    notificationCutoffDate.setDate(notificationCutoffDate.getDate() - 7); // 1 tuần 1 lần
 
     // Tìm những người dùng không đăng nhập trong vòng INACTIVITY_DAYS ngày
     // và chưa được gửi thông báo trong 14 ngày qua
