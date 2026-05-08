@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Target, ArrowRight, CheckCircle2, Sparkles, Clock, Award } from 'lucide-react';
+import { Target, ArrowRight, CheckCircle2, Clock, Award } from 'lucide-react';
 
 const PlacementSection: React.FC = () => {
   return (

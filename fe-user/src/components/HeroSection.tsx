@@ -116,7 +116,7 @@ const HeroSection: React.FC = () => {
               {/* Main image card */}
               <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl shadow-indigo-500/20 border-8 border-white transform rotate-[-2deg] hover:rotate-0 transition-transform duration-500">
                 <img
-                  src="https://cdn.123job.vn/123job/uploads/2021/05/05/2021_05_05______e79dd63878950cf0bb648b816d77320c.jpg"
+                  src="/img/bgdb.jpg"
                   alt="Student learning"
                   className="w-full h-[500px] object-cover"
                 />

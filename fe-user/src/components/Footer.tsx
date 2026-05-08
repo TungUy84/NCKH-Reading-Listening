@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, YoutubeIcon, Instagram, Mail, Phone, MapPin, GraduationCap, Youtube } from 'lucide-react';
+import { Facebook, YoutubeIcon, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 
 // Footer hiển thị thông tin liên hệ và liên kết nhanh cuối trang
 const Footer: React.FC = () => {
@@ -47,7 +47,7 @@ const Footer: React.FC = () => {
             <p className="text-sm leading-relaxed text-gray-400 mb-6">
               Nền tảng ôn luyện tiếng Anh của Đại học Văn Lang, <br />giúp sinh viên nâng cao kỹ năng Nghe và Đọc hiệu quả.
             </p>
-            
+
             {/* Contact info */}
             <div className="space-y-3 mb-6">
               {contactInfo.map((item, index) => (

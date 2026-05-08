@@ -46,7 +46,7 @@ const CreateLessonPage: React.FC = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
-    
+
     try {
       const payload: LessonPayload = {
         title: formState.title.trim(),
@@ -72,7 +72,7 @@ const CreateLessonPage: React.FC = () => {
 
       await LessonAPI.createLesson(payload);
       toast.success('Tạo bài học thành công');
-  navigate('/admin/lessons');
+      navigate('/admin/lessons');
     } catch (error: any) {
       console.error('Create lesson error:', error);
       toast.error(error.message || 'Không thể tạo bài học');
@@ -100,7 +100,7 @@ const CreateLessonPage: React.FC = () => {
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="mb-6 text-lg font-semibold text-slate-900">Thông tin cơ bản</h2>
-          
+
           <div className="space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Tiêu đề bài học *</label>
@@ -183,13 +183,13 @@ const CreateLessonPage: React.FC = () => {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="mb-6 text-lg font-semibold text-slate-900">Nội dung bài học *</h2>
-          
+
           <RichTextEditor
             value={formState.content}
             onChange={(content) => setFormState((prev) => ({ ...prev, content }))}
             placeholder="Nhập nội dung chi tiết cho bài học. Sử dụng toolbar để định dạng văn bản, chèn ảnh và video..."
           />
-          
+
           <p className="mt-4 text-xs text-slate-500">
             💡 <strong>Hướng dẫn:</strong> Sử dụng các công cụ trên toolbar để định dạng văn bản. Bạn có thể thay đổi kích thước chữ, màu sắc, căn lề, chèn ảnh và video vào nội dung bài học.
           </p>

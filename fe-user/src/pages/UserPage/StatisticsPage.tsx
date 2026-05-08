@@ -43,7 +43,7 @@ const StatisticsPage: React.FC = () => {
 
       // Process data
       const totalTests = attempts.length;
-      
+
       // Calculate average score
       const totalScore = attempts.reduce((sum: number, attempt: any) => sum + (attempt.score || 0), 0);
       const averageScore = totalTests > 0 ? Math.round((totalScore / totalTests) * 10) / 10 : 0;
@@ -72,7 +72,7 @@ const StatisticsPage: React.FC = () => {
       // If category is not available, we might need to infer or use mock data for now
       const readingTests = attempts.filter((a: any) => a.category === 'reading' || a.testId?.category === 'reading');
       const listeningTests = attempts.filter((a: any) => a.category === 'listening' || a.testId?.category === 'listening');
-      
+
       const avgReading = readingTests.length ? readingTests.reduce((s: number, a: any) => s + (a.score || 0), 0) / readingTests.length : 0;
       const avgListening = listeningTests.length ? listeningTests.reduce((s: number, a: any) => s + (a.score || 0), 0) / listeningTests.length : 0;
 
@@ -125,9 +125,9 @@ const StatisticsPage: React.FC = () => {
     // 2. Kiểm tra xem chuỗi có còn hiệu lực không (phải có hoạt động hôm nay hoặc hôm qua)
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    
+
     const lastActivity = uniqueDates[0];
-    
+
     // Nếu bài làm gần nhất không phải hôm nay hoặc hôm qua -> mất chuỗi
     if (lastActivity !== today && lastActivity !== yesterday) {
       return 0;
@@ -141,7 +141,7 @@ const StatisticsPage: React.FC = () => {
       const prevDate = new Date(currentDateStr);
       prevDate.setDate(prevDate.getDate() - 1);
       const expectedPrevDateStr = prevDate.toISOString().split('T')[0];
-      
+
       if (uniqueDates[i] === expectedPrevDateStr) {
         streak++;
         currentDateStr = expectedPrevDateStr;
@@ -242,19 +242,19 @@ const StatisticsPage: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="name" stroke="#64748b" fontSize={12} tick={false} axisLine={false} />
                   <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} domain={[0, 10]} />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     itemStyle={{ color: '#3b82f6' }}
                   />
                   <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="score" 
-                    name="Điểm số" 
-                    stroke="#3b82f6" 
-                    strokeWidth={3} 
-                    dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} 
-                    activeDot={{ r: 6 }} 
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    name="Điểm số"
+                    stroke="#3b82f6"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6 }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -270,17 +270,16 @@ const StatisticsPage: React.FC = () => {
           <div className="divide-y divide-slate-100">
             {stats.recentActivity.length > 0 ? (
               stats.recentActivity.map((activity, index) => (
-                <div 
-                  key={index} 
+                <div
+                  key={index}
                   className="p-6 hover:bg-slate-50 transition-colors flex items-center justify-between group cursor-pointer"
                   onClick={() => navigate(`/mock-test/result/${activity._id}`)}
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      activity.score >= 8 ? 'bg-green-100 text-green-600' :
-                      activity.score >= 5 ? 'bg-blue-100 text-blue-600' :
-                      'bg-red-100 text-red-600'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activity.score >= 8 ? 'bg-green-100 text-green-600' :
+                        activity.score >= 5 ? 'bg-blue-100 text-blue-600' :
+                          'bg-red-100 text-red-600'
+                      }`}>
                       <span className="font-bold text-sm">{activity.score}</span>
                     </div>
                     <div>
@@ -291,9 +290,8 @@ const StatisticsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      activity.score >= 5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${activity.score >= 5 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
                       {activity.score >= 5 ? 'Đạt' : 'Chưa đạt'}
                     </span>
                     <ChevronRightIcon className="w-5 h-5 text-slate-400 group-hover:text-blue-500 transition-colors" />

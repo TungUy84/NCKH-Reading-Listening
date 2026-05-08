@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { 
-  ClockIcon, 
-  PlayCircleIcon, 
+import {
+  ClockIcon,
+  PlayCircleIcon,
   ChartBarIcon,
   TrophyIcon,
   CalendarDaysIcon,
   ListBulletIcon,
-  SpeakerWaveIcon,
-  BookOpenIcon,
   ChevronLeftIcon,
   RectangleStackIcon
 } from '@heroicons/react/24/solid';
@@ -95,29 +93,25 @@ const CheckpointDetailPage: React.FC = () => {
   if (!test) return null;
 
   const isListening = test.category === 'listening';
-  
+
   // --- COLOR THEME ---
-  const themeColor = isListening ? 'purple' : 'blue';
   const gradientClass = isListening ? 'from-purple-500 to-pink-500' : 'from-blue-500 to-cyan-500';
-  const textClass = isListening ? 'text-purple-600' : 'text-blue-600';
-  const bgClass = isListening ? 'bg-purple-50 border-purple-100' : 'bg-blue-50 border-blue-100';
-  const iconClass = isListening ? 'text-purple-500' : 'text-blue-500';
 
   return (
     <div className="min-h-screen font-sans pb-20 pt-8">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        
+
         {/* Navigation */}
-        <button 
+        <button
           onClick={() => navigate('/roadmap')}
           className="group flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-8 bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200/50 w-fit"
         >
-          <ChevronLeftIcon className="h-4 w-4" /> 
+          <ChevronLeftIcon className="h-4 w-4" />
           <span className="font-semibold text-sm">Quay lại lộ trình</span>
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-8 lg:gap-12 items-start mb-16">
-          
+
           {/* === LEFT COLUMN: INFO & ACTIONS === */}
           <div>
             <div className="flex flex-wrap items-center gap-3 mb-6">
@@ -129,7 +123,7 @@ const CheckpointDetailPage: React.FC = () => {
             <h1 className="text-3xl md:text-5xl font-black text-slate-900 leading-tight mb-6 tracking-tight">
               {test.title}
             </h1>
-            
+
             <p className="text-base md:text-lg text-slate-600 leading-relaxed mb-8 max-w-2xl whitespace-pre-line">
               {test.description || 'Bài kiểm tra đánh giá năng lực cuối chặng, giúp xác định mức độ hoàn thành lộ trình của bạn.'}
             </p>
@@ -200,15 +194,15 @@ const CheckpointDetailPage: React.FC = () => {
               <div className="space-y-4">
                 {attempts.map((attempt, idx) => {
                   const score = attempt.ieltsScore || (attempt as any).score || 0;
-                  
+
                   return (
                     <div key={attempt._id} className="group flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-white border border-slate-100 hover:border-indigo-200 hover:shadow-md transition-all">
                       <div className="flex items-center gap-4">
                         <div className={clsx(
                           "flex flex-col items-center justify-center w-16 h-16 rounded-xl font-bold border",
-                          attempt.percentage >= 80 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
-                          attempt.percentage >= 50 ? "bg-amber-50 text-amber-600 border-amber-100" : 
-                          "bg-rose-50 text-rose-600 border-rose-100"
+                          attempt.percentage >= 80 ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                            attempt.percentage >= 50 ? "bg-amber-50 text-amber-600 border-amber-100" :
+                              "bg-rose-50 text-rose-600 border-rose-100"
                         )}>
                           <span className="text-xl">{Number(score).toFixed(1)}</span>
                           <span className="text-[10px] uppercase opacity-70">Điểm</span>
@@ -224,7 +218,7 @@ const CheckpointDetailPage: React.FC = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-4">
                         <button
                           onClick={() => navigate(`/roadmap/checkpoint/result/${attempt._id}`)}

@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const compression = require('compression');
 const { scheduleInactivityNotifications } = require('./utils/notificationScheduler');
 
 dotenv.config();
@@ -23,6 +24,7 @@ const audioExtensions = new Set(Object.keys(audioMimeTypes));
 app.disable('x-powered-by');
 
 // Nạp các middleware cốt lõi
+app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true }));

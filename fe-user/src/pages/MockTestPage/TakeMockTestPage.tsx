@@ -5,13 +5,13 @@ import Swal from 'sweetalert2';
 import { PlacementTest, SectionMedia, TestQuestion, TestSection, UserAnswer } from '../../types';
 import { getTestForTaking, submitPlacementTest } from '../../services/api';
 import { Button } from '../../components/ui/Button';
-import { 
-  ClockIcon, 
-  CheckIcon, 
-  XCircleIcon, 
-  ArrowLeftIcon, 
-  SpeakerWaveIcon, 
-  DocumentTextIcon, 
+import {
+  ClockIcon,
+  CheckIcon,
+  XCircleIcon,
+  ArrowLeftIcon,
+  SpeakerWaveIcon,
+  DocumentTextIcon,
   ListBulletIcon,
   ChevronRightIcon,
   PencilIcon,
@@ -134,8 +134,8 @@ const AudioPlayer: React.FC<{ src: string; theme?: any }> = React.memo(({ src, t
   return (
     <div className="group relative flex items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition-all hover:shadow-md hover:border-slate-300">
       <audio ref={audioRef} src={src} preload="metadata" />
-      
-      <button 
+
+      <button
         onClick={togglePlay}
         className={clsx(
           "flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-all hover:scale-105 active:scale-95",
@@ -151,7 +151,7 @@ const AudioPlayer: React.FC<{ src: string; theme?: any }> = React.memo(({ src, t
           <span>{formatTime(duration)}</span>
         </div>
         <div className="relative h-2 w-full rounded-full bg-slate-100">
-          <div 
+          <div
             className={clsx("absolute top-0 left-0 h-full rounded-full transition-all", activeTheme.isListening ? 'bg-purple-500' : 'bg-blue-500')}
             style={{ width: `${progressPercent}%` }}
           />
@@ -217,12 +217,12 @@ const SelectableParagraph: React.FC<{
   const handleMouseUp = () => {
     const selection = window.getSelection();
     if (!selection || selection.isCollapsed || !pRef.current) return;
-    
+
     if (!pRef.current.contains(selection.anchorNode)) return;
 
     const range = selection.getRangeAt(0);
     const rect = range.getBoundingClientRect();
-    
+
     const preCaretRange = range.cloneRange();
     preCaretRange.selectNodeContents(pRef.current);
     preCaretRange.setEnd(range.startContainer, range.startOffset);
@@ -246,15 +246,15 @@ const SelectableParagraph: React.FC<{
       if (start > lastIndex) {
         nodes.push(text.slice(lastIndex, start));
       }
-      
+
       if (end > start) {
         nodes.push(
           <span
             key={h.id}
             className={clsx(
               "cursor-pointer border-b-2 transition-colors",
-              h.note 
-                ? clsx(theme.bgLight, theme.borderActive, "text-slate-900 font-bold") 
+              h.note
+                ? clsx(theme.bgLight, theme.borderActive, "text-slate-900 font-bold")
                 : clsx(theme.isListening ? "bg-purple-100 border-purple-400" : "bg-blue-100 border-blue-400", "text-slate-900")
             )}
             onClick={(e) => {
@@ -293,7 +293,7 @@ const PassageRenderer: React.FC<{
 }> = ({ passage, mediaBlocks, highlights, onSelection, onHighlightClick, theme }) => {
   const mediaMap = useMemo(() => new Map(mediaBlocks.map(b => [String(b.id), b])), [mediaBlocks]);
   if (!passage) return null;
-  
+
   return (
     <>
       {passage.split(mediaPlaceholderRegex).map((part, i) => {
@@ -329,7 +329,7 @@ const TakeMockTestPage: React.FC = () => {
   const [timeRemaining, setTimeRemaining] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  
+
   // --- Highlight & Note State ---
   const [highlights, setHighlights] = useState<TextHighlight[]>([]);
   const [selectionToolbar, setSelectionToolbar] = useState<{
@@ -412,16 +412,16 @@ const TakeMockTestPage: React.FC = () => {
   const addHighlight = useCallback((withNote: boolean = false) => {
     if (!selectionToolbar || !selectionToolbar.range) return;
     const { paragraphIndex, range, text } = selectionToolbar;
-    
+
     let startOffset = 0;
     let endOffset = 0;
-    
+
     // Find the paragraph element
     let node: Node | null = range.startContainer;
     while (node && node.nodeName !== 'P') {
       node = node.parentNode;
     }
-    
+
     if (node) {
       const preCaretRange = range.cloneRange();
       preCaretRange.selectNodeContents(node);
@@ -483,16 +483,16 @@ const TakeMockTestPage: React.FC = () => {
           const savedOrder = localStorage.getItem(orderKey);
           const storageKey = `test_progress_${testId}`;
           let saved = localStorage.getItem(storageKey);
-          
+
           if (savedOrder) {
             try {
               const orderIds = JSON.parse(savedOrder);
               const qMap = new Map(t.questions.map((q: any) => [q._id, q]));
-              
+
               const orderedQuestions = orderIds
                 .map((id: string) => qMap.get(id))
                 .filter((q: any) => q !== undefined);
-              
+
               if (orderedQuestions.length === t.questions.length) {
                 t.questions = orderedQuestions;
               } else {
@@ -515,7 +515,7 @@ const TakeMockTestPage: React.FC = () => {
           // -----------------------------------------
 
           setTest({ ...t, sections: sanitizeSections(t.sections) });
-          
+
           // Restore progress from localStorage
           let initialAnswers = t.questions.map(() => ({ selectedOptions: [], userAnswer: '', matchingAnswers: [] }));
           let initialTime = Math.max(t.timeLimit ?? 0, 0) * 60;
@@ -574,7 +574,7 @@ const TakeMockTestPage: React.FC = () => {
     timerRef.current = setInterval(() => {
       const remaining = Math.ceil((deadlineRef.current! - Date.now()) / 1000);
       setTimeRemaining(remaining > 0 ? remaining : 0);
-      
+
       if (remaining <= 0) {
         if (timerRef.current) clearInterval(timerRef.current);
       }
@@ -598,11 +598,11 @@ const TakeMockTestPage: React.FC = () => {
       }).filter(i => i.questionId);
 
       const res = await submitPlacementTest(test._id, { answers: payload });
-      
+
       // Clear saved progress upon successful submission
       localStorage.removeItem(`test_progress_${test._id}`);
       localStorage.removeItem(`test_order_${test._id}`);
-      
+
       toast[isAuto ? 'info' : 'success'](isAuto ? 'Time up. Auto submitted.' : 'Submitted successfully!');
       const resultId = res?.data?.resultId || res?.result?._id || res?.data?._id || res?._id;
       navigate(`/mock-test/result/${resultId}`, { state: { result: res?.data?.result || res?.result || res?.data || res } });
@@ -754,25 +754,25 @@ const TakeMockTestPage: React.FC = () => {
     // Calculate statistics per section
     const sections = test.sections && test.sections.length > 0 ? test.sections : [];
     const questions = test.questions || [];
-    
+
     let stats = [];
-    
+
     if (sections.length > 0) {
       stats = sections.map((section, idx) => {
         const sectionId = normalizeId(section._id);
         const sectionQuestions = questions.filter(q => normalizeId(q.sectionId) === sectionId);
         const total = sectionQuestions.length;
-        
+
         const answered = sectionQuestions.reduce((count, q) => {
           const qIndex = questions.findIndex(tq => tq._id === q._id);
           const a = answers[qIndex];
           return isQuestionAnswered(a) ? count + 1 : count;
         }, 0);
-        
-        return { 
-          title: `Part ${idx + 1}`, 
-          total, 
-          answered 
+
+        return {
+          title: `Part ${idx + 1}`,
+          total,
+          answered
         };
       });
     } else {
@@ -785,7 +785,7 @@ const TakeMockTestPage: React.FC = () => {
       const isComplete = stat.answered === stat.total;
       const answeredClass = isComplete ? 'text-blue-600 font-bold' : 'text-red-700 font-bold';
       const totalClass = 'text-blue-600 font-bold';
-      
+
       return `
         <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
           <span class="text-gray-700 font-medium truncate max-w-[60%] text-left" title="${stat.title}">
@@ -993,7 +993,7 @@ const TakeMockTestPage: React.FC = () => {
 
       {/* --- SELECTION TOOLBAR --- */}
       {selectionToolbar?.visible && (
-        <div 
+        <div
           id="selection-toolbar"
           className={clsx(
             "fixed z-50 flex items-center gap-1 rounded-full shadow-xl px-3 py-2 -translate-x-1/2 animate-in fade-in zoom-in duration-200 border",
@@ -1002,17 +1002,17 @@ const TakeMockTestPage: React.FC = () => {
           )}
           style={{ left: selectionToolbar.x, top: selectionToolbar.y }}
         >
-          <button 
-            onClick={() => addHighlight(false)} 
-            className={clsx("p-2 rounded-full transition-colors hover:bg-slate-100", theme.text)} 
+          <button
+            onClick={() => addHighlight(false)}
+            className={clsx("p-2 rounded-full transition-colors hover:bg-slate-100", theme.text)}
             title="Highlight"
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <div className="w-px h-5 bg-slate-200 mx-1" />
-          <button 
-            onClick={() => addHighlight(true)} 
-            className={clsx("p-2 rounded-full transition-colors hover:bg-slate-100", theme.text)} 
+          <button
+            onClick={() => addHighlight(true)}
+            className={clsx("p-2 rounded-full transition-colors hover:bg-slate-100", theme.text)}
             title="Add Note"
           >
             <ChatBubbleBottomCenterTextIcon className="w-5 h-5" />
@@ -1025,9 +1025,9 @@ const TakeMockTestPage: React.FC = () => {
         if (!noteModal?.visible || !noteModal.highlight) return null;
         // Find the latest state of the highlight to ensure input value is up to date
         const activeHighlight = highlights.find(h => h.id === noteModal.highlight!.id) || noteModal.highlight;
-        
+
         return (
-          <div 
+          <div
             className={clsx(
               "fixed z-50 w-64 rounded-xl shadow-xl border -translate-x-1/2 animate-in fade-in zoom-in duration-200",
               "bg-white",
@@ -1049,7 +1049,7 @@ const TakeMockTestPage: React.FC = () => {
               </div>
             </div>
             <div className="p-3">
-              <textarea 
+              <textarea
                 className="w-full bg-transparent text-sm text-slate-700 placeholder-slate-400 resize-none outline-none min-h-[80px]"
                 placeholder="Add a note..."
                 value={activeHighlight.note || ''}
@@ -1129,9 +1129,9 @@ function SectionPanel({
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
         {section?.passage ? (
           <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed text-[15px]">
-            <PassageRenderer 
-              passage={section.passage} 
-              mediaBlocks={section.mediaBlocks || []} 
+            <PassageRenderer
+              passage={section.passage}
+              mediaBlocks={section.mediaBlocks || []}
               highlights={highlights}
               onSelection={onSelection}
               onHighlightClick={onHighlightClick}
@@ -1190,17 +1190,17 @@ function QuestionNavigator({
           const targetIndex = questionIndices ? questionIndices[index] : index;
           const answered = isQuestionAnswered(answers[index]);
           const isCurrent = targetIndex === currentQuestionIndex;
-          
+
           return (
             <button
               key={index}
               onClick={() => onSelect(targetIndex)}
               className={clsx(
                 "flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-bold transition-all duration-200 shadow-sm",
-                isCurrent 
+                isCurrent
                   ? clsx("ring-2 ring-offset-1", theme.ring, theme.borderActive, theme.text, "bg-white")
-                  : answered 
-                    ? clsx("text-white border-transparent", theme.button) 
+                  : answered
+                    ? clsx("text-white border-transparent", theme.button)
                     : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
               )}
             >
@@ -1239,14 +1239,14 @@ interface QuestionInputProps {
 
 function QuestionInput({ question, answer, onChange, theme }: QuestionInputProps) {
   const { type, options, allowMultiple, matchingPairs } = question;
-  
+
   if (type === 'multi_choice') {
     return (
       <div className="flex flex-col gap-2">
         {options?.map((opt: any, idx: number) => {
           const isSel = answer.selectedOptions.includes(opt.text);
           const toggle = () => {
-            const newSel = allowMultiple 
+            const newSel = allowMultiple
               ? (isSel ? answer.selectedOptions.filter((s: string) => s !== opt.text) : [...answer.selectedOptions, opt.text])
               : (isSel ? [] : [opt.text]);
             onChange({ selectedOptions: newSel, userAnswer: allowMultiple ? newSel.join(', ') : '' });
@@ -1261,7 +1261,7 @@ function QuestionInput({ question, answer, onChange, theme }: QuestionInputProps
       </div>
     );
   }
-  
+
   if (type === 'dropdown') {
     return (
       <div className="relative">
@@ -1289,7 +1289,7 @@ function QuestionInput({ question, answer, onChange, theme }: QuestionInputProps
               <span className="w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center text-xs text-slate-500">{i + 1}</span>
               {pair.prompt}
             </div>
-            <input 
+            <input
               value={(() => {
                 if (answer.matchingAnswers && answer.matchingAnswers[i]?.prompt === pair.prompt) {
                   return answer.matchingAnswers[i].selected;
@@ -1311,7 +1311,7 @@ function QuestionInput({ question, answer, onChange, theme }: QuestionInputProps
                 });
                 onChange({ matchingAnswers: newPairs });
               }}
-              className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 bg-white" placeholder="Type matching answer..." 
+              className="w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-blue-500 bg-white" placeholder="Type matching answer..."
             />
           </div>
         ))}
@@ -1349,10 +1349,10 @@ function QuestionPanel({ sectionQuestions, answers, currentQuestionIndex, onFocu
               </div>
               <div className="px-4 py-4 space-y-4">
                 {question.media?.audioUrl && <AudioPlayer src={question.media.audioUrl} theme={theme} />}
-                <QuestionInput 
-                  question={question} 
-                  answer={answers[globalIndex] ?? { selectedOptions: [], userAnswer: '', matchingAnswers: [] }} 
-                  onChange={(val: any) => { onAnswerChange(globalIndex, val); onFocusQuestion(globalIndex); }} 
+                <QuestionInput
+                  question={question}
+                  answer={answers[globalIndex] ?? { selectedOptions: [], userAnswer: '', matchingAnswers: [] }}
+                  onChange={(val: any) => { onAnswerChange(globalIndex, val); onFocusQuestion(globalIndex); }}
                   theme={theme}
                 />
               </div>

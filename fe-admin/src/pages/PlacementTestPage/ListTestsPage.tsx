@@ -4,19 +4,13 @@ import { toast } from 'react-toastify';
 import Swal from 'sweetalert2';
 import type { PlacementTest } from '../../types';
 import { PlacementTestAPI, RoadmapAPI } from '../../services/api';
-import { FiEye, FiEdit2, FiTrash2, FiTarget, FiFileText, FiCheckCircle } from 'react-icons/fi';
+import { FiEye, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 const PAGE_SIZE = 10;
 
 const categoryLabel: Record<string, string> = {
   reading: 'Reading',
   listening: 'Listening',
-};
-
-const testTypeLabel: Record<string, string> = {
-  placement: 'Kiểm tra đầu vào',
-  'mock-exam': 'Thi thử',
-  checkpoint: 'Kiểm tra chặng',
 };
 
 const statusLabel = (isActive: boolean) => (isActive ? 'Hoạt động' : 'Tạm ẩn');
@@ -111,15 +105,15 @@ const PlacementTestsPage: React.FC = () => {
     try {
       // Kiểm tra xem test có trong roadmap không
       const usageCheck = await RoadmapAPI.checkTestUsageInRoadmap(test._id);
-      
+
       let confirmText = `Bài test: ${test.title}`;
       let warningHtml = '';
-      
+
       if (usageCheck.isUsed && usageCheck.roadmaps.length > 0) {
         const roadmapList = usageCheck.roadmaps
           .map(r => `<li><strong>${r.levelGroup}</strong>: ${r.title}</li>`)
           .join('');
-        
+
         warningHtml = `
           <div class="text-left mb-3">
             <p class="text-red-600 font-semibold mb-2">⚠️ Bài test này đang được sử dụng trong roadmap:</p>
@@ -140,12 +134,12 @@ const PlacementTestsPage: React.FC = () => {
         cancelButtonColor: '#6b7280',
         reverseButtons: false,
       });
-      
+
       if (!result.isConfirmed) return;
-      
+
       await PlacementTestAPI.deleteTest(test._id);
       toast.success(usageCheck.isUsed ? 'Đã xóa và gỡ khỏi roadmap' : 'Đã xóa');
-      
+
       const newCount = tests.length - 1;
       if (newCount === 0 && page > 1) setPage(page - 1);
       else load();
@@ -268,7 +262,7 @@ const PlacementTestsPage: React.FC = () => {
                           const newType = e.target.value as 'placement' | 'mock-exam' | 'checkpoint';
                           try {
                             await PlacementTestAPI.updateTestInfo(t._id, { testType: newType });
-                            setTests(prev => prev.map(test => 
+                            setTests(prev => prev.map(test =>
                               test._id === t._id ? { ...test, testType: newType } : test
                             ));
                             toast.success('Đã cập nhật loại bài');

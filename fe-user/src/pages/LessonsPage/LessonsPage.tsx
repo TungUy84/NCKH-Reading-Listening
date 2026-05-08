@@ -5,11 +5,9 @@ import {
   BookOpenIcon,
   MagnifyingGlassIcon,
   FunnelIcon,
-  SparklesIcon,
   EyeIcon,
   ClockIcon,
   ArrowRightIcon,
-  XMarkIcon,
   CalendarDaysIcon
 } from '@heroicons/react/24/solid';
 import clsx from 'clsx';

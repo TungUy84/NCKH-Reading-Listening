@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Trophy, ArrowRight, Timer, Award, FileCheck, Target, Sparkles } from 'lucide-react';
+import { Trophy, ArrowRight, Timer, Award, FileCheck, Sparkles } from 'lucide-react';
 
 const MockTestSection: React.FC = () => {
   return (
@@ -12,7 +12,7 @@ const MockTestSection: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full relative z-10">
         <div className="text-center mb-20" data-aos="fade-up">
-          
+
           <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
             Thi thử như <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-red-600">Thi thật</span>
           </h2>
@@ -65,17 +65,17 @@ const MockTestSection: React.FC = () => {
               {/* Decorative Circles */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-700" />
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-black opacity-10 rounded-full translate-y-1/2 -translate-x-1/2 group-hover:scale-110 transition-transform duration-700" />
-              
+
               <div className="relative z-10">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium mb-8">
                   <Sparkles className="w-4 h-4 text-yellow-300" />
                   <span>Kết quả tức thì</span>
                 </div>
-                
+
                 <Trophy className="w-24 h-24 text-yellow-300 mb-8 drop-shadow-lg transform group-hover:scale-110 group-hover:rotate-6 transition-all duration-300" />
-                
+
                 <h3 className="text-3xl font-bold mb-4 leading-tight">
-                  Sẵn sàng chinh phục <br/> điểm số mơ ước?
+                  Sẵn sàng chinh phục <br /> điểm số mơ ước?
                 </h3>
                 <p className="text-orange-100 text-lg mb-8 leading-relaxed">
                   Tham gia cùng các học viên để đạt mục tiêu nhờ luyện đề mỗi ngày.

@@ -21,7 +21,6 @@ import {
   Practice,
   PracticeLevelGroup,
   PracticeMediaBlock,
-  PracticeQuestion,
   PracticeSection,
   PracticeSkill,
 } from '../../types';
@@ -63,7 +62,7 @@ const normalizeMediaBlocks = (blocks: unknown): PracticeMediaBlock[] => {
       originalName: block?.originalName || block?.name || '',
       transcript: block?.transcript || '',
     }))
-  .filter((block: PracticeMediaBlock) => !!block.id);
+    .filter((block: PracticeMediaBlock) => !!block.id);
 };
 
 // Dọn dữ liệu phần trước khi gửi lên server
@@ -320,18 +319,18 @@ const EditPracticePage: React.FC = () => {
     if (!transcriptModal.mediaId) return;
     const media = sectionMediaBlocks.find(m => m.id === transcriptModal.mediaId);
     if (!media || !media.filePath) {
-        toast.error('Không tìm thấy thông tin file trên server');
-        return;
+      toast.error('Không tìm thấy thông tin file trên server');
+      return;
     }
 
     setTranscriptModal(prev => ({ ...prev, isTranscribing: true }));
     try {
-        const aiTranscript = await AIAPI.generateTranscript(media.filePath, media.mimeType || 'audio/mpeg');
-        setTranscriptModal(prev => ({ ...prev, value: aiTranscript, isTranscribing: false }));
-        toast.success('AI đã tạo transcript thành công!');
+      const aiTranscript = await AIAPI.generateTranscript(media.filePath, media.mimeType || 'audio/mpeg');
+      setTranscriptModal(prev => ({ ...prev, value: aiTranscript, isTranscribing: false }));
+      toast.success('AI đã tạo transcript thành công!');
     } catch (error: any) {
-        toast.error(error.message);
-        setTranscriptModal(prev => ({ ...prev, isTranscribing: false }));
+      toast.error(error.message);
+      setTranscriptModal(prev => ({ ...prev, isTranscribing: false }));
     }
   };
 
@@ -525,16 +524,16 @@ const EditPracticePage: React.FC = () => {
 
       // 4. Kích hoạt AI Transcript bất đồng bộ cho các file Audio
       normalizedUploads.forEach(async (item: PracticeMediaBlock) => {
-          if (item.type === 'audio' && item.filePath) {
-              try {
-                  const aiResult = await AIAPI.generateTranscript(item.filePath, item.mimeType || 'audio/mpeg');
-                  // Cập nhật transcript vào block
-                  updateSectionMediaBlock(item.id, { transcript: aiResult });
-                  toast.success(`AI đã hoàn tất transcript cho: ${item.originalName}`);
-              } catch (err) {
-                  console.error('Auto AI error:', err);
-              }
+        if (item.type === 'audio' && item.filePath) {
+          try {
+            const aiResult = await AIAPI.generateTranscript(item.filePath, item.mimeType || 'audio/mpeg');
+            // Cập nhật transcript vào block
+            updateSectionMediaBlock(item.id, { transcript: aiResult });
+            toast.success(`AI đã hoàn tất transcript cho: ${item.originalName}`);
+          } catch (err) {
+            console.error('Auto AI error:', err);
           }
+        }
       });
     } catch (err: any) {
       console.error(err);
@@ -952,7 +951,7 @@ const EditPracticePage: React.FC = () => {
     infoDebounceRef.current = window.setTimeout(async () => {
       try {
         setInfoSaving(true);
-  await PracticeAPI.updatePractice(practiceId, infoPayload);
+        await PracticeAPI.updatePractice(practiceId, infoPayload);
         lastInfoSigRef.current = sig;
         setInfoSavedAt(Date.now());
       } catch (err: any) {
@@ -1016,7 +1015,7 @@ const EditPracticePage: React.FC = () => {
 
       try {
         setContentSaving(true);
-  await PracticeAPI.updatePracticeContent(practiceId, { sections: sanitizedSections, questions: currentQuestions });
+        await PracticeAPI.updatePracticeContent(practiceId, { sections: sanitizedSections, questions: currentQuestions });
         lastContentSigRef.current = sig;
         setContentSavedAt(Date.now());
         setInvalidQuestionIdxs((prev) => (prev.size ? new Set() : prev));
@@ -1101,8 +1100,8 @@ const EditPracticePage: React.FC = () => {
       setSaving(true);
       const payloadSections = sanitizeSectionsForSave(practice.sections as any);
       const payload = { sections: payloadSections, questions: practice.questions || [] } as any;
-  await PracticeAPI.updatePracticeContent(practiceId, payload);
-  toast.success('Đã lưu nội dung bài ôn luyện');
+      await PracticeAPI.updatePracticeContent(practiceId, payload);
+      toast.success('Đã lưu nội dung bài ôn luyện');
       // Update signature to prevent immediate autosave
       const sectionsSig = (payload.sections || []).map((s: any) => ({
         _id: s?._id?.toString ? s._id.toString() : s?._id || null,
