@@ -152,13 +152,13 @@ const BlogPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium mr-2">
-                            {blog.authorId.firstName.charAt(0)}
+                            {blog.authorId?.firstName?.charAt(0) || '?'}
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-900">
-                              {blog.authorId.firstName} {blog.authorId.lastName}
+                              {blog.authorId ? `${blog.authorId.firstName} ${blog.authorId.lastName}` : 'Người dùng ẩn danh'}
                             </div>
-                            <div className="text-xs text-gray-500">@{blog.authorId.username}</div>
+                            <div className="text-xs text-gray-500">@{blog.authorId?.username || 'unknown'}</div>
                           </div>
                         </div>
                       </td>
