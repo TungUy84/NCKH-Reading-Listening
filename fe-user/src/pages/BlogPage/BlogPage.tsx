@@ -243,15 +243,15 @@ const BlogPage: React.FC = () => {
                   {/* Blog Header */}
                   <div className="p-8 pb-0 flex items-center gap-5">
                     <div className="relative shrink-0">
-                      {blog.authorId.avatar ? (
+                      {blog.authorId?.avatar ? (
                         <img
                           src={getImageUrl(blog.authorId.avatar)}
-                          alt={blog.authorId.firstName}
+                          alt={blog.authorId?.firstName || 'User'}
                           className="w-14 h-14 rounded-2xl object-cover shadow-lg shadow-rose-500/20 transform -rotate-3 group-hover:rotate-0 transition-transform duration-300"
                         />
                       ) : (
                         <div className="w-14 h-14 bg-gradient-to-br from-rose-400 to-orange-400 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-rose-500/20 transform -rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                          {blog.authorId.firstName.charAt(0)}
+                          {blog.authorId?.firstName?.charAt(0) || 'U'}
                         </div>
                       )}
                       {/* Online status dot */}
@@ -259,7 +259,7 @@ const BlogPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-lg">
-                        {blog.authorId.firstName} {blog.authorId.lastName}
+                        {blog.authorId ? `${blog.authorId.firstName} ${blog.authorId.lastName}` : 'Người dùng ẩn danh'}
                       </h3>
                       <p className="text-sm text-slate-500 font-medium flex items-center gap-2">
                         <span>{new Date(blog.createdAt).toLocaleDateString('vi-VN', { dateStyle: 'medium' })}</span>
@@ -355,22 +355,22 @@ const BlogPage: React.FC = () => {
                       <div className="space-y-6 mb-8 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                         {blog.comments.map((comment) => (
                           <div key={comment._id} className="flex gap-4 group/comment">
-                            {comment.authorId.avatar ? (
+                            {comment.authorId?.avatar ? (
                               <img
                                 src={getImageUrl(comment.authorId.avatar)}
-                                alt={comment.authorId.firstName}
+                                alt={comment.authorId?.firstName || 'User'}
                                 className="w-10 h-10 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
                               />
                             ) : (
                               <div className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 text-sm font-black shadow-sm shrink-0">
-                                {comment.authorId.firstName.charAt(0)}
+                                {comment.authorId?.firstName?.charAt(0) || 'U'}
                               </div>
                             )}
                             <div className="flex-1">
                               <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-200/60">
                                 <div className="flex justify-between items-center mb-1">
                                   <span className="font-bold text-slate-900 text-sm">
-                                    {comment.authorId.firstName} {comment.authorId.lastName}
+                                    {comment.authorId ? `${comment.authorId.firstName} ${comment.authorId.lastName}` : 'Người dùng ẩn danh'}
                                   </span>
                                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
                                     {new Date(comment.createdAt).toLocaleDateString('vi-VN')}

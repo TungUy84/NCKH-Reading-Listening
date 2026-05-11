@@ -26,6 +26,13 @@ app.disable('x-powered-by');
 // Nạp các middleware cốt lõi
 app.use(compression());
 app.use(cors());
+// app.use(cors({
+//   origin: [
+//     "https://unskills.vn",
+//     "https://www.unskills.vn",
+//     "https://admin.unskills.vn"
+//   ],
+//   credentials: true}));
 app.use(express.json({ limit: jsonBodyLimit }));
 app.use(express.urlencoded({ extended: true }));
 
