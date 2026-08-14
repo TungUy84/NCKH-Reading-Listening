@@ -1,212 +1,98 @@
-# 🎨 FE-USER - Frontend cho Sinh viên
+# FE-USER - Learner Web Application
 
-Frontend React TypeScript cho hệ thống luyện thi Nghe-Đọc tiếng Anh, dành cho sinh viên làm bài test.
+Frontend web application for Learners to take English placement tests, practice Listening and Reading skills, follow personalized roadmaps, and track performance analytics.
 
-## 🚀 **Tính năng chính**
+---
 
-### ✅ **Đã hoàn thành:**
-- **Home Page:** Hero section, features, process steps
-- **Tests Page:** Danh sách bài test với filter và search  
-- **Test Cards:** Hiển thị thông tin chi tiết từng bài test
-- **Responsive Design:** Tối ưu cho mọi thiết bị
-- **TypeScript:** Type safety đầy đủ
-- **Tailwind CSS:** Styling hiện đại
+## 1. Key Features
 
-### 🔄 **Đang phát triển:**
-- **Test Taking Page:** Giao diện làm bài test
-- **Result Page:** Hiển thị kết quả chi tiết
-- **Audio Player:** Hỗ trợ bài listening
-- **Progress Tracking:** Theo dõi tiến độ
+1. Authentication and Profile Management:
+   - Secure registration, JWT-authenticated login, avatar uploads, and password modification.
 
-## 📦 **Cài đặt và chạy**
+2. Placement Testing Engine:
+   - Standardized multi-part tests assessing Listening and Reading proficiency.
+   - Synchronized countdown timer, automatic progress persistence in LocalStorage, and automated submission upon time expiry.
+   - Deterministic scoring algorithm assigning proficiency levels from AV1 to AV7.
 
-### Bước 1: Cài đặt dependencies
+3. Skill Practice Library:
+   - Segregated learning paths for Reading and Listening skills.
+   - Filterable by proficiency tiers (AV1-AV3, AV4-AV5, AV6, AV7) and search keywords.
+   - Dedicated Reading Experience:
+     - Split Pane Resizer for simultaneous reading passage and question evaluation.
+     - Text Zoom Controller (A- / A+) for enhanced reading comfort across devices.
+     - Inline text highlighting and contextual note-taking on passage segments.
+   - Dedicated Listening Experience: Custom player with precise seek controls and section-based audio segmentation.
+
+4. Result Evaluation and Detailed Review:
+   - Post-test score summary, completion duration, and accuracy metrics by question type.
+   - Two-column review interface: side-by-side display of original passage/audio alongside user responses, correct answers, and thorough explanations.
+
+5. Personalized Learning Roadmaps and Lessons:
+   - Automatic roadmap unlocking aligned with placement test outcomes.
+   - Structured theoretical lessons paired with checkpoint practice exercises.
+
+6. Blog and Learning Analytics:
+   - Language learning tips, examination news, and strategy guides.
+   - Graphical performance tracking across practice attempts over time.
+
+---
+
+## 2. Setup and Execution
+
+1. Install dependencies:
 ```bash
 cd fe-user
 npm install
 ```
 
-### Bước 2: Chạy development server
+2. Configure environment variables in `.env`:
+```env
+PORT=3002
+REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_BASE_URL=http://localhost:3002
+```
+
+3. Start development server:
 ```bash
 npm start
 ```
 
-### Bước 3: Mở browser
-- URL: http://localhost:3000
-- API Backend: http://localhost:5000
+The application will run at `http://localhost:3002`.
 
-## 🏗️ **Cấu trúc project**
+---
+
+## 3. Source Directory Structure
 
 ```
 fe-user/
 ├── public/
-│   └── index.html              # HTML template
+│   └── index.html
 ├── src/
-│   ├── components/             # React components
-│   │   ├── Header.tsx         # Navigation header
-│   │   ├── Footer.tsx         # Site footer  
-│   │   ├── HeroSection.tsx    # Landing hero
-│   │   ├── FeaturesSection.tsx # Features showcase
-│   │   ├── ProcessSection.tsx  # Process steps
-│   │   └── TestCard.tsx       # Test display card
-│   ├── pages/                 # Page components
+│   ├── components/            # Header, Footer, Audio Player, Button, UI Components
+│   ├── pages/
 │   │   ├── HomePage.tsx       # Landing page
-│   │   └── TestsPage.tsx      # Tests listing
-│   ├── services/              # API calls
-│   │   └── api.ts             # Backend integration
-│   ├── types/                 # TypeScript types
-│   │   └── index.ts           # Type definitions
-│   ├── App.tsx                # Main app component
-│   ├── index.tsx              # React entry point
-│   └── index.css              # Tailwind CSS
-├── tailwind.config.js         # Tailwind configuration
-├── package.json               # Dependencies
-└── tsconfig.json              # TypeScript config
+│   │   ├── PlacementTestPage/ # Placement test taking, summary, and results
+│   │   ├── PracticePage/      # Skill practice library, taking flow, review
+│   │   ├── LessonsPage/       # Lesson modules and theoretical contents
+│   │   ├── RoadmapPage/       # Personalized learning roadmap
+│   │   ├── BlogPage/          # Tips, news, and learning strategies
+│   │   └── UserPage/          # User profile, security, performance statistics
+│   ├── services/              # API integration client (Axios)
+│   ├── types/                 # TypeScript type declarations
+│   ├── utils/                 # Formatters, media handlers, highlight persistence
+│   ├── App.tsx
+│   ├── index.tsx
+│   └── index.css
+├── package.json
+└── tsconfig.json
 ```
 
-## 🔌 **API Integration**
+---
 
-### Endpoints sử dụng:
-- `GET /api/placement-tests` - Lấy danh sách tests đang hoạt động
-- `GET /api/placement-tests?category=listening` - Filter listening
-- `GET /api/placement-tests?category=reading` - Filter reading
-- `GET /api/placement-tests/:testId` - Lấy chi tiết test
-- `POST /api/placement-tests/:testId/submissions` - Nộp bài và chấm điểm
+## 4. Production Build
 
-### Environment Variables:
-```
-REACT_APP_API_URL=http://localhost:5000/api
-REACT_APP_BASE_URL=http://localhost:3000
-```
-
-## 🎨 **Design System**
-
-### Colors:
-- **Primary:** Blue (#3b82f6 - #1e3a8a)
-- **Secondary:** Orange (#f97316 - #ea580c)  
-- **Gray Scale:** (#f9fafb - #111827)
-
-### Typography:
-- **Font:** Inter (Google Fonts)
-- **Sizes:** text-sm, text-base, text-lg, text-xl, text-2xl, text-4xl
-
-### Components:
-- **Buttons:** .btn-primary, .btn-secondary
-- **Cards:** .card with hover effects
-- **Containers:** .section-container for consistent spacing
-
-## 📱 **Responsive Breakpoints**
-
-```css
-sm: 640px   /* Mobile landscape */
-md: 768px   /* Tablet */
-lg: 1024px  /* Desktop */
-xl: 1280px  /* Large desktop */
-```
-
-## 🧪 **Development Guidelines**
-
-### Component Structure:
-```typescript
-interface ComponentProps {
-  // Props interface
-}
-
-const Component: React.FC<ComponentProps> = ({ prop1, prop2 }) => {
-  // Component logic
-  return (
-    <div className="component-styles">
-      {/* JSX content */}
-    </div>
-  );
-};
-
-export default Component;
-```
-
-### State Management:
-- **Local State:** useState for component state
-- **API Calls:** Custom hooks với useEffect
-- **Error Handling:** Try-catch với user-friendly messages
-
-### Styling:
-- **Tailwind CSS:** Utility-first CSS framework
-- **Custom Classes:** Defined in index.css với @apply
-- **Responsive:** Mobile-first design approach
-
-## 🚀 **Deployment**
-
-### Build cho production:
+To generate an optimized production bundle:
 ```bash
 npm run build
 ```
-
-### Serve static files:
-```bash
-npx serve -s build
-```
-
-### Deploy options:
-- **Netlify:** Auto deploy từ Git
-- **Vercel:** React-optimized hosting
-- **Firebase:** Google hosting service
-
-## 📋 **To-Do List**
-
-### High Priority:
-- [ ] **Test Taking Page** - Giao diện làm bài chính
-- [ ] **Question Components** - Single choice, Multiple choice, Fill blank
-- [ ] **Timer Component** - Đếm ngược thời gian
-- [ ] **Progress Bar** - Hiển thị tiến độ làm bài
-
-### Medium Priority:
-- [ ] **Audio Player** - Hỗ trợ file âm thanh
-- [ ] **Result Page** - Hiển thị kết quả chi tiết
-- [ ] **Loading States** - Skeleton loading
-- [ ] **Error Boundaries** - Error handling
-
-### Low Priority:
-- [ ] **Dark Mode** - Theme switching
-- [ ] **PWA Support** - Progressive Web App
-- [ ] **Offline Mode** - Cached content
-- [ ] **Analytics** - Usage tracking
-
-## 🔧 **Troubleshooting**
-
-### Common Issues:
-
-#### 1. **API Connection Failed**
-```bash
-# Check backend server
-cd ../Server
-npm run dev
-
-# Check environment variables
-cat .env
-```
-
-#### 2. **Tailwind Not Working**
-```bash
-# Rebuild CSS
-npm run build
-
-# Check PostCSS config
-cat postcss.config.js
-```
-
-#### 3. **TypeScript Errors**
-```bash
-# Type check
-npx tsc --noEmit
-
-# Install missing types
-npm install @types/react @types/react-dom
-```
-
-## 📞 **Support**
-
-- **Backend API:** Xem docs ở `../Server/docs/`
-- **Postman Collection:** Import từ `../Server/docs/PlacementTest_Postman_Collection.json`
-- **Component Library:** Tham khảo Tailwind UI examples
-
-**Status:** ✅ **Core components sẵn sàng, cần phát triển test-taking flow**
+The compiled output is located in the `build/` directory, ready for deployment to any static hosting provider.
